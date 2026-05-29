@@ -769,12 +769,16 @@ Possible `message` values include: *Invalid authorization header*, *Authorizatio
 {
   "success": false,
   "error": {
-    "code": "HTTP_ERROR",
-    "message": "Rate limit exceeded",
-    "details": []
+      "code": "RATE_LIMIT_EXCEEDED",
+      "message": "Too many requests",
+      "details": [
+          {
+              "retry-after-sec": 39
+          }
+      ]
   },
-  "request_id": "1256e103-fd91-4043-9d8d-804924af6d1c",
-  "timestamp": "2026-05-26T13:42:51.502796+00:00"
+  "request_id": "f1045cbb-5c6c-4944-8684-65e8c1e23fc8",
+  "timestamp": "2026-05-29T13:21:45.489020+00:00"
 }
 ```
 
