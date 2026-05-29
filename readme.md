@@ -847,4 +847,4 @@ Contact [your support email / link] or open an issue on this GitHub repo.
 
 ---
 
-*Last updated: [date] · Maintained by [your name/team]*
+*Last updated: [29-05-2026] · Maintained by [aod-tech]*
