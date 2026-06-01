@@ -220,7 +220,7 @@ Here is roughly what `data.json` looks like after a few steps:
 
 > 📂 **Open your language's folder and follow its own README** for the exact commands to run each file. The API behaves identically regardless of language — see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
-> ⏳ **Download links expire** (see `expires_in_seconds`, e.g. 300 = 5 minutes). Download the file promptly, or re-run the matching "check" file to get a fresh link.
+> ⏳ **Download links expire** (see `expires_in_seconds`, e.g. 300 = 5 minutes , 0 = link expired ). Download the file promptly and store it.
 
 [⬆ Back to top](#top)
 
@@ -562,7 +562,7 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/jobs/JOB_ID_HER
 |-------|---------|
 | `data.status` | e.g. `Processing`, `Completed`, `Failed` |
 | `data.details.download_url` | Link to download the tagged PDF (only when `Completed`) |
-| `data.details.expires_in_seconds` | How long the link stays valid (e.g. 300 = 5 minutes) |
+| `data.details.expires_in_seconds` | How long the link stays valid (e.g. 300 = 5 minutes , 0 = Expired ) |
 | `error.code` / `error.detail` | Present only on failure |
 
 [⬆ Back to top](#top)
@@ -786,16 +786,16 @@ Python is available now in two styles — [`/python/sync`](python/sync) and [`/p
 Use **sync** if you're new or working one step at a time — it's simplest. Use **async** if you want to check many files or jobs at once for speed. Both make exactly the same API calls.
 
 **Q: My download link stopped working.**
-Download links expire after a short time (`expires_in_seconds`). Just re-run the matching "check" step to get a fresh link.
+Download links expire after a short time (`expires_in_seconds`). want new link please contact to aod-suport team.
 
 **Q: I keep getting 429 (too many requests).**
 You're calling too fast. See [Section 6 — Rate limits](#6-rate-limits). Wait the number of seconds shown in `retry-after-sec` and try again.
 
 **Q: A URL failed with "unsupported source".**
-Only **s3** and **gdrive** signed URLs are supported. Make sure your URL comes from one of those sources and hasn't expired.
+Only **S3** and **Google Drive** signed URLs are supported right now. Make sure your URL comes from one of those sources and hasn't expired. We currently support S3 and Google Drive, with other cloud platform integrations coming soon. For questions about cloud storage integration, reach out to aod-support.
 
 **Q: Where do I get help?**
-Contact [your support email / link] or open an issue on this GitHub repo. Include the `request_id` from the error response.
+Contact aod@netralabs.ai 
 
 ---
 
