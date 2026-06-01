@@ -34,8 +34,8 @@ This guide is written so that **anyone**  can call these APIs , Just follow the 
 
 The Accessibility On Demand API helps you turn ordinary PDF files into accessible ones that people using screen readers and other assistive tools can read properly. You upload a PDF, the API adds the accessibility tags for you, and you can download the tagged version back. You can also ask the API for an **axes4 accessibility score**, which tells you how accessible the tagged PDF is.
 
-- **Base URL:** `https://staging.api.accessibilityondemand.space/api`
-  *(This is the web address all the APIs live under. Every call starts with this, followed by the specific endpoint — for example `https://staging.api.accessibilityondemand.space/api/file-upload`.)*
+- **Base URL:** `https://staging.api.accessibilityondemand.space/api/v1`
+  *(This is the web address all the APIs live under. Every call starts with this, followed by the specific endpoint — for example `https://staging.api.accessibilityondemand.space/api/v1/file-upload`.)*
 - **Environment:** This is the **staging** (testing) environment.
 - **Authentication:** Bearer token (an API key you send with every request).
 - **Data format:** JSON (a simple text format for sending and receiving data).
@@ -257,7 +257,7 @@ Starts uploading one or more files from signed URLs. Returns a `file_id` for eac
 **Request**
 
 ```bash
-curl -X POST "https://staging.api.accessibilityondemand.space/api/file-upload" \
+curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/file-upload" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx" \
   -H "Content-Type: application/json" \
   -d '{
@@ -388,7 +388,7 @@ Returns whether a file has finished uploading.
 **Request**
 
 ```bash
-curl -X GET "https://staging.api.accessibilityondemand.space/api/file-upload/aaa950240561cd149157e054" \
+curl -X GET "https://staging.api.accessibilityondemand.space/api/v1/file-upload/aaa950240561cd149157e054" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx"
 ```
 
@@ -477,7 +477,7 @@ Sends an uploaded file for tagging. Returns a `job_id`.
 **Request**
 
 ```bash
-curl -X POST "https://staging.api.accessibilityondemand.space/api/jobs" \
+curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/jobs" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx" \
   -H "Content-Type: application/json" \
   -d '{
@@ -520,7 +520,7 @@ Returns the job status and, when finished, a download link for the tagged PDF.
 **Request**
 
 ```bash
-curl -X GET "https://staging.api.accessibilityondemand.space/api/jobs/JOB_ID_HERE" \
+curl -X GET "https://staging.api.accessibilityondemand.space/api/v1/jobs/JOB_ID_HERE" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx"
 ```
 
@@ -578,7 +578,7 @@ Requests an axes4 accessibility score report for a file. Returns a report `job_i
 **Request**
 
 ```bash
-curl -X POST "https://staging.api.accessibilityondemand.space/api/report" \
+curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/report" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx" \
   -H "Content-Type: application/json" \
   -d '{
@@ -619,7 +619,7 @@ Returns the report status and, when ready, a download link for the score report 
 **Request**
 
 ```bash
-curl -X GET "https://staging.api.accessibilityondemand.space/api/report/JOB_ID_HERE" \
+curl -X GET "https://staging.api.accessibilityondemand.space/api/v1/report/JOB_ID_HERE" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx"
 ```
 
