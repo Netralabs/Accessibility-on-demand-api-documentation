@@ -175,7 +175,7 @@ The flow is the same in every language. To make it easy, each language has its *
 |----------|--------|--------|
 | Python (sync)  | [`/python/sync`](python/sync)   | ✅ Available |
 | Python (async) | [`/python/async`](python/async) | ✅ Available |
-| Node.js  | [`/node`](node)     | 🔜 Coming soon |
+| Node.js  | [`/node`](node)     | ✅ Available |
 | Java     | [`/java`](java)     | 🔜 Coming soon |
 | .NET     | [`/dotnet`](dotnet) | 🔜 Coming soon |
 
@@ -779,7 +779,7 @@ When contacting support, include the `request_id` — it lets us find your exact
 Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
 
 **Q: Which languages are supported?**
-Python is available now in two styles — [`/python/sync`](python/sync) and [`/python/async`](python/async). Node.js, Java, and .NET are coming, each with its own folder and the same 6 files. The API works the same in any language; see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
+Python is available now in two styles — [`/python/sync`](python/sync) and [`/python/async`](python/async) — and Node.js in [`/node`](node). Java and .NET are coming, each with its own folder and the same 6 files. The API works the same in any language; see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
 **Q: Should I use the sync or async Python code?**
 Use **sync** if you're new or working one step at a time — it's simplest. Use **async** if you want to check many files or jobs at once for speed. Both make exactly the same API calls.
