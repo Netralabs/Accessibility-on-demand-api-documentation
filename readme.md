@@ -749,7 +749,7 @@ You're calling too fast. The upload and job endpoints have a cooldown — wait t
 Only **s3** and **gdrive** signed URLs are supported. Make sure your URL comes from one of those sources and hasn't expired.
 
 **Q: Where do I get help?**
-Contact [your support email / link] or open an issue on this GitHub repo. Include the `request_id` from the error response.
+Contact aod-support team . Include the `file_id / job_id` from the error response.
 
 ---
 
