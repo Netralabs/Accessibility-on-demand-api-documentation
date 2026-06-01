@@ -4,7 +4,7 @@
 
 > The Accessibility On Demand API lets you make PDFs accessible: upload a PDF, get back a tagged (accessibility-enhanced) version, and generate an axes4 accessibility score for the tagged PDF.
 
-This guide is written so that **anyone** - can call these APIs , Just follow the steps in order. The API works the same way no matter which programming language you use.
+This guide is written so that **anyone**  can call these APIs , Just follow the steps in order. The API works the same way no matter which programming language you use.
 
 ---
 
@@ -15,8 +15,9 @@ This guide is written so that **anyone** - can call these APIs , Just follow the
 3. [How to get your API Key](#3-how-to-get-your-api-key)
 4. [Where to put your API Key](#4-where-to-put-your-api-key)
 5. [List of all APIs (what each one does)](#5-list-of-all-apis-what-each-one-does)
-6. [How to call the APIs (pick your language)](#6-how-to-call-the-apis-pick-your-language)
-7. [Full examples for every endpoint (curl + responses)](#7-full-examples-for-every-endpoint-curl--responses)
+6. [Rate limits](#6-rate-limits)
+7. [How to call the APIs (pick your language)](#7-how-to-call-the-apis-pick-your-language)
+8. [Full examples for every endpoint (curl + responses)](#8-full-examples-for-every-endpoint-curl--responses)
    - [Endpoint 1 — Upload files](#endpoint-1--upload-files)
    - [Endpoint 2 — Check upload status](#endpoint-2--check-upload-status)
    - [Endpoint 3 — Start a processing job](#endpoint-3--start-a-processing-job)
@@ -24,8 +25,8 @@ This guide is written so that **anyone** - can call these APIs , Just follow the
    - [Endpoint 5 — Request a score report](#endpoint-5--request-a-score-report)
    - [Endpoint 6 — Get the score report](#endpoint-6--get-the-score-report)
    - [Common errors (all endpoints)](#common-errors-all-endpoints)
-8. [Understanding errors](#8-understanding-errors)
-9. [FAQ](#9-faq)
+9. [Understanding errors](#9-understanding-errors)
+10. [FAQ](#10-faq)
 
 ---
 
@@ -126,16 +127,59 @@ You don't need to set this up by hand — the ready-made files in each language 
 
 ---
 
-## 6. How to call the APIs (pick your language)
+## 6. Rate limits
+
+To keep the service fast and fair for everyone, some endpoints limit how often you can call them. If you go over a limit, the API replies with **`429 Too Many Requests`** and a `retry-after-sec` value telling you how many seconds to wait before trying again.
+
+**A base limit applies to all endpoints:**
+
+- **1 request per second, per user.**
+
+**Two endpoints have an extra cooldown** on top of that base limit:
+
+| Endpoint | Extra cooldown | Example |
+|----------|----------------|---------|
+| `POST /file-upload` | Equal to the **number of signed URLs** you send (1 URL = ~1 second) | Sending 5 URLs → wait about 5 seconds before the next call |
+| `POST /jobs` | The **number of pages** in the file, divided by 10 | A 100-page file → wait about 10 seconds (100 ÷ 10) |
+
+The other endpoints (the GET status checks and `POST /report`) only have the base 1-request-per-second limit.
+
+When you hit a limit, you'll get a response like this:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests",
+    "details": [
+      { "retry-after-sec": 39 }
+    ]
+  },
+  "request_id": "f1045cbb-5c6c-4944-8684-65e8c1e23fc8",
+  "timestamp": "2026-05-29T13:21:45.489020+00:00"
+}
+```
+
+Just wait the number of seconds shown in `retry-after-sec`, then try again.
+
+[⬆ Back to top](#top)
+
+---
+
+## 7. How to call the APIs (pick your language)
 
 The flow is the same in every language. To make it easy, each language has its **own folder** in this repository with **6 ready-to-run files** — one per step. You only edit a clearly marked section at the top of each file (your API key and inputs); the rest runs by itself.
 
 | Language | Folder | Status |
 |----------|--------|--------|
-| Python   | [`/python`](python) | ✅ Available |
+| Python (sync)  | [`/python/sync`](python/sync)   | ✅ Available |
+| Python (async) | [`/python/async`](python/async) | ✅ Available |
 | Node.js  | [`/node`](node)     | 🔜 Coming soon |
 | Java     | [`/java`](java)     | 🔜 Coming soon |
 | .NET     | [`/dotnet`](dotnet) | 🔜 Coming soon |
+
+> **Sync vs async (Python):** Use **sync** if you're new or doing things one step at a time — it's the simplest. Use **async** if you want to check many files/jobs at the same time for speed. Both do exactly the same API calls.
 
 ### The flow (same for every language)
 
@@ -173,7 +217,7 @@ Here is roughly what `data.json` looks like after a few steps:
 }
 ```
 
-> 📂 **Open your language's folder and follow its own README** for the exact commands to run each file. The API behaves identically regardless of language — see [Section 7](#7-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
+> 📂 **Open your language's folder and follow its own README** for the exact commands to run each file. The API behaves identically regardless of language — see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
 > ⏳ **Download links expire** (see `expires_in_seconds`, e.g. 300 = 5 minutes). Download the file promptly, or re-run the matching "check" file to get a fresh link.
 
@@ -181,7 +225,7 @@ Here is roughly what `data.json` looks like after a few steps:
 
 ---
 
-## 7. Full examples for every endpoint (curl + responses)
+## 8. Full examples for every endpoint (curl + responses)
 
 This section shows the **raw request and response** for each API, using `curl` (a command-line tool available on Mac, Linux, and Windows). Use it to understand exactly what each endpoint expects and returns — useful for debugging or for calling the API in any language.
 
@@ -207,7 +251,7 @@ Jump to an endpoint:
 
 Starts uploading one or more files from signed URLs. Returns a `file_id` for each accepted file.
 
-> ⏱️ **Rate limit:** 1 request per second per user. In addition, the cooldown after a request equals the **number of signed URLs** you send (number of URLs = number of seconds to wait). For example, sending 5 URLs means waiting about 5 seconds before the next call.
+> ⏱️ **Rate limited** — see [Section 6](#6-rate-limits). Cooldown grows with the number of URLs you send.
 
 **Request**
 
@@ -427,9 +471,7 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/file-upload/aaa
 
 Sends an uploaded file for tagging. Returns a `job_id`.
 
-> ⏱️ **Rate limit:** 1 request per second per user. In addition, the cooldown depends on the **number of pages** in the file, divided by 10. For example, a 100-page file gives a cooldown of about 10 seconds (100 ÷ 10).
->
-> *(This divisor may change if the backend logic is updated.)*
+> ⏱️ **Rate limited** — see [Section 6](#6-rate-limits). Cooldown depends on the number of pages in the file.
 
 **Request**
 
@@ -673,7 +715,7 @@ Possible `message` values include: *Invalid authorization header*, *Authorizatio
 }
 ```
 
-This applies mainly to **`POST /file-upload`** and **`POST /jobs`** (see their rate-limit notes above). The `retry-after-sec` value tells you how many seconds to wait before trying again. *(Rate limits may change if the backend logic is updated.)*
+See [Section 6 — Rate limits](#6-rate-limits) for details. The `retry-after-sec` value tells you how many seconds to wait before trying again.
 
 **Server error — `500 Internal Server Error`** (problem on our side)
 
@@ -696,7 +738,7 @@ For a `500`, wait a moment and try again. If it keeps happening, contact support
 
 ---
 
-## 8. Understanding errors
+## 9. Understanding errors
 
 When something goes wrong, the API sends back a **status code** and a message. Here are the ones you may see.
 
@@ -711,7 +753,7 @@ When something goes wrong, the API sends back a **status code** and a message. H
 | 405  | Method not allowed | Wrong method, or a required path value (like a file_id) is missing |
 | 409  | Conflict | A conflict, such as reprocessing something already in progress |
 | 422  | Validation error | Your request body failed validation — check the `details` |
-| 429  | Too many requests | You're calling too fast — wait the `retry-after-sec` seconds |
+| 429  | Too many requests | You're calling too fast — wait the `retry-after-sec` seconds (see Section 6) |
 | 500  | Server error | Problem on our side — try again later |
 
 Every error response follows the same shape:
@@ -731,25 +773,28 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ---
 
-## 9. FAQ
+## 10. FAQ
 
 **Q: I get a 401 error. Why?**
 Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
 
 **Q: Which languages are supported?**
-Python is available now in the [`/python`](python) folder. Node.js, Java, and .NET are coming — each will have its own folder with the same 6 files. The API works the same in any language; see [Section 7](#7-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses you can translate into any language.
+Python is available now in two styles — [`/python/sync`](python/sync) and [`/python/async`](python/async). Node.js, Java, and .NET are coming, each with its own folder and the same 6 files. The API works the same in any language; see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
+
+**Q: Should I use the sync or async Python code?**
+Use **sync** if you're new or working one step at a time — it's simplest. Use **async** if you want to check many files or jobs at once for speed. Both make exactly the same API calls.
 
 **Q: My download link stopped working.**
 Download links expire after a short time (`expires_in_seconds`). Just re-run the matching "check" step to get a fresh link.
 
 **Q: I keep getting 429 (too many requests).**
-You're calling too fast. The upload and job endpoints have a cooldown — wait the number of seconds shown in `retry-after-sec` (or see the rate-limit notes in Section 7) and try again.
+You're calling too fast. See [Section 6 — Rate limits](#6-rate-limits). Wait the number of seconds shown in `retry-after-sec` and try again.
 
 **Q: A URL failed with "unsupported source".**
 Only **s3** and **gdrive** signed URLs are supported. Make sure your URL comes from one of those sources and hasn't expired.
 
 **Q: Where do I get help?**
-Contact aod-support team . Include the `file_id / job_id` from the error response.
+Contact [your support email / link] or open an issue on this GitHub repo. Include the `request_id` from the error response.
 
 ---
 

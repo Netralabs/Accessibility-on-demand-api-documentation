@@ -22,7 +22,7 @@ to "uploaded" once the upload finishes.
 """
 
 import requests
-from helper import BASE_URL, build_headers, save_value, show_response, get_value
+from python.sync.helper import BASE_URL, build_headers, save_value, show_response, get_value
 
 # ============================================================
 # ===== EDIT HERE =====

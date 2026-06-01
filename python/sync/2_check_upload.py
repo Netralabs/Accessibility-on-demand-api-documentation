@@ -8,7 +8,7 @@ How to run:  python 2_check_upload.py
 """
 
 import requests
-from helper import BASE_URL, build_headers, get_value, show_response, save_value
+from python.sync.helper import BASE_URL, build_headers, get_value, show_response, save_value
 
 # ============================================================
 # ===== EDIT HERE =====
