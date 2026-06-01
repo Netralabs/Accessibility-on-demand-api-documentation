@@ -45,7 +45,7 @@ The Accessibility On Demand API helps you turn ordinary PDF files into accessibl
 
 ## 2. Before you start (what you need)
 
-To call this API from your laptop, you need two things:
+To call this API , you need two things:
 
 1. **A way to run code** in the language of your choice — Python, Node.js, Java, or .NET. Pick whichever you're comfortable with.
 2. **A code editor or terminal** to edit and run the files — for example, VS Code or your system's built-in terminal.
