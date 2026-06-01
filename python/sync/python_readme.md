@@ -2,7 +2,7 @@
 
 This folder contains **6 ready-to-run Python files**, one for each API step, plus a shared `helper.py`. You run them in order. The only thing you edit is the `===== EDIT HERE =====` section at the top of each file.
 
-For the full API reference (every endpoint, request, and response), see the [main README](../readme.md).
+For the full API reference (every endpoint, request, and response), see the [main README](../../readme.md).
 
 ---
 
@@ -189,4 +189,4 @@ python 6_check_report.py
 - **429 Too Many Requests** — you're calling too fast. Wait the `retry-after-sec` seconds shown in the response and try again.
 - **A URL failed with "unsupported source"** — only **s3** and **gdrive** signed URLs are supported.
 
-For the complete list of status codes and error shapes, see Section 8 of the [main README](../readme.md).
+For the complete list of status codes and error shapes, see Section 8 of the [main README](../../readme.md).
