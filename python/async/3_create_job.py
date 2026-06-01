@@ -42,7 +42,7 @@ async def main():
     }
 
     print(f"Starting a job for file_id {FILE_ID} at level {LEVEL} ...")
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient() as client:
         response = await client.post(f"{BASE_URL}/jobs", headers=build_headers(API_KEY), json=payload)
 
     show_response(response)

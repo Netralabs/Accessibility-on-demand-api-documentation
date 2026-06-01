@@ -80,7 +80,7 @@ async def main():
 
     changed = False
     if pending_entries:
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient() as client:
             results = await asyncio.gather(
                 *[check_one(client, e, headers) for e in pending_entries]
             )

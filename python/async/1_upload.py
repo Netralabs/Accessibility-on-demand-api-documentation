@@ -62,7 +62,7 @@ def extract_detail_blocks(body):
 
 async def main():
     print("Uploading files...")
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient() as client:
         response = await client.post(ENDPOINT, headers=build_headers(API_KEY), json=payload)
 
     show_response(response)
