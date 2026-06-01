@@ -1,7 +1,7 @@
 <a id="top"></a>
 # AOD-API — Accessibility On Demand API
 
-> The Accessibility On Demand API lets you make PDFs accessible: upload a PDF, get back a tagged (accessibility-enhanced) version, and generate an accessibility score for the tagged PDF.
+> The Accessibility On Demand API lets you make PDFs accessible: upload a PDF, get back a tagged (accessibility-enhanced) version, and generate an axes4 accessibility score for the tagged PDF.
 
 This guide is written so that **anyone** — even someone who has never written code — can call these APIs from their own laptop. Just follow the steps in order.
 
@@ -39,32 +39,17 @@ The Accessibility On Demand API helps you turn ordinary PDF files into accessibl
 ---
 ## 2. Before you start (what you need)
 
-To call this API from your laptop, you'll need a few basic things set up. You don't need to be a programmer — just have these ready:
+To call this API from your laptop, you need two things:
 
-1. **A way to run code on your computer.** In this guide we use **Python** (version 3.8 or newer), a popular and beginner-friendly language.
-2. **A package installer** to add small helper tools. For Python this is **pip**, which comes bundled with Python automatically.
-3. **A code editor or terminal** to write and run your code — for example, VS Code, or the built-in terminal on your laptop.
+1. **A way to run code** in the language of your choice (Python, Node.js, Java, or .NET — pick whichever you're comfortable with).
+2. **A code editor or terminal** to edit and run the files — for example, VS Code or your system terminal.
 
-> 💡 **New to this?** Setting up Python and a code editor is a one-time task that takes about 10–15 minutes. There are plenty of free, up-to-date guides to walk you through it — a quick search for "how to install Python" or "how to set up VS Code," or asking an AI assistant, will get you there. Pick whichever resource (article, video, or official docs) suits you best.
+> 💡 **New to this?** Installing a language and editor is a one-time setup that takes about 10–15 minutes. Plenty of free, up-to-date guides cover it — a quick search like "how to install Python" (or Node.js / Java / .NET) or asking an AI assistant will get you set up. Pick whichever resource suits you.
 
-Once Python is installed and working, you're ready to move on. The rest of this guide focuses on **how to actually call the API** — that's the part we'll teach you in detail.
-You need three things installed on your laptop:
-
-| # | Thing | Why | How to check |
-|---|-------|-----|--------------|
-| 1 | **Python** (version 3.8 or newer) | The language we use to call the API | Open a terminal and type `python --version` |
-| 2 | **pip** (comes with Python) | Lets you install helper tools | Type `pip --version` |
-| 3 | The **requests** library | Makes calling APIs easy | We install it in Step 6 |
-
-**How to open a terminal:**
-- **Windows:** Press the Windows key, type `cmd`, press Enter.
-- **Mac:** Press `Cmd + Space`, type `Terminal`, press Enter.
-
-If `python --version` shows an error, download Python from <https://www.python.org/downloads/> and install it (tick the box "Add Python to PATH" during installation).
-
-pip install requests
+This guide focuses on **how to call the API**, not on installation — so once your language is installed, you're ready.
 
 [⬆ Back to top](#top)
+
 ---
 
 ## 3. How to get your API Key
