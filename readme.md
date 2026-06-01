@@ -122,10 +122,6 @@ You don't need to set this up by hand — the ready-made files in each language 
 | 5 | POST   | `/report`                     | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
 | 6 | GET    | `/report/{job_id}`            | Returns the report **status** and a **link to the generated score report PDF** for the file. |
 
-**Quick meaning of the two words:**
-- **GET** = "Give me information." (You usually send nothing extra.)
-- **POST** = "Here is some data, please save/process it." (You send a payload — JSON data in the request body.)
-
 [⬆ Back to top](#top)
 
 ---
