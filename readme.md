@@ -121,12 +121,6 @@ You don't need to set this up by hand — the code examples later in this guide 
 | 5 | POST   | `/report`                     | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
 | 6 | GET    | `/report/{job_id}`            | Returns the report **status** and a **link to the generated score report PDF** for the file. |
 
-**Quick meaning of the two words:**
-- **GET** = "Give me information." (You usually send nothing extra.)
-- **POST** = "Here is some data, please save/process it." (You send a payload — see below.)
-
-A **payload** (also called the "request body") is the data you send with a POST request, written in JSON.
-
 [⬆ Back to top](#top)
 
 ---
@@ -822,16 +816,6 @@ When something goes wrong, the API sends back a **status code** and a message.
 | 429  | Too many requests | You're calling too fast — wait a bit |
 | 500  | Server error | Problem on our side — try again later |
 
-**Tip:** Always print `response.status_code` to see what happened.
-
-```python
-if response.status_code == 200:
-    print("Worked! Here is the data:")
-    print(response.json())
-else:
-    print("Something went wrong:", response.status_code)
-    print(response.text)
-```
 
 ---
 
