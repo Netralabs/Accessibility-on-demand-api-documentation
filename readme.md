@@ -52,7 +52,7 @@ To call this API from your laptop, you need two things:
 
 > 💡 **New to this?** Installing a language and a code editor is a one-time setup that takes about 10–15 minutes. There are plenty of free, up-to-date guides for it — a quick search like "how to install Python" (or Node.js / Java / .NET) or asking an AI assistant will get you set up. Pick whichever resource (article, video, or official docs) suits you best.
 
-This guide focuses on **how to call the API**, not on installation. Once your chosen language is installed, you're ready to go.
+This guide focuses on **how to call the API**. Once your chosen language is installed, you're ready to go.
 
 [⬆ Back to top](#top)
 
