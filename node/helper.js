@@ -15,7 +15,7 @@ const fs = require("fs");
 const path = require("path");
 
 // The web address all the APIs live under (from Section 1 of the README).
-const BASE_URL = "https://staging.api.accessibilityondemand.space/api";
+const BASE_URL = "https://staging.api.accessibilityondemand.space/api/v1";
 
 // 'data.json' is created in the same folder as these scripts.
 const DATA_FILE = path.join(__dirname, "data.json");

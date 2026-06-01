@@ -14,7 +14,7 @@ import json
 import os
 
 # The web address all the APIs live under (from Section 1 of the README).
-BASE_URL = "https://staging.api.accessibilityondemand.space/api"
+BASE_URL = "https://staging.api.accessibilityondemand.space/api/v1"
 
 # 'data.json' is created in the same folder as these scripts.
 DATA_FILE = os.path.join(os.path.dirname(__file__), "data.json")
