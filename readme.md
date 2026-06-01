@@ -100,7 +100,7 @@ You don't need to set this up by hand — the code examples later in this guide 
 | # | Method | Endpoint (add after Base URL) | What it does |
 |---|--------|-------------------------------|--------------|
 | 1 | POST   | `/file-upload`                | Starts a file upload. You send **signed_urls** in the payload, and it returns the **file_ids** of the uploaded URLs. |
-| 2 | GET    | `/file-upload/{file_id}`      | Returns the upload **status** (`uploading` / `uploaded`) for the given file_id. |
+| 2 | GET    | `/file-upload/{file_id}`      | Returns the upload **status** (`Uploading` / `Uploaded`) for the given file_id. |
 | 3 | POST   | `/jobs`                       | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id** and a **level** (1 or 2). Returns a **job_id**. |
 | 4 | GET    | `/jobs/{job_id}`              | Returns the processing **status** and a **link to the tagged PDF**. |
 | 5 | POST   | `/report`                     | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
