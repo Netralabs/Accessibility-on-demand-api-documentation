@@ -1,11 +1,13 @@
 <a id="top"></a>
+
 # AOD-API — Accessibility On Demand API
 
 > The Accessibility On Demand API lets you make PDFs accessible: upload a PDF, get back a tagged (accessibility-enhanced) version, and generate an axes4 accessibility score for the tagged PDF.
 
-This guide is written so that **anyone** — even someone who has never written code — can call these APIs from their own laptop. Just follow the steps in order.
+This guide is written so that **anyone** — even someone who has never written code — can call these APIs from their own laptop. Just follow the steps in order. The API works the same way no matter which programming language you use.
 
 ---
+
 ## Table of Contents
 
 1. [What is this API?](#1-what-is-this-api)
@@ -13,7 +15,7 @@ This guide is written so that **anyone** — even someone who has never written 
 3. [How to get your API Key](#3-how-to-get-your-api-key)
 4. [Where to put your API Key](#4-where-to-put-your-api-key)
 5. [List of all APIs (what each one does)](#5-list-of-all-apis-what-each-one-does)
-6. [How to call the APIs using Python (step by step)](#6-how-to-call-the-apis-using-python-step-by-step)
+6. [How to call the APIs (pick your language)](#6-how-to-call-the-apis-pick-your-language)
 7. [Full examples for every endpoint (curl + responses)](#7-full-examples-for-every-endpoint-curl--responses)
    - [Endpoint 1 — Upload files](#endpoint-1--upload-files)
    - [Endpoint 2 — Check upload status](#endpoint-2--check-upload-status)
@@ -29,24 +31,28 @@ This guide is written so that **anyone** — even someone who has never written 
 
 ## 1. What is this API?
 
-The Accessibility On Demand API helps you turn ordinary PDF files into accessible ones that people using screen readers and other assistive tools can read properly. You upload a PDF, the API adds the accessibility tags for you, and you can download the tagged version back. You can also ask the API for an axes4 accessibility score, which tells you how accessible the tagged PDF is.
+The Accessibility On Demand API helps you turn ordinary PDF files into accessible ones that people using screen readers and other assistive tools can read properly. You upload a PDF, the API adds the accessibility tags for you, and you can download the tagged version back. You can also ask the API for an **axes4 accessibility score**, which tells you how accessible the tagged PDF is.
 
 - **Base URL:** `https://staging.api.accessibilityondemand.space/api`
   *(This is the web address all the APIs live under. Every call starts with this, followed by the specific endpoint — for example `https://staging.api.accessibilityondemand.space/api/file-upload`.)*
-- **Authentication:** Bearer token (an API key you send with every request)
-- **Data format:** JSON (a simple text format for sending and receiving data)
+- **Environment:** This is the **staging** (testing) environment.
+- **Authentication:** Bearer token (an API key you send with every request).
+- **Data format:** JSON (a simple text format for sending and receiving data).
+
+[⬆ Back to top](#top)
 
 ---
+
 ## 2. Before you start (what you need)
 
 To call this API from your laptop, you need two things:
 
-1. **A way to run code** in the language of your choice (Python, Node.js, Java, or .NET — pick whichever you're comfortable with).
-2. **A code editor or terminal** to edit and run the files — for example, VS Code or your system terminal.
+1. **A way to run code** in the language of your choice — Python, Node.js, Java, or .NET. Pick whichever you're comfortable with.
+2. **A code editor or terminal** to edit and run the files — for example, VS Code or your system's built-in terminal.
 
-> 💡 **New to this?** Installing a language and editor is a one-time setup that takes about 10–15 minutes. Plenty of free, up-to-date guides cover it — a quick search like "how to install Python" (or Node.js / Java / .NET) or asking an AI assistant will get you set up. Pick whichever resource suits you.
+> 💡 **New to this?** Installing a language and a code editor is a one-time setup that takes about 10–15 minutes. There are plenty of free, up-to-date guides for it — a quick search like "how to install Python" (or Node.js / Java / .NET) or asking an AI assistant will get you set up. Pick whichever resource (article, video, or official docs) suits you best.
 
-This guide focuses on **how to call the API** — so once your language is installed, you're ready.
+This guide focuses on **how to call the API**, not on installation. Once your chosen language is installed, you're ready to go.
 
 [⬆ Back to top](#top)
 
@@ -67,32 +73,42 @@ Follow these steps to generate a key:
 5. On the user's account, click the **three dots (⋮)** and open **Detail**.
 6. Click **"Generate API Key"**.
 7. A new API key will appear on the screen, looking something like this:
+
    ```
    aod-xxxxxxxxxxxxxxxxxxxx
    ```
+
 8. **Copy it immediately** (or take a screenshot). This is the token you'll use in the Authorization header.
 
 > ⚠️ **Keep your API key private.** Share it only with the specific user it was created for. Never publish it or post it publicly (on GitHub, social media, screenshots, etc.) — anyone who has the key can use the API as that user and spend their credits.
 
 [⬆ Back to top](#top)
+
 ---
+
 ## 4. Where to put your API Key
 
 The API key is sent with every request inside something called a **header**, in this exact format:
 
+```
 Authorization: Bearer YOUR_API_KEY_HERE
+```
 
 Example:
+
+```
 Authorization: Bearer aod-xxxxxxxxxxx
+```
 
 Breaking that down:
 - `Authorization` is the name of the header.
 - `Bearer` must be written exactly as shown, followed by **one space**.
 - `aod-xxxxxxxxxxx` is your actual API key (the one you copied in Section 3).
 
-You don't need to set this up by hand — the code examples later in this guide do it for you. You only have to paste your key in **one place** (shown in Section 6), and the rest is handled automatically.
+You don't need to set this up by hand — the ready-made files in each language folder do it for you. You only have to paste your key in **one place** (the `===== EDIT HERE =====` section at the top of each file), and the rest is handled automatically.
 
 [⬆ Back to top](#top)
+
 ---
 
 ## 5. List of all APIs (what each one does)
@@ -106,174 +122,64 @@ You don't need to set this up by hand — the code examples later in this guide 
 | 5 | POST   | `/report`                     | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
 | 6 | GET    | `/report/{job_id}`            | Returns the report **status** and a **link to the generated score report PDF** for the file. |
 
+**Quick meaning of the two words:**
+- **GET** = "Give me information." (You usually send nothing extra.)
+- **POST** = "Here is some data, please save/process it." (You send a payload — JSON data in the request body.)
+
 [⬆ Back to top](#top)
 
 ---
 
-## 6. How to call the APIs using Python (step by step)
+## 6. How to call the APIs (pick your language)
 
-In this section we call the APIs using **Python**. To keep things simple, each API has its **own ready-made file** in this repository, inside the `python/` folder:
+The flow is the same in every language. To make it easy, each language has its **own folder** in this repository with **6 ready-to-run files** — one per step. You only edit a clearly marked section at the top of each file (your API key and inputs); the rest runs by itself.
 
-| Step | File | What it does |
-|------|------|--------------|
-| 1 | `python/1_upload.py`        | Upload your file(s) → get **file_ids** (status starts as *Uploading*) |
-| 2 | `python/2_check_upload.py`  | Check **all** uploads → update each to *uploaded* when ready |
-| 3 | `python/3_create_job.py`    | Start processing one file → get a **job_id** |
-| 4 | `python/4_check_job.py`     | Check **all** jobs → get the **tagged PDF** download link |
-| 5 | `python/5_create_report.py` | Request a score report for one file → get a **report job_id** |
-| 6 | `python/6_check_report.py`  | Check **all** reports → get the **score report PDF** download link |
+| Language | Folder | Status |
+|----------|--------|--------|
+| Python   | [`/python`](python) | ✅ Available |
+| Node.js  | [`/node`](node)     | 🔜 Coming soon |
+| Java     | [`/java`](java)     | 🔜 Coming soon |
+| .NET     | [`/dotnet`](dotnet) | 🔜 Coming soon |
 
-### How it works (read this once)
+### The flow (same for every language)
 
-- Each file has a clearly marked section at the top called **`# ===== EDIT HERE =====`**. That's the **only** part you change.
-- When you run a file, it **prints the full result on screen** AND **saves the important values into a shared file called `data.json`** in the same folder.
-- Values are saved as lists that also track a **status**, for example:
-  - `file_uploads` → `[{ "file_id", "status" }, ...]`
-  - `job_process` → `[{ "file_id", "job_id", "status", "details" }, ...]`
-  - `report_process` → `[{ "file_id", "job_id", "status", "details" }, ...]`
-- The "check" steps (2, 4, 6) automatically **loop through every item** in these lists, **skip anything already finished**, and **update the status** of the rest. You can run them again and again until everything is done.
+1. **Upload** your file(s) → get a `file_id` for each (status starts as `Uploading`).
+2. **Check upload** → repeat until the status is `Uploaded`.
+3. **Create a job** with a `file_id` and a level (1 or 2) → get a `job_id`.
+4. **Check the job** → when `Completed`, get the tagged-PDF download link.
+5. **Request a report** with a `file_id` → get a report `job_id`.
+6. **Check the report** → when `Completed`, get the score-report PDF download link.
 
-### One-time setup
+### How the ready-made files work
 
-1. Make sure you've installed Python and the `requests` library (a quick search or AI assistant can guide you — see Section 2).
-2. Open the `python/` folder.
-3. Open **each** file and paste your API key into the `API_KEY` variable at the top:
+- Each file has a section marked **`===== EDIT HERE =====`** at the top. That's the **only** part you change — your API key and your inputs.
+- Running a file **prints the result on screen** AND **saves the important values** (file_ids, job_ids, and their status) into a shared **`data.json`** file in that folder.
+- The "check" files (steps 2, 4, 6) automatically **loop through everything saved**, skip anything already finished, and update the rest. They are safe to run again and again until everything is done.
 
-```python
-   # ===== EDIT HERE =====
-   API_KEY = "aod-xxxxxxxxxxx"   # 👈 paste your key from Section 3
+Here is roughly what `data.json` looks like after a few steps:
+
+```json
+{
+  "file_uploads": [
+    { "file_id": "aaa950240561cd149157e054", "status": "Uploaded" }
+  ],
+  "job_process": [
+    {
+      "file_id": "aaa950240561cd149157e054",
+      "job_id": "job_123",
+      "status": "Completed",
+      "details": { "download_url": "...", "expires_in_seconds": 300 }
+    }
+  ],
+  "report_process": [
+    { "file_id": "aaa950240561cd149157e054", "job_id": "rep_123", "status": "queued" }
+  ]
+}
 ```
 
-You're now ready to run the steps in order.
+> 📂 **Open your language's folder and follow its own README** for the exact commands to run each file. The API behaves identically regardless of language — see [Section 7](#7-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
----
-
-### Step 1 — Upload your file(s) → `python/1_upload.py`
-
-**What to edit:** your API key, and paste your signed URL(s) into the `SIGNED_URLS` list.
-
-```python
-# ===== EDIT HERE =====
-API_KEY = "aod-xxxxxxxxxxx"
-SIGNED_URLS = [
-    "https://your-signed-url-1",
-    "https://your-signed-url-2",
-]
-DESCRIPTION = "description about batch - optional"
-```
-
-**Run it** (in your terminal, inside the `python/` folder):
-
-```bash
-python 1_upload.py
-```
-
-**What you get:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some URLs fail (status **207**), the script lists which ones and why, but still saves the ones that succeeded.
-**Next:** run Step 2 to check when they finish uploading.
-
----
-
-### Step 2 — Check upload status → `python/2_check_upload.py`
-
-**What to edit:** only your API key. The script checks **every** file from Step 1.
-
-```python
-# ===== EDIT HERE =====
-API_KEY = "aod-xxxxxxxxxxx"
-```
-
-**Run it:**
-
-```bash
-python 2_check_upload.py
-```
-
-**What you get:** the status of each file. Files already `uploaded` are skipped; the rest are updated. Re-run until all show `uploaded`.
-**Next:** once a file is `uploaded`, use its `file_id` in Step 3.
-
----
-
-### Step 3 — Start processing → `python/3_create_job.py`
-
-**What to edit:** paste the `file_id` you want to process, and choose the **level** (1 or 2).
-
-```python
-# ===== EDIT HERE =====
-API_KEY = "aod-xxxxxxxxxxx"
-FILE_ID = "paste-an-uploaded-file_id-here"
-LEVEL   = 1     # 1 or 2
-```
-
-**Run it:**
-
-```bash
-python 3_create_job.py
-```
-
-**What you get:** a `job_id`, saved to `data.json` under `job_process` with `status: "queued"`.
-**Next:** check it in Step 4.
-
----
-
-### Step 4 — Check job & get tagged PDF → `python/4_check_job.py`
-
-**What to edit:** only your API key. The script checks **every** job.
-
-```python
-# ===== EDIT HERE =====
-API_KEY = "aod-xxxxxxxxxxx"
-```
-
-**Run it:**
-
-```bash
-python 4_check_job.py
-```
-
-**What you get:** the status of each job. When a job is `Completed`, the script saves and prints the **tagged PDF `download_url`**. Jobs already `Completed`/`Failed` are skipped.
-
-> ⏳ **The download link expires** (see `expires_in_seconds`, e.g. 300 = 5 minutes). Download the PDF soon
-
----
-
-### Step 5 — Request a score report → `python/5_create_report.py`
-
-**What to edit:** paste the `file_id` you want a report for.
-
-```python
-# ===== EDIT HERE =====
-API_KEY = "aod-xxxxxxxxxxx"
-FILE_ID = "paste-a-file_id-here"
-```
-
-**Run it:**
-
-```bash
-python 5_create_report.py
-```
-
-**What you get:** a **report job_id**, saved to `data.json` under `report_process`.
-
----
-
-### Step 6 — Get the score report → `python/6_check_report.py`
-
-**What to edit:** only your API key. The script checks **every** report.
-
-```python
-# ===== EDIT HERE =====
-API_KEY = "aod-xxxxxxxxxxx"
-```
-
-**Run it:**
-
-```bash
-python 6_check_report.py
-```
-
-**What you get:** the status of each report. When `Completed`, the script saves and prints the **score report PDF `download_url`**.
-
-> ⏳ Like the tagged PDF, this link also expires.
+> ⏳ **Download links expire** (see `expires_in_seconds`, e.g. 300 = 5 minutes). Download the file promptly, or re-run the matching "check" file to get a fresh link.
 
 [⬆ Back to top](#top)
 
@@ -285,9 +191,9 @@ This section shows the **raw request and response** for each API, using `curl` (
 
 In every example, replace `aod-xxxxxxxxxxx` with your API key.
 
-> ℹ️ **About error messages:** where a `message` shows options separated by `/`, it means the API returns **one** of those messages depending on the situation — not all of them at once. Common errors that can occur on **any** endpoint (401, 422, 500, etc.) are listed once at the [end of this section](#common-errors-all-endpoints), so they aren't repeated for every endpoint.
+> ℹ️ **About error messages:** where a `message` shows options separated by `/`, it means the API returns **one** of those messages depending on the situation — not all of them at once. Common errors that can occur on **any** endpoint (401, 422, 429, 500, etc.) are listed once at the [end of this section](#common-errors-all-endpoints), so they aren't repeated for every endpoint.
 
----
+Jump to an endpoint:
 
 - [Endpoint 1 — Upload files](#endpoint-1--upload-files)
 - [Endpoint 2 — Check upload status](#endpoint-2--check-upload-status)
@@ -297,13 +203,15 @@ In every example, replace `aod-xxxxxxxxxxx` with your API key.
 - [Endpoint 6 — Get the score report](#endpoint-6--get-the-score-report)
 - [Common errors (all endpoints)](#common-errors-all-endpoints)
 
+---
+
 ### Endpoint 1 — Upload files
 
 `POST /file-upload`
 
 Starts uploading one or more files from signed URLs. Returns a `file_id` for each accepted file.
 
-> ⏱️ **Rate limit:** 1 request per second per user. In addition, the cooldown after a request equals the **number of signed URLs** you send (number of URLs = number of seconds to wait). For example, sending 5 URLs means waiting ~5 seconds before the next call.
+> ⏱️ **Rate limit:** 1 request per second per user. In addition, the cooldown after a request equals the **number of signed URLs** you send (number of URLs = number of seconds to wait). For example, sending 5 URLs means waiting about 5 seconds before the next call.
 
 **Request**
 
@@ -426,6 +334,8 @@ curl -X POST "https://staging.api.accessibilityondemand.space/api/file-upload" \
 | `failed_uploads[].detail` | Why it failed (e.g. unsupported source — only s3 / gdrive allowed) |
 | `request_id` | Unique ID for this request — quote it if contacting support |
 
+[⬆ Back to top](#top)
+
 ---
 
 ### Endpoint 2 — Check upload status
@@ -441,35 +351,35 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/file-upload/aaa
   -H "Authorization: Bearer aod-xxxxxxxxxxx"
 ```
 
-**Success — `200 OK`**
+**Success — `200 OK`** (still uploading)
 
 ```json
 {
-    "success": true,
-    "data": {
-        "file_id": "aaa950240561cd149157e054",
-        "uploading_status": "Uploading",
-        "uploading_error": null
-    },
-    "message": null,
-    "request_id": "e1bd07bf-e78c-4913-aedd-7e4ec9dd9187",
-    "timestamp": "2026-05-29T08:40:24.134330+00:00"
+  "success": true,
+  "data": {
+    "file_id": "aaa950240561cd149157e054",
+    "uploading_status": "Uploading",
+    "uploading_error": null
+  },
+  "message": null,
+  "request_id": "e1bd07bf-e78c-4913-aedd-7e4ec9dd9187",
+  "timestamp": "2026-05-29T08:40:24.134330+00:00"
 }
 ```
 
-**Success — `200 OK`**
+**Success — `200 OK`** (finished)
 
 ```json
 {
-    "success": true,
-    "data": {
-        "file_id": "aaa950240561cd149157e054",
-        "uploading_status": "Uploaded",
-        "uploading_error": null
-    },
-    "message": null,
-    "request_id": "e1bd07bf-e78c-4913-aedd-7e4ec9dd9187",
-    "timestamp": "2026-05-29T08:40:24.134330+00:00"
+  "success": true,
+  "data": {
+    "file_id": "aaa950240561cd149157e054",
+    "uploading_status": "Uploaded",
+    "uploading_error": null
+  },
+  "message": null,
+  "request_id": "e1bd07bf-e78c-4913-aedd-7e4ec9dd9187",
+  "timestamp": "2026-05-29T08:40:24.134330+00:00"
 }
 ```
 
@@ -477,29 +387,29 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/file-upload/aaa
 
 ```json
 {
-    "success": false,
-    "error": {
-        "code": "NOT_FOUND",
-        "message": "File id 6a1950240561cd149157e05 is not valid id",
-        "details": []
-    },
-    "request_id": "cc2200c3-c07a-4709-a107-5d0a4dd5886e",
-    "timestamp": "2026-05-29T12:17:03.273158+00:00"
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "File id 6a1950240561cd149157e05 is not a valid id",
+    "details": []
+  },
+  "request_id": "cc2200c3-c07a-4709-a107-5d0a4dd5886e",
+  "timestamp": "2026-05-29T12:17:03.273158+00:00"
 }
 ```
 
-**if not send file_id in path — `405 Method Not Allowed`**
+**No file_id in path — `405 Method Not Allowed`**
 
 ```json
 {
-    "success": false,
-    "error": {
-        "code": "HTTP_ERROR",
-        "message": "Method Not Allowed",
-        "details": []
-    },
-    "request_id": "b61cc546-3ec5-4bc3-9991-f977ec468ba1",
-    "timestamp": "2026-05-29T12:18:28.702943+00:00"
+  "success": false,
+  "error": {
+    "code": "HTTP_ERROR",
+    "message": "Method Not Allowed",
+    "details": []
+  },
+  "request_id": "b61cc546-3ec5-4bc3-9991-f977ec468ba1",
+  "timestamp": "2026-05-29T12:18:28.702943+00:00"
 }
 ```
 
@@ -511,6 +421,8 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/file-upload/aaa
 | `data.uploading_status` | `Uploading` while in progress, `Uploaded` when finished |
 | `data.uploading_error` | `null` if no error, otherwise the reason the upload failed |
 
+[⬆ Back to top](#top)
+
 ---
 
 ### Endpoint 3 — Start a processing job
@@ -519,7 +431,9 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/file-upload/aaa
 
 Sends an uploaded file for tagging. Returns a `job_id`.
 
-> ⏱️ **Rate limit:** 1 request per second per user. In addition, the cooldown depends on the **number of pages** in the file, divided by 10. For example, a 100-page file gives a cooldown of about 10 seconds (100 ÷ 10). 
+> ⏱️ **Rate limit:** 1 request per second per user. In addition, the cooldown depends on the **number of pages** in the file, divided by 10. For example, a 100-page file gives a cooldown of about 10 seconds (100 ÷ 10).
+>
+> *(This divisor may change if the backend logic is updated.)*
 
 **Request**
 
@@ -534,7 +448,6 @@ curl -X POST "https://staging.api.accessibilityondemand.space/api/jobs" \
 ```
 
 **Success — `200 OK`**
-
 
 ```json
 {
@@ -554,6 +467,8 @@ curl -X POST "https://staging.api.accessibilityondemand.space/api/jobs" \
 | `file_id` (request) | An uploaded file's ID |
 | `level` (request) | Processing level: `1` or `2` |
 | `data.job_id` | The job's ID — use it to check status in the next step |
+
+[⬆ Back to top](#top)
 
 ---
 
@@ -611,6 +526,8 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/jobs/JOB_ID_HER
 | `data.details.expires_in_seconds` | How long the link stays valid (e.g. 300 = 5 minutes) |
 | `error.code` / `error.detail` | Present only on failure |
 
+[⬆ Back to top](#top)
+
 ---
 
 ### Endpoint 5 — Request a score report
@@ -632,8 +549,6 @@ curl -X POST "https://staging.api.accessibilityondemand.space/api/report" \
 
 **Success — `200 OK`**
 
-> ⚠️ **Please confirm the exact shape** (assumed same as `/jobs`):
-
 ```json
 {
   "success": true,
@@ -652,6 +567,8 @@ curl -X POST "https://staging.api.accessibilityondemand.space/api/report" \
 | `file_id` (request) | The file to score |
 | `data.job_id` | The report job's ID — check it in the next step |
 
+[⬆ Back to top](#top)
+
 ---
 
 ### Endpoint 6 — Get the score report
@@ -668,8 +585,6 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/report/JOB_ID_H
 ```
 
 **Success — `200 OK`**
-
-> ⚠️ **Please confirm** (assumed same shape as `/jobs/{job_id}`):
 
 ```json
 {
@@ -693,6 +608,8 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/report/JOB_ID_H
 | `data.status` | e.g. `Processing`, `Completed`, `Failed` |
 | `data.details.download_url` | Link to download the score report PDF (only when `Completed`) |
 | `data.details.expires_in_seconds` | How long the link stays valid |
+
+[⬆ Back to top](#top)
 
 ---
 
@@ -741,27 +658,26 @@ Possible `details[].message` values include: *Field required*, *Input should be 
 
 Possible `message` values include: *Invalid authorization header*, *Authorization header missing*, or *Missing or invalid API key*.
 
-*(rate limit may change if backend logic is updated.)*
 **Rate limit exceeded — `429 Too Many Requests`** (you sent requests too quickly)
 
 ```json
 {
   "success": false,
   "error": {
-      "code": "RATE_LIMIT_EXCEEDED",
-      "message": "Too many requests",
-      "details": [
-          {
-              "retry-after-sec": 39
-          }
-      ]
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests",
+    "details": [
+      {
+        "retry-after-sec": 39
+      }
+    ]
   },
   "request_id": "f1045cbb-5c6c-4944-8684-65e8c1e23fc8",
   "timestamp": "2026-05-29T13:21:45.489020+00:00"
 }
 ```
 
-This applies mainly to **`POST /file-upload`** and **`POST /jobs`** (see their rate-limit notes above). If you hit this, wait the required number of seconds and try again.
+This applies mainly to **`POST /file-upload`** and **`POST /jobs`** (see their rate-limit notes above). The `retry-after-sec` value tells you how many seconds to wait before trying again. *(Rate limits may change if the backend logic is updated.)*
 
 **Server error — `500 Internal Server Error`** (problem on our side)
 
@@ -786,38 +702,59 @@ For a `500`, wait a moment and try again. If it keeps happening, contact support
 
 ## 8. Understanding errors
 
-When something goes wrong, the API sends back a **status code** and a message.
+When something goes wrong, the API sends back a **status code** and a message. Here are the ones you may see.
 
 | Code | Meaning | What to do |
 |------|---------|------------|
 | 200  | Success | Everything worked |
-| 201  | Created | Your POST saved successfully |
-| 207  | Partial Success | Some succcess some failed |
+| 207  | Partial success | Some files succeeded, some failed — check `failed_uploads` |
 | 400  | Bad request | Check your payload — a field is missing or wrong |
 | 401  | Unauthorized | Your API key is missing, wrong, or expired |
 | 403  | Forbidden | Your key is valid but not allowed to do this |
 | 404  | Not found | The ID or endpoint doesn't exist — check spelling |
-| 409  | Conflict | some conflict like reprocess old |
-| 429  | Too many requests | You're calling too fast — wait a bit |
+| 405  | Method not allowed | Wrong method, or a required path value (like a file_id) is missing |
+| 409  | Conflict | A conflict, such as reprocessing something already in progress |
+| 422  | Validation error | Your request body failed validation — check the `details` |
+| 429  | Too many requests | You're calling too fast — wait the `retry-after-sec` seconds |
 | 500  | Server error | Problem on our side — try again later |
 
+Every error response follows the same shape:
+
+```json
+{
+  "success": false,
+  "error": { "code": "...", "message": "...", "details": [] },
+  "request_id": "...",
+  "timestamp": "..."
+}
+```
+
+When contacting support, include the `request_id` — it lets us find your exact request.
+
+[⬆ Back to top](#top)
 
 ---
 
 ## 9. FAQ
 
 **Q: I get a 401 error. Why?**
-Your API key is wrong or not pasted correctly. Re-check Step 6 and make sure there are no extra spaces.
+Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
 
-**Q: "ModuleNotFoundError: No module named 'requests'"**
-You skipped the install step. Run `pip install requests` in your terminal.
+**Q: Which languages are supported?**
+Python is available now in the [`/python`](python) folder. Node.js, Java, and .NET are coming — each will have its own folder with the same 6 files. The API works the same in any language; see [Section 7](#7-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses you can translate into any language.
 
-**Q: Can I use a language other than Python?**
-Yes — examples for Java, JavaScript, and cURL are coming in the `examples/` folder. Python is documented first.
+**Q: My download link stopped working.**
+Download links expire after a short time (`expires_in_seconds`). Just re-run the matching "check" step to get a fresh link.
+
+**Q: I keep getting 429 (too many requests).**
+You're calling too fast. The upload and job endpoints have a cooldown — wait the number of seconds shown in `retry-after-sec` (or see the rate-limit notes in Section 7) and try again.
+
+**Q: A URL failed with "unsupported source".**
+Only **s3** and **gdrive** signed URLs are supported. Make sure your URL comes from one of those sources and hasn't expired.
 
 **Q: Where do I get help?**
-Contact [your support email / link] or open an issue on this GitHub repo.
+Contact [your support email / link] or open an issue on this GitHub repo. Include the `request_id` from the error response.
 
 ---
 
-*Last updated: [29-05-2026] · Maintained by [aod-tech]*
+*Last updated: 29-05-2026 · Maintained by aod-tech*
