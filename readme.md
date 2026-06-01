@@ -129,20 +129,23 @@ You don't need to set this up by hand — the ready-made files in each language 
 
 ## 6. Rate limits
 
-To keep the service fast and fair for everyone, some endpoints limit how often you can call them. If you go over a limit, the API replies with **`429 Too Many Requests`** and a `retry-after-sec` value telling you how many seconds to wait before trying again.
+## 6. Rate limits
 
-**A base limit applies to all endpoints:**
+To keep the service fast and fair for everyone, every endpoint limits how often you can call it. If you go over a limit, the API replies with **`429 Too Many Requests`** and a `retry-after-sec` value telling you how many seconds to wait before trying again.
 
-- **1 request per second, per user.**
+**Base limit (all endpoints):** 1 request per second, per user.
 
-**Two endpoints have an extra cooldown** on top of that base limit:
+Two endpoints add an **extra cooldown** on top of that base limit. The full breakdown:
 
-| Endpoint | Extra cooldown | Example |
-|----------|----------------|---------|
-| `POST /file-upload` | Equal to the **number of signed URLs** you send (1 URL = ~1 second) | Sending 5 URLs → wait about 5 seconds before the next call |
-| `POST /jobs` | The **number of pages** in the file, divided by 10 | A 100-page file → wait about 10 seconds (100 ÷ 10) |
+| # | Endpoint | Rate limit |
+|---|----------|------------|
+| 1 | `POST /file-upload`        | Base limit **+** an extra cooldown equal to the **number of signed URLs** sent (e.g. 5 URLs → ~5 sec), per user. |
+| 2 | `GET /file-upload/{file_id}` | Base limit only (1 request/sec) , per user. |
+| 3 | `POST /jobs`               | Base limit **+** an extra cooldown of **pages ÷ 10** (e.g. A 100-page file →  (100 ÷ 10) → wait about ~10 sec) , per user. |
+| 4 | `GET /jobs/{job_id}`       | Base limit only (1 request/sec) , per user. |
+| 5 | `POST /report`            | Base limit only (1 request/sec) , per user. |
+| 6 | `GET /report/{job_id}`    | Base limit only (1 request/sec) , per user. |
 
-The other endpoints (the GET status checks and `POST /report`) only have the base 1-request-per-second limit.
 
 When you hit a limit, you'll get a response like this:
 
