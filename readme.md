@@ -773,29 +773,28 @@ When contacting support, include the `request_id` — it lets us find your exact
 [⬆ Back to top](#top)
 
 ---
-
 ## 10. FAQ
 
 **Q: I get a 401 error. Why?**
-Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
+> Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
 
 **Q: Which languages are supported?**
-Python is available now in two styles — [`/python/sync`](python/sync) and [`/python/async`](python/async) — and Node.js in [`/node`](node). Java and .NET are coming, each with its own folder and the same 6 files. The API works the same in any language; see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
+> Python is available now in two styles — [`/python/sync`](python/sync) and [`/python/async`](python/async) — and Node.js in [`/node`](node). Java and .NET are coming, each with its own folder and the same 6 files. The API works the same in any language; see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
 **Q: Should I use the sync or async Python code?**
-Use **sync** if you're new or working one step at a time — it's simplest. Use **async** if you want to check many files or jobs at once for speed. Both make exactly the same API calls.
+> Use **sync** if you're new or working one step at a time — it's the simplest. Use **async** if you want to check many files or jobs at once for speed. Both make exactly the same API calls.
 
 **Q: My download link stopped working.**
-Download links expire after a short time (`expires_in_seconds`). want new link please contact to aod-suport team.
+> Download links expire after a short time (`expires_in_seconds`). If you need a new link, please contact the aod-support team.
 
 **Q: I keep getting 429 (too many requests).**
-You're calling too fast. See [Section 6 — Rate limits](#6-rate-limits). Wait the number of seconds shown in `retry-after-sec` and try again.
+> You're calling too fast. See [Section 6 — Rate limits](#6-rate-limits). Wait the number of seconds shown in `retry-after-sec` and try again.
 
 **Q: A URL failed with "unsupported source".**
-Only **S3** and **Google Drive** signed URLs are supported right now. Make sure your URL comes from one of those sources and hasn't expired. We currently support S3 and Google Drive, with other cloud platform integrations coming soon. For questions about cloud storage integration, reach out to aod-support.
+> Only **S3** and **Google Drive** signed URLs are supported right now. Make sure your URL comes from one of those sources and hasn't expired. We currently support S3 and Google Drive, with other cloud platform integrations coming soon. For questions about cloud storage integration, reach out to aod-support.
 
 **Q: Where do I get help?**
-Contact aod@netralabs.ai 
+> Contact aod@netralabs.ai.
 
 ---
 
