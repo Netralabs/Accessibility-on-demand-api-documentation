@@ -4,7 +4,7 @@
 
 > The Accessibility On Demand API lets you make PDFs accessible: upload a PDF, get back a tagged (accessibility-enhanced) version, and generate an axes4 accessibility score for the tagged PDF.
 
-This guide is written so that **anyone** — even someone who has never written code — can call these APIs from their own laptop. Just follow the steps in order. The API works the same way no matter which programming language you use.
+This guide is written so that **anyone** - can call these APIs , Just follow the steps in order. The API works the same way no matter which programming language you use.
 
 ---
 
