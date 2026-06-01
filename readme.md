@@ -129,8 +129,6 @@ You don't need to set this up by hand — the ready-made files in each language 
 
 ## 6. Rate limits
 
-## 6. Rate limits
-
 To keep the service fast and fair for everyone, every endpoint limits how often you can call it. If you go over a limit, the API replies with **`429 Too Many Requests`** and a `retry-after-sec` value telling you how many seconds to wait before trying again.
 
 **Base limit (all endpoints):** 1 request per second, per user.
