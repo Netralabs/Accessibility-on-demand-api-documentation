@@ -15,7 +15,7 @@ Step 6 reads this list, checks each report, and updates the status.
 """
 
 import requests
-from python.sync.helper import BASE_URL, build_headers, get_value, save_value, show_response
+from helper import BASE_URL, build_headers, get_value, save_value, show_response
 
 # ============================================================
 # ===== EDIT HERE =====

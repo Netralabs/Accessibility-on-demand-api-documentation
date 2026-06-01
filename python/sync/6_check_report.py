@@ -15,7 +15,7 @@ Note about the download URL:
 """
 
 import requests
-from python.sync.helper import BASE_URL, build_headers, get_value, save_value
+from helper import BASE_URL, build_headers, get_value, save_value
 
 # ============================================================
 # ===== EDIT HERE =====
