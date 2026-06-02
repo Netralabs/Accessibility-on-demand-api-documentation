@@ -20,8 +20,6 @@ namespace Aod
         // ============================================================
         // ===== EDIT HERE =====
         // ============================================================
-        const string API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3
-
         static readonly string[] SIGNED_URLS = {   // paste your signed URL(s) here
             "https://your-signed-url-1",
             "https://your-signed-url-2",
@@ -46,7 +44,7 @@ namespace Aod
             };
 
             Console.WriteLine("Uploading files...");
-            var response = await Helper.PostAsync(endpoint, API_KEY, payload.ToJsonString());
+            var response = await Helper.PostAsync(endpoint, Helper.API_KEY, payload.ToJsonString());
             var body = await Helper.ShowResponseAsync(response);
 
             int code = (int)response.StatusCode;

@@ -17,7 +17,6 @@ namespace Aod
     public static class Step3CreateJob
     {
         // ===== EDIT HERE =====
-        const string API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3
         const string FILE_ID = "";                // an uploaded file_id to process
         const int LEVEL = 1;                      // 1 or 2
         // ===== STOP EDITING =====
@@ -33,7 +32,7 @@ namespace Aod
             var payload = new JsonObject { ["file_id"] = FILE_ID, ["level"] = LEVEL };
 
             Console.WriteLine($"Starting a job for file_id {FILE_ID} at level {LEVEL} ...");
-            var response = await Helper.PostAsync(Helper.BaseUrl + "/jobs/", API_KEY, payload.ToJsonString());
+            var response = await Helper.PostAsync(Helper.BaseUrl + "/jobs/", Helper.API_KEY, payload.ToJsonString());
             var body = await Helper.ShowResponseAsync(response);
 
             int code = (int)response.StatusCode;

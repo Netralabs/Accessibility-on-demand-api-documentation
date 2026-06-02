@@ -17,7 +17,6 @@ namespace Aod
     public static class Step5CreateReport
     {
         // ===== EDIT HERE =====
-        const string API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3
         const string FILE_ID = "";                // the file_id to generate a report for
         // ===== STOP EDITING =====
 
@@ -32,7 +31,7 @@ namespace Aod
             var payload = new JsonObject { ["file_id"] = FILE_ID };
 
             Console.WriteLine($"Requesting a score report for file_id {FILE_ID} ...");
-            var response = await Helper.PostAsync(Helper.BaseUrl + "/report/", API_KEY, payload.ToJsonString());
+            var response = await Helper.PostAsync(Helper.BaseUrl + "/report/", Helper.API_KEY, payload.ToJsonString());
             var body = await Helper.ShowResponseAsync(response);
 
             int code = (int)response.StatusCode;

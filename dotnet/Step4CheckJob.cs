@@ -18,9 +18,6 @@ namespace Aod
 {
     public static class Step4CheckJob
     {
-        // ===== EDIT HERE =====
-        const string API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3
-        // ===== STOP EDITING =====
 
         static bool IsFinished(string status) =>
             status != null && status.ToLower() == "completed";
@@ -53,7 +50,7 @@ namespace Aod
                     continue;
                 }
 
-                var resp = await Helper.GetAsync(Helper.BaseUrl + "/jobs/" + jobId, API_KEY);
+                var resp = await Helper.GetAsync(Helper.BaseUrl + "/jobs/" + jobId, Helper.API_KEY);
                 JsonObject body;
                 try { body = JsonNode.Parse(await resp.Content.ReadAsStringAsync()).AsObject(); }
                 catch { Console.WriteLine($"   - {jobId}: could not check (status code {(int)resp.StatusCode})"); pending++; continue; }

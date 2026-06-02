@@ -13,9 +13,7 @@ namespace Aod
 {
     public static class Step2CheckUpload
     {
-        // ===== EDIT HERE =====
-        const string API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3
-        // ===== STOP EDITING =====
+
 
         static string ReadStatus(JsonObject body)
         {
@@ -53,7 +51,7 @@ namespace Aod
                     continue;
                 }
 
-                var resp = await Helper.GetAsync(Helper.BaseUrl + "/file-upload/" + fileId, API_KEY);
+                var resp = await Helper.GetAsync(Helper.BaseUrl + "/file-upload/" + fileId, Helper.API_KEY);
                 if ((int)resp.StatusCode != 200)
                 {
                     Console.WriteLine($"   - {fileId}: could not check (status code {(int)resp.StatusCode})");

@@ -18,11 +18,11 @@ For the full API reference (every endpoint, request, and response), see the [mai
 
    (New to .NET? A quick search for "install .NET SDK" or asking an AI assistant will get you set up.)
 
-2. Open each `Step*.cs` file and paste your API key into the `API_KEY` value at the top:
+2. Open each `Helper*.cs` file and paste your API key into the `API_KEY` value at the top:
 
    ```csharp
    // ===== EDIT HERE =====
-   const string API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3 of the main README
+   public const string API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3 of the main README
    ```
 
 No `dotnet restore` of extra packages is needed — everything used is built into .NET.
@@ -67,12 +67,12 @@ dotnet run -- step6   # check report
 
 ## Step-by-step
 
+in Helper.cs update API_KEY = "aod-xxxxxxxxxxx";
 ### Step 1 — Upload your file(s) → `Step1Upload.cs`
 
 **Edit:** your API key and the `SIGNED_URLS` array.
 
 ```csharp
-const string API_KEY = "aod-xxxxxxxxxxx";
 static readonly string[] SIGNED_URLS = {
     "https://your-signed-url-1",
     "https://your-signed-url-2",
@@ -113,7 +113,6 @@ dotnet run -- step2
 **Edit:** paste the `file_id` you want to process, and choose the **level** (1 or 2).
 
 ```csharp
-const string API_KEY = "aod-xxxxxxxxxxx";
 const string FILE_ID = "paste-an-uploaded-file_id-here";
 const int LEVEL = 1;     // 1 or 2
 ```
@@ -149,7 +148,6 @@ dotnet run -- step4
 **Edit:** paste the `file_id` you want a report for.
 
 ```csharp
-const string API_KEY = "aod-xxxxxxxxxxx";
 const string FILE_ID = "paste-a-file_id-here";
 ```
 

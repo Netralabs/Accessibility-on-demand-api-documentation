@@ -20,6 +20,16 @@ namespace Aod
 {
     public static class Helper
     {
+
+        // ============================================================
+        // ===== EDIT HERE =====
+        // ============================================================
+        public const string API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3
+        // ============================================================
+        // ===== STOP EDITING (the rest runs by itself) =====
+        // ============================================================
+
+
         // The web address all the APIs live under (from Section 1 of the README).
         public const string BaseUrl = "https://staging.api.accessibilityondemand.space/api/v1";
 
