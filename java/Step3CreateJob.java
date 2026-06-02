@@ -33,7 +33,7 @@ public class Step3CreateJob {
         payload.addProperty("level", LEVEL);
 
         System.out.println("Starting a job for file_id " + FILE_ID + " at level " + LEVEL + " ...");
-        java.net.http.HttpResponse<String> response = AOD.post(AOD.BASE_URL + "/jobs", API_KEY, payload.toString());
+        java.net.http.HttpResponse<String> response = AOD.post(AOD.BASE_URL + "/jobs/", API_KEY, payload.toString());
         JsonObject body = AOD.showResponse(response);
 
         int code = response.statusCode();

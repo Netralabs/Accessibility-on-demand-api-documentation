@@ -31,7 +31,7 @@ async function main() {
   const payload = { file_id: FILE_ID, level: LEVEL };
 
   console.log(`Starting a job for file_id ${FILE_ID} at level ${LEVEL} ...`);
-  const response = await fetch(`${BASE_URL}/jobs`, {
+  const response = await fetch(`${BASE_URL}/jobs/`, {
     method: "POST",
     headers: buildHeaders(API_KEY),
     body: JSON.stringify(payload),

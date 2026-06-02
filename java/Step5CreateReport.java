@@ -31,7 +31,7 @@ public class Step5CreateReport {
         payload.addProperty("file_id", FILE_ID);
 
         System.out.println("Requesting a score report for file_id " + FILE_ID + " ...");
-        java.net.http.HttpResponse<String> response = AOD.post(AOD.BASE_URL + "/report", API_KEY, payload.toString());
+        java.net.http.HttpResponse<String> response = AOD.post(AOD.BASE_URL + "/report/", API_KEY, payload.toString());
         JsonObject body = AOD.showResponse(response);
 
         int code = response.statusCode();

@@ -28,7 +28,7 @@ const DESCRIPTION = "description about batch - optional"; // 👈 optional text
 // ===== STOP EDITING (the rest runs by itself) =====
 // ============================================================
 
-const ENDPOINT = `${BASE_URL}/file-upload`;
+const ENDPOINT = `${BASE_URL}/file-upload/`;
 
 const payload = {
   sign_urls: SIGNED_URLS,

@@ -30,7 +30,7 @@ async function main() {
   const payload = { file_id: FILE_ID };
 
   console.log(`Requesting a score report for file_id ${FILE_ID} ...`);
-  const response = await fetch(`${BASE_URL}/report`, {
+  const response = await fetch(`${BASE_URL}/report/`, {
     method: "POST",
     headers: buildHeaders(API_KEY),
     body: JSON.stringify(payload),

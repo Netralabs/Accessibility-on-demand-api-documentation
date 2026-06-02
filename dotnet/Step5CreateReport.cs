@@ -32,7 +32,7 @@ namespace Aod
             var payload = new JsonObject { ["file_id"] = FILE_ID };
 
             Console.WriteLine($"Requesting a score report for file_id {FILE_ID} ...");
-            var response = await Helper.PostAsync(Helper.BaseUrl + "/report", API_KEY, payload.ToJsonString());
+            var response = await Helper.PostAsync(Helper.BaseUrl + "/report/", API_KEY, payload.ToJsonString());
             var body = await Helper.ShowResponseAsync(response);
 
             int code = (int)response.StatusCode;

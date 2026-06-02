@@ -38,7 +38,7 @@ DESCRIPTION = "description about batch - optional"  # 👈 optional text
 # ===== STOP EDITING (the rest runs by itself) =====
 # ============================================================
 
-ENDPOINT = f"{BASE_URL}/file-upload"
+ENDPOINT = f"{BASE_URL}/file-upload/"
 
 payload = {
     "sign_urls": SIGNED_URLS,

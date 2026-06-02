@@ -34,7 +34,7 @@ namespace Aod
 
         public static async Task RunAsync()
         {
-            string endpoint = Helper.BaseUrl + "/file-upload";
+            string endpoint = Helper.BaseUrl + "/file-upload/";
 
             var urls = new JsonArray();
             foreach (var u in SIGNED_URLS) urls.Add(u);

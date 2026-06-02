@@ -32,7 +32,7 @@ public class Step1Upload {
     // ============================================================
 
     public static void main(String[] args) throws Exception {
-        String endpoint = AOD.BASE_URL + "/file-upload";
+        String endpoint = AOD.BASE_URL + "/file-upload/";
 
         JsonObject payload = new JsonObject();
         JsonArray urls = new JsonArray();

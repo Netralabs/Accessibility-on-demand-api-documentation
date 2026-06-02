@@ -35,7 +35,7 @@ This guide is written so that **anyone**  can call these APIs , Just follow the 
 The Accessibility On Demand API helps you turn ordinary PDF files into accessible ones that people using screen readers and other assistive tools can read properly. You upload a PDF, the API adds the accessibility tags for you, and you can download the tagged version back. You can also ask the API for an **axes4 accessibility score**, which tells you how accessible the tagged PDF is.
 
 - **Base URL:** `https://staging.api.accessibilityondemand.space/api/v1`
-  *(This is the web address all the APIs live under. Every call starts with this, followed by the specific endpoint — for example `https://staging.api.accessibilityondemand.space/api/v1/file-upload`.)*
+  *(This is the web address all the APIs live under. Every call starts with this, followed by the specific endpoint — for example `https://staging.api.accessibilityondemand.space/api/v1/file-upload/`.)*
 - **Environment:** This is the **staging** (testing) environment.
 - **Authentication:** Bearer token (an API key you send with every request).
 - **Data format:** JSON (a simple text format for sending and receiving data).
@@ -116,11 +116,11 @@ You don't need to set this up by hand — the ready-made files in each language 
 
 | # | Method | Endpoint (add after Base URL) | What it does |
 |---|--------|-------------------------------|--------------|
-| 1 | POST   | `/file-upload`                | Starts a file upload. You send **signed_urls** in the payload, and it returns the **file_ids** of the uploaded URLs. |
+| 1 | POST   | `/file-upload/`                | Starts a file upload. You send **signed_urls** in the payload, and it returns the **file_ids** of the uploaded URLs. |
 | 2 | GET    | `/file-upload/{file_id}`      | Returns the upload **status** (`Uploading` / `Uploaded`) for the given file_id. |
-| 3 | POST   | `/jobs`                       | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id** and a **level** (1 or 2). Returns a **job_id**. |
+| 3 | POST   | `/jobs/`                       | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id** and a **level** (1 or 2). Returns a **job_id**. |
 | 4 | GET    | `/jobs/{job_id}`              | Returns the processing **status** and a **link to the tagged PDF**. |
-| 5 | POST   | `/report`                     | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
+| 5 | POST   | `/report/`                     | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
 | 6 | GET    | `/report/{job_id}`            | Returns the report **status** and a **link to the generated score report PDF** for the file. |
 
 [⬆ Back to top](#top)
@@ -137,11 +137,11 @@ Two endpoints add an **extra cooldown** on top of that base limit. The full brea
 
 | # | Endpoint | Rate limit |
 |---|----------|------------|
-| 1 | `POST /file-upload`        | Base limit **+** an extra cooldown equal to the **number of signed URLs** sent (e.g. 5 URLs → ~5 sec), per user. |
+| 1 | `POST /file-upload/`        | Base limit **+** an extra cooldown equal to the **number of signed URLs** sent (e.g. 5 URLs → ~5 sec), per user. |
 | 2 | `GET /file-upload/{file_id}` | Base limit only (1 request/sec) , per user. |
-| 3 | `POST /jobs`               | Base limit **+** an extra cooldown of **pages ÷ 10** (e.g. A 100-page file →  (100 ÷ 10) → wait about ~10 sec) , per user. |
+| 3 | `POST /jobs/`               | Base limit **+** an extra cooldown of **pages ÷ 10** (e.g. A 100-page file →  (100 ÷ 10) → wait about ~10 sec) , per user. |
 | 4 | `GET /jobs/{job_id}`       | Base limit only (1 request/sec) , per user. |
-| 5 | `POST /report`            | Base limit only (1 request/sec) , per user. |
+| 5 | `POST /report/`            | Base limit only (1 request/sec) , per user. |
 | 6 | `GET /report/{job_id}`    | Base limit only (1 request/sec) , per user. |
 
 
@@ -177,8 +177,9 @@ The flow is the same in every language. To make it easy, each language has its *
 | Python (sync)  | [`/python/sync`](python/sync)   | ✅ Available |
 | Python (async) | [`/python/async`](python/async) | ✅ Available |
 | Node.js  | [`/node`](node)     | ✅ Available |
-| Java     | [`/java`](java)     | 🔜 Coming soon |
-| .NET     | [`/dotnet`](dotnet) | 🔜 Coming soon |
+| Java     | [`/java`](java)     | ✅ Available |
+| .NET     | [`/dotnet`](dotnet) | ✅ Available |
+
 
 > **Sync vs async (Python):** Use **sync** if you're new or doing things one step at a time — it's the simplest. Use **async** if you want to check many files/jobs at the same time for speed. Both do exactly the same API calls.
 
@@ -248,7 +249,7 @@ Jump to an endpoint:
 
 ### Endpoint 1 — Upload files
 
-`POST /file-upload`
+`POST /file-upload/`
 
 Starts uploading one or more files from signed URLs. Returns a `file_id` for each accepted file.
 
@@ -257,7 +258,7 @@ Starts uploading one or more files from signed URLs. Returns a `file_id` for eac
 **Request**
 
 ```bash
-curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/file-upload" \
+curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/file-upload/" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx" \
   -H "Content-Type: application/json" \
   -d '{
@@ -468,7 +469,7 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/v1/file-upload/
 
 ### Endpoint 3 — Start a processing job
 
-`POST /jobs`
+`POST /jobs/`
 
 Sends an uploaded file for tagging. Returns a `job_id`.
 
@@ -477,7 +478,7 @@ Sends an uploaded file for tagging. Returns a `job_id`.
 **Request**
 
 ```bash
-curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/jobs" \
+curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/jobs/" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx" \
   -H "Content-Type: application/json" \
   -d '{
@@ -571,14 +572,14 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/v1/jobs/JOB_ID_
 
 ### Endpoint 5 — Request a score report
 
-`POST /report`
+`POST /report/`
 
 Requests an axes4 accessibility score report for a file. Returns a report `job_id`.
 
 **Request**
 
 ```bash
-curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/report" \
+curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/report/" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx" \
   -H "Content-Type: application/json" \
   -d '{
@@ -779,7 +780,7 @@ When contacting support, include the `request_id` — it lets us find your exact
 > Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
 
 **Q: Which languages are supported?**
-> Python is available now in two styles — [`/python/sync`](python/sync) and [`/python/async`](python/async) — and Node.js in [`/node`](node). Java and .NET are coming, each with its own folder and the same 6 files. The API works the same in any language; see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
+> All four are available now, each in its own folder with the same 6 steps: Python — [`/python/sync`](python/sync) and [`/python/async`](python/async), Node.js — [`/node`](node), Java — [`/java`](java), and .NET — [`/dotnet`](dotnet). The API works the same in any language; see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
 **Q: Should I use the sync or async Python code?**
 > Use **sync** if you're new or working one step at a time — it's the simplest. Use **async** if you want to check many files or jobs at once for speed. Both make exactly the same API calls.

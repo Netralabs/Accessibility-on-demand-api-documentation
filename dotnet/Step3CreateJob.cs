@@ -33,7 +33,7 @@ namespace Aod
             var payload = new JsonObject { ["file_id"] = FILE_ID, ["level"] = LEVEL };
 
             Console.WriteLine($"Starting a job for file_id {FILE_ID} at level {LEVEL} ...");
-            var response = await Helper.PostAsync(Helper.BaseUrl + "/jobs", API_KEY, payload.ToJsonString());
+            var response = await Helper.PostAsync(Helper.BaseUrl + "/jobs/", API_KEY, payload.ToJsonString());
             var body = await Helper.ShowResponseAsync(response);
 
             int code = (int)response.StatusCode;

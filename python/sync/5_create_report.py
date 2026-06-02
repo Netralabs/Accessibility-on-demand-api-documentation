@@ -30,7 +30,7 @@ if not FILE_ID:
     print("[X] No file_id given. Paste a FILE_ID above.")
     raise SystemExit
 
-ENDPOINT = f"{BASE_URL}/report"
+ENDPOINT = f"{BASE_URL}/report/"
 
 payload = {
     "file_id": FILE_ID,
