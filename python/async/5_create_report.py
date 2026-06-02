@@ -40,7 +40,7 @@ async def main():
 
     print(f"Requesting a score report for file_id {FILE_ID} ...")
     async with httpx.AsyncClient() as client:
-        response = await client.post(f"{BASE_URL}/report", headers=build_headers(API_KEY), json=payload)
+        response = await client.post(f"{BASE_URL}/report/", headers=build_headers(API_KEY), json=payload)
 
     show_response(response)
 
