@@ -23,12 +23,11 @@ to "uploaded" once the upload finishes.
 
 import asyncio
 import httpx
-from helper import BASE_URL, build_headers, save_value, show_response, get_value
+from helper import API_KEY, BASE_URL, build_headers, save_value, show_response, get_value
 
 # ============================================================
 # ===== EDIT HERE =====
 # ============================================================
-API_KEY = "aod-xxxxxxxxxxx"   # 👈 paste your key from Section 3
 
 SIGNED_URLS = [  # 👈 paste your signed URL(s) here
     "https://your-signed-url-1",

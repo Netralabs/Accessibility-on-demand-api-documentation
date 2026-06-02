@@ -17,15 +17,9 @@ Note about the download URL:
 
 import asyncio
 import httpx
-from helper import BASE_URL, build_headers, get_value, save_value
+from helper import BASE_URL,API_KEY, build_headers, get_value, save_value
 
-# ============================================================
-# ===== EDIT HERE =====
-# ============================================================
-API_KEY = "aod-xxxxxxxxxxx"   # paste your key from Section 3
-# ============================================================
-# ===== STOP EDITING (the rest runs by itself) =====
-# ============================================================
+
 
 # Statuses that mean "done, no need to check again".
 FINISHED = {"completed"}

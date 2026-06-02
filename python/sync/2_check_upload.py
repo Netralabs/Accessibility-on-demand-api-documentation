@@ -8,16 +8,8 @@ How to run:  python 2_check_upload.py
 """
 
 import requests
-from helper import BASE_URL, build_headers, get_value, show_response, save_value
+from helper import BASE_URL,API_KEY, build_headers, get_value, show_response, save_value
 
-# ============================================================
-# ===== EDIT HERE =====
-# ============================================================
-API_KEY = "aod-xxxxxxxxxxx"   # 👈 paste your key from Section 3
-
-# ============================================================
-# ===== STOP EDITING (the rest runs by itself) =====
-# ============================================================
 
 
 def read_status(body):

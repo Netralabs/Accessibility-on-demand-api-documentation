@@ -16,12 +16,11 @@ Step 4 reads this list, checks each job, and updates the status.
 
 import asyncio
 import httpx
-from helper import BASE_URL, build_headers, get_value, save_value, show_response
+from helper import BASE_URL,API_KEY, build_headers, get_value, save_value, show_response
 
 # ============================================================
 # ===== EDIT HERE =====
 # ============================================================
-API_KEY = "aod-xxxxxxxxxxx"   # 👈 paste your key from Section 3
 
 FILE_ID = ""
 

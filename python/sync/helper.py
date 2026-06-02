@@ -12,6 +12,16 @@ It does three things:
 import json
 import os
 
+# ============================================================
+# ===== EDIT HERE =====
+# ============================================================
+API_KEY = "aod-xxxxxxxxxxx"   # 👈 paste your key from Section 3
+
+# ============================================================
+# ===== STOP EDITING (the rest runs by itself) =====
+# ============================================================
+
+
 # The web address all the APIs live under (from Section 1 of the README).
 BASE_URL = "https://staging.api.accessibilityondemand.space/api/v1"
 
