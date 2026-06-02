@@ -1,0 +1,31 @@
+{
+  "file_uploads": [
+    {
+      "file_id": "6a1ebd69bcc099fdfd182d0a",
+      "url": "https://drive.google.com/file/d/1r-k2lOtu1AMwTT-NK076r7C2YHNw-6oV/view?ts=6a070a29",
+      "status": "uploaded"
+    }
+  ],
+  "job_process": [
+    {
+      "file_id": "6a1ebd69bcc099fdfd182d0a",
+      "job_id": "6a1ebdc491c0e0648b60032f",
+      "status": "Completed",
+      "details": {
+        "download_url": "https://d3nn8edtiny2c0.cloudfront.net/04_tagged_files/6a0afaa4eea43376591baa51/BATCH-20260602-NV9OT3/sample.PDF/sample.PDF_AOD.pdf?Expires=1780400088&Signature=GuwFPv~QaBSiJKynPBJR-iJyKgUjOxwhi6gvU0y6PRXDdZO14nm4bE1wUWCe1sAf-f8ntE9Wuwn79bwG0OvyPvNUAaa~IGgykM~HzFI5sN7WQRYVkD2RxLOGEOH9iHQv1C46hcptKCIpFdgcDFAO6XWFp6cLGdXOhnE8MA2uZO32F6~u4iKYdybNT0abQMz6wHF5qXsfeCHkD72K7z1SwL0o1TYTQFu1QV7shhE93mdF~a0mzd1GrVwsuXF8PUijRM5x6bwTWxpvVxCaXR7fvnTGaBk8RmE1jnGiCh8qqEJb2zGNeHqf2vV5AFWYVojvhNfw5y5PqY~zPzoal9pU5g__&Key-Pair-Id=KVJEA2X17MOB8",
+        "expires_in_seconds": 300
+      }
+    }
+  ],
+  "report_process": [
+    {
+      "file_id": "6a1ebd69bcc099fdfd182d0a",
+      "job_id": "6a1ebebd91c0e0648b600330",
+      "status": "Completed",
+      "details": {
+        "download_url": "https://d3nn8edtiny2c0.cloudfront.net/file_score_reports/6a1ebd69bcc099fdfd182d0a/compliance-report.pdf?Expires=1780400179&Signature=HiEjgrhjR3kDuq7lo7KEzhqg1WC9N2Fbeo5Rzll-rrrHtJcmxFXbuPn-vidjS1kT2-V5yHfBsgmD23NGZNmqwBK1WGMi3YOwpGXkRbPcUZVUUA8DRORO0gH2c9-BCu2e6El7KVhI~u6IWh7HP0ECKYN9ok6oveglfC9lV~LIFZkNKxqm0~Wdea-Uvrs0r5XheL3WioGxnrLngwyGtika9TWSu66Zi26UlXMIWjlA4R0m265ScZ1ab9piPcbVbfICnoWsnluXnUsfeZeTba~2AgCIt5v7LVDJQcPOM5A9h3i9vd0HqmVa6v9LvUzCEwDBG2OEgNAeusgzTCpoQNXW3g__&Key-Pair-Id=KVJEA2X17MOB8",
+        "expires_in_seconds": 300
+      }
+    }
+  ]
+}

@@ -13,15 +13,7 @@
  * Download the score report PDF soon, or re-run this file.
  */
 
-const { BASE_URL, buildHeaders, getValue, saveValue } = require("./helper");
-
-// ============================================================
-// ===== EDIT HERE =====
-// ============================================================
-const API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3
-// ============================================================
-// ===== STOP EDITING (the rest runs by itself) =====
-// ============================================================
+const { BASE_URL, API_KEY, buildHeaders, getValue, saveValue } = require("./helper");
 
 // Statuses that mean "done, no need to check again".
 const FINISHED = new Set(["completed"]);

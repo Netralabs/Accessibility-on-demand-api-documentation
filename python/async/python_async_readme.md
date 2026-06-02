@@ -16,7 +16,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
    ```
 
 3. Open this folder in your editor (e.g. VS Code).
-4. Open **each** file and paste your API key into the `API_KEY` variable at the top:
+3. Open **helper.js** file and paste your API key into the `API_KEY` variable at the top:
 
    ```python
    # ===== EDIT HERE =====

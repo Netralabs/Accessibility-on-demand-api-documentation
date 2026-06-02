@@ -19,7 +19,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
    (New to Node? A quick search for "how to install Node.js" or asking an AI assistant will get you set up in about 10 minutes.)
 
 2. Open this folder in your editor (e.g. VS Code).
-3. Open **each** file and paste your API key into the `API_KEY` variable at the top:
+3. Open **helper.js** file and paste your API key into the `API_KEY` variable at the top:
 
    ```javascript
    // ===== EDIT HERE =====
@@ -55,7 +55,6 @@ You normally do **not** need to edit `helper.js` — it just holds the Base URL,
 
 ```javascript
 // ===== EDIT HERE =====
-const API_KEY = "aod-xxxxxxxxxxx";
 const SIGNED_URLS = [
   "https://your-signed-url-1",
   "https://your-signed-url-2",
@@ -82,8 +81,6 @@ node 1_upload.js
 **Edit:** only your API key. The script checks **every** file from Step 1, all at once.
 
 ```javascript
-// ===== EDIT HERE =====
-const API_KEY = "aod-xxxxxxxxxxx";
 ```
 
 **Run:**
@@ -104,7 +101,6 @@ node 2_check_upload.js
 
 ```javascript
 // ===== EDIT HERE =====
-const API_KEY = "aod-xxxxxxxxxxx";
 const FILE_ID = "paste-an-uploaded-file_id-here";
 const LEVEL   = 1;     // 1 or 2
 ```
@@ -128,8 +124,6 @@ node 3_create_job.js
 **Edit:** only your API key. The script checks **every** job, all at once.
 
 ```javascript
-// ===== EDIT HERE =====
-const API_KEY = "aod-xxxxxxxxxxx";
 ```
 
 **Run:**
@@ -150,7 +144,6 @@ node 4_check_job.js
 
 ```javascript
 // ===== EDIT HERE =====
-const API_KEY = "aod-xxxxxxxxxxx";
 const FILE_ID = "paste-a-file_id-here";
 ```
 
@@ -169,8 +162,6 @@ node 5_create_report.js
 **Edit:** only your API key. The script checks **every** report, all at once.
 
 ```javascript
-// ===== EDIT HERE =====
-const API_KEY = "aod-xxxxxxxxxxx";
 ```
 
 **Run:**

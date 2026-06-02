@@ -10,12 +10,11 @@
  *   "report_process": [ { "file_id": "....", "job_id": "....", "status": "Processing" }, ... ]
  */
 
-const { BASE_URL, buildHeaders, getValue, saveValue, showResponse } = require("./helper");
+const { BASE_URL, API_KEY, buildHeaders, getValue, saveValue, showResponse } = require("./helper");
 
 // ============================================================
 // ===== EDIT HERE =====
 // ============================================================
-const API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3
 
 const FILE_ID = ""; // the file_id to generate a report for
 // ============================================================

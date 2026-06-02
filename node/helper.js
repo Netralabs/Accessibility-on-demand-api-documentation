@@ -14,6 +14,15 @@
 const fs = require("fs");
 const path = require("path");
 
+// ============================================================
+// ===== EDIT HERE =====
+// ============================================================
+const API_KEY = "aod-xxxxxxxxxxx"; // 👈 paste your key from Section 3
+// ============================================================
+// ===== STOP EDITING (the rest runs by itself) =====
+// ============================================================
+
+
 // The web address all the APIs live under (from Section 1 of the README).
 const BASE_URL = "https://staging.api.accessibilityondemand.space/api/v1";
 
@@ -66,6 +75,7 @@ async function showResponse(response) {
 
 module.exports = {
   BASE_URL,
+  API_KEY,
   buildHeaders,
   loadData,
   saveValue,

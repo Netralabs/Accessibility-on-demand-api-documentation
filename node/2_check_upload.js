@@ -8,15 +8,8 @@
  * How to run:  node 2_check_upload.js
  */
 
-const { BASE_URL, buildHeaders, getValue, saveValue } = require("./helper");
+const { BASE_URL, API_KEY, buildHeaders, getValue, saveValue } = require("./helper");
 
-// ============================================================
-// ===== EDIT HERE =====
-// ============================================================
-const API_KEY = "aod-xxxxxxxxxxx"; // 👈 paste your key from Section 3
-// ============================================================
-// ===== STOP EDITING (the rest runs by itself) =====
-// ============================================================
 
 // Pulls the status out of the GET /file-upload/{file_id} response.
 function readStatus(body) {

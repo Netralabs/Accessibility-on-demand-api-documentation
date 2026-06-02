@@ -16,12 +16,7 @@
  *   "file_uploads": [ { "file_id": "....", "url": "....", "status": "Uploading" }, ... ]
  */
 
-const { BASE_URL, buildHeaders, saveValue, getValue, showResponse } = require("./helper");
-
-// ============================================================
-// ===== EDIT HERE =====
-// ============================================================
-const API_KEY = "aod-xxxxxxxxxxx"; // 👈 paste your key from Section 3
+const { BASE_URL, API_KEY, buildHeaders, saveValue, getValue, showResponse } = require("./helper");
 
 const SIGNED_URLS = [ // 👈 paste your signed URL(s) here
   "https://your-signed-url-1",
