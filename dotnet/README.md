@@ -166,7 +166,7 @@ dotnet run -- step6   # check report
 
 ### Step 1 — Upload your file(s) → `Step1Upload.cs`
 
-**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`).
+**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`). *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
 
 ```bash
 dotnet run -- step1

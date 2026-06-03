@@ -6,6 +6,10 @@
  *   - For the rest, the status is updated.
  *   - When a job is Completed, the full "details" block (download_url +
  *     expires_in_seconds) is saved on that job.
+ *   - Failed jobs (or unreadable responses) are logged to errors.json,
+ *     not data.json.
+ *
+ * EDIT NOTHING HERE. Your api_key lives in  ../config.json
  *
  * How to run:  node 4_check_job.js
  *
@@ -13,8 +17,7 @@
  * 300s = 5 minutes). Download the tagged PDF soon, or re-run this file.
  */
 
-const { BASE_URL, API_KEY, buildHeaders, getValue, saveValue } = require("./helper");
-
+const { BASE_URL, apiKey, buildHeaders, getValue, saveValue, logJobError } = require("./helper");
 
 // Statuses that mean "done, no need to check again".
 const FINISHED = new Set(["completed"]);
@@ -36,6 +39,7 @@ async function checkOne(entry, headers) {
     resp = await fetch(`${BASE_URL}/jobs/${jobId}`, { headers });
   } catch (e) {
     console.log(`   - ${jobId}: request error (${e.message})`);
+    logJobError(jobId, 0, "Request error: " + e.message, null);
     return false;
   }
 
@@ -44,6 +48,7 @@ async function checkOne(entry, headers) {
     body = await resp.json();
   } catch (e) {
     console.log(`   - ${jobId}: could not check (status code ${resp.status})`);
+    logJobError(jobId, resp.status, "Could not read/parse job response", null);
     return false;
   }
 
@@ -60,22 +65,22 @@ async function checkOne(entry, headers) {
 
   if (String(status).toLowerCase() === "completed" && details) {
     entry.details = details;
-    delete entry.error; // clear any old error
     changed = true;
     console.log(`     download_url: ${details.download_url}`);
     console.log(`     expires_in_seconds: ${details.expires_in_seconds}`);
   }
 
   if (error) {
-    entry.error = error;
-    changed = true;
+    // Failed jobs are not kept in data.json — they go to errors.json (job_errors).
     console.log(`     error: ${error.code} - ${error.detail}`);
+    logJobError(jobId, resp.status, `${error.code || ""} ${error.detail || ""}`.trim(), error);
   }
 
   return changed;
 }
 
 async function main() {
+  const key = apiKey();
   const jobProcess = getValue("job_process", []);
 
   if (jobProcess.length === 0) {
@@ -83,7 +88,7 @@ async function main() {
     return;
   }
 
-  const headers = buildHeaders(API_KEY);
+  const headers = buildHeaders(key);
 
   const pending = [];
   for (const entry of jobProcess) {
@@ -117,7 +122,8 @@ async function main() {
   if (stillPending.length > 0) {
     console.log("Some jobs are still processing. Wait a moment and run this file again.");
   } else {
-    console.log("[OK] All jobs finished. You can now run  node 5_create_report.js");
+    console.log("[OK] All jobs finished. To get a score report, put a file_id into config.json " +
+      '("report": {"file_id": ...}) and run  node 5_create_report.js');
   }
 }
 

@@ -4,36 +4,25 @@
  * Sends your signed URLs to the API and gets back a file_id for each
  * file that was accepted. Run this first.
  *
+ * EDIT NOTHING HERE. All your values live in  ../config.json
+ *   (api_key, signed_urls, description).
+ *
  * How to run:  node 1_upload.js
  *
  * About the responses you may see:
  *   - 200 = all files accepted for uploading.
  *   - 207 = some files were accepted, some failed (e.g. a bad/unsupported URL).
- *           The script still saves the file_ids that succeeded and shows you
- *           which URLs failed and why.
+ *           The script still saves the file_ids that succeeded, and logs the
+ *           ones that failed to errors.json (under "url_errors").
  *
  * What it saves to data.json:
  *   "file_uploads": [ { "file_id": "....", "url": "....", "status": "Uploading" }, ... ]
  */
 
-const { BASE_URL, API_KEY, buildHeaders, saveValue, getValue, showResponse } = require("./helper");
-
-const SIGNED_URLS = [ // 👈 paste your signed URL(s) here
-  "https://your-signed-url-1",
-  "https://your-signed-url-2",
-];
-
-const DESCRIPTION = "description about batch - optional"; // 👈 optional text
-// ============================================================
-// ===== STOP EDITING (the rest runs by itself) =====
-// ============================================================
-
-const ENDPOINT = `${BASE_URL}/file-upload/`;
-
-const payload = {
-  sign_urls: SIGNED_URLS,
-  description: DESCRIPTION,
-};
+const {
+  BASE_URL, loadConfig, apiKey, getStringArray, buildHeaders,
+  saveValue, getValue, showResponse, logUrlError, logOther,
+} = require("./helper");
 
 // The 'detail' list lives in different places depending on the status:
 //   200 -> body.data.detail
@@ -45,10 +34,24 @@ function extractDetailBlocks(body) {
 }
 
 async function main() {
-  console.log("Uploading files...");
+  // --- read everything from ../config.json ---
+  const cfg = loadConfig();
+  const key = apiKey();
+  const description = cfg.description || "";
+  const signedUrls = getStringArray(cfg, "signed_urls");
+
+  if (signedUrls.length === 0) {
+    console.log('[X] No signed URLs found. Add at least one real URL to "signed_urls" in config.json.');
+    return;
+  }
+
+  const ENDPOINT = `${BASE_URL}/file-upload/`;
+  const payload = { sign_urls: signedUrls, description };
+
+  console.log(`Uploading ${signedUrls.length} file(s)...`);
   const response = await fetch(ENDPOINT, {
     method: "POST",
-    headers: buildHeaders(API_KEY),
+    headers: buildHeaders(key),
     body: JSON.stringify(payload),
   });
 
@@ -86,17 +89,21 @@ async function main() {
     }
 
     if (failed.length > 0) {
-      console.log("\n[!] Some files failed:");
+      console.log("\n[!] Some files failed (logged to errors.json):");
       for (const f of failed) {
         console.log(`   - URL: ${f.url}`);
         console.log(`     reason: ${f.detail}`);
+        // 207 partial-failure item -> errors.json under url_errors
+        logUrlError(f.url || "", response.status, f.detail || "", f);
       }
     }
   } else {
     console.log(
-      "\n[X] Upload request failed. Check your API key, your signed URLs, " +
+      "\n[X] Upload request failed. Check your api_key, your signed_urls, " +
         "and the status code above."
     );
+    // whole-request failure (non-2xx) -> errors.json
+    logOther(response.status, "File-upload request failed", body);
   }
 }
 

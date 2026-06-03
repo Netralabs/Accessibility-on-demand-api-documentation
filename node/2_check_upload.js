@@ -5,11 +5,12 @@
  * Files already "uploaded" are skipped; the rest are updated.
  * Status will be 'Uploading' or 'Uploaded'.
  *
+ * EDIT NOTHING HERE. Your api_key lives in  ../config.json
+ *
  * How to run:  node 2_check_upload.js
  */
 
-const { BASE_URL, API_KEY, buildHeaders, getValue, saveValue } = require("./helper");
-
+const { BASE_URL, apiKey, buildHeaders, getValue, saveValue, logFileError } = require("./helper");
 
 // Pulls the status out of the GET /file-upload/{file_id} response.
 function readStatus(body) {
@@ -28,11 +29,13 @@ async function checkOne(entry, headers) {
     resp = await fetch(`${BASE_URL}/file-upload/${fileId}`, { headers });
   } catch (e) {
     console.log(`   - ${fileId}: request error (${e.message})`);
+    logFileError(fileId, 0, "Request error: " + e.message, null);
     return false;
   }
 
   if (resp.status !== 200) {
     console.log(`   - ${fileId}: could not check (status code ${resp.status})`);
+    logFileError(fileId, resp.status, "Could not check upload status", null);
     return false;
   }
 
@@ -41,6 +44,7 @@ async function checkOne(entry, headers) {
     body = await resp.json();
   } catch (e) {
     console.log(`   - ${fileId}: could not read response`);
+    logFileError(fileId, resp.status, "Could not read/parse response body", null);
     return false;
   }
 
@@ -55,6 +59,7 @@ async function checkOne(entry, headers) {
 }
 
 async function main() {
+  const key = apiKey();
   const fileUploads = getValue("file_uploads", []);
 
   if (fileUploads.length === 0) {
@@ -62,7 +67,7 @@ async function main() {
     return;
   }
 
-  const headers = buildHeaders(API_KEY);
+  const headers = buildHeaders(key);
 
   const pending = [];
   for (const entry of fileUploads) {
@@ -96,7 +101,8 @@ async function main() {
   if (stillPending.length > 0) {
     console.log("Some files are still uploading. Wait a moment and run this file again.");
   } else {
-    console.log("[OK] All files uploaded. Next: run  node 3_create_job.js");
+    console.log("[OK] All files uploaded. Next: put an uploaded file_id into config.json " +
+      '("process": {"file_id": ...}) and run  node 3_create_job.js');
   }
 }
 

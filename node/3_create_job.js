@@ -2,7 +2,9 @@
  * 3_create_job.js  —  STEP 3: Start processing the PDF
  * ====================================================
  * Sends an uploaded file for processing (tagging) and gets back a job_id.
- * You choose the processing LEVEL (1 or 2).
+ *
+ * EDIT NOTHING HERE. Set these in  ../config.json  under "process":
+ *   "process": { "file_id": "<an uploaded file_id>", "level": 1 }   // level 1 or 2
  *
  * How to run:  node 3_create_job.js
  *
@@ -10,37 +12,35 @@
  *   "job_process": [ { "file_id": "....", "job_id": "....", "status": "Queued" }, ... ]
  */
 
-const { BASE_URL, API_KEY, buildHeaders, getValue, saveValue, showResponse } = require("./helper");
-
-// ============================================================
-// ===== EDIT HERE =====
-// ============================================================
-const FILE_ID = "";
-
-const LEVEL = 1; // 👈 choose 1 or 2
-// ============================================================
-// ===== STOP EDITING (the rest runs by itself) =====
-// ============================================================
+const { BASE_URL, loadConfig, apiKey, buildHeaders, getValue, saveValue, showResponse, logFileError } = require("./helper");
 
 async function main() {
-  if (!FILE_ID) {
-    console.log("[X] No file_id given. Paste an uploaded FILE_ID above.");
+  const cfg = loadConfig();
+  const key = apiKey();
+  const process_ = cfg.process || {};
+  const fileId = (process_.file_id || "").trim();
+  const level = Number.isInteger(process_.level) ? process_.level : 1;
+
+  if (!fileId) {
+    console.log('[X] No file_id given. Set "process": {"file_id": ...} in config.json ' +
+      "(use an uploaded file_id from Step 2).");
     return;
   }
 
-  const payload = { file_id: FILE_ID, level: LEVEL };
+  const payload = { file_id: fileId, level };
 
-  console.log(`Starting a job for file_id ${FILE_ID} at level ${LEVEL} ...`);
+  console.log(`Starting a job for file_id ${fileId} at level ${level} ...`);
   const response = await fetch(`${BASE_URL}/jobs/`, {
     method: "POST",
-    headers: buildHeaders(API_KEY),
+    headers: buildHeaders(key),
     body: JSON.stringify(payload),
   });
 
   const body = await showResponse(response);
 
   if (response.status === 409) {
-    console.log("\n[Conflict] This is already processed: changed file id", FILE_ID);
+    console.log("\n[Conflict] This is already processed: change the file_id in config.json", fileId);
+    logFileError(fileId, 409, "Conflict - file already processed", body);
   }
 
   if ((response.status === 200 || response.status === 201) && body) {
@@ -50,7 +50,7 @@ async function main() {
     if (jobId) {
       const jobProcess = getValue("job_process", []);
       if (!jobProcess.some((j) => j.job_id === jobId)) {
-        jobProcess.push({ file_id: FILE_ID, job_id: jobId, status: "Queued" });
+        jobProcess.push({ file_id: fileId, job_id: jobId, status: "Queued" });
         saveValue("job_process", jobProcess);
       }
       console.log("\n[OK] Got job_id:", jobId);
@@ -60,11 +60,13 @@ async function main() {
         "\n[!] Could not find 'job_id' in the response. " +
           "Check the printed response above and update the key name."
       );
+      logFileError(fileId, response.status, "No job_id in job-create response", body);
     }
-  } else {
+  } else if (response.status !== 409) {
     console.log(
       "\n[X] Could not start the job. Check the file_id, level, and status code above."
     );
+    logFileError(fileId, response.status, "Could not start job", body);
   }
 }
 
