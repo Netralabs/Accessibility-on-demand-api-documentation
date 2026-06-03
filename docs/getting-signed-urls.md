@@ -9,6 +9,8 @@ This guide shows, step by step, how to:
 
 You only need **one** of the two methods — pick whichever you already use.
 
+> 💡 **Tip:** to keep this guide open while you follow along, open the links below in a **new tab** — Ctrl-click (Windows) or Cmd-click (Mac), or right-click → "Open link in new tab."
+
 ---
 
 ## Table of Contents
@@ -27,13 +29,13 @@ You only need **one** of the two methods — pick whichever you already use.
 
 ## Option A — Amazon S3
 
-You'll need a free [AWS account](https://aws.amazon.com/). All steps below use the **AWS Console** (the website) — no command line needed.
+You'll need a <a href="https://aws.amazon.com/" target="_blank" rel="noopener">AWS account</a>. All steps below use the **AWS Console** (the website) — no command line needed.
 
 ### A1. Create a bucket
 
 A "bucket" is just a folder in S3 where your files live.
 
-1. Sign in to the [AWS Console](https://console.aws.amazon.com/).
+1. Sign in to the <a href="https://console.aws.amazon.com/" target="_blank" rel="noopener">AWS Console</a>.
 2. In the search bar at the top, type **S3** and open the **S3** service.
 3. Click **Create bucket**.
 4. Give it a **unique name** (e.g. `my-aod-uploads-2026`) and pick a **Region** near you.
@@ -74,7 +76,7 @@ You only need a normal Google account.
 
 ### B1. Upload your PDF
 
-1. Go to [Google Drive](https://drive.google.com/).
+1. Go to <a href="https://drive.google.com/" target="_blank" rel="noopener">Google Drive</a>.
 2. Click **New** → **File upload**, and choose your PDF.
 3. Wait for it to finish uploading.
 
