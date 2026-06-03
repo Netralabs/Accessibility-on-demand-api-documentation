@@ -226,12 +226,12 @@ java -cp ".;lib\gson.jar" Step1Upload.java
 Run them in order, swapping in each filename:
 
 ```
-Step1Upload.java
-Step2CheckUpload.java
-Step3CreateJob.java
-Step4CheckJob.java
-Step5CreateReport.java
-Step6CheckReport.java
+java -cp ".;lib\gson.jar" Step1Upload.java
+java -cp ".;lib\gson.jar" Step2CheckUpload.java
+java -cp ".;lib\gson.jar" Step3CreateJob.java
+java -cp ".;lib\gson.jar" Step4CheckJob.java
+java -cp ".;lib\gson.jar" Step5CreateReport.java
+java -cp ".;lib\gson.jar" Step6CheckReport.java
 ```
 
 ---
