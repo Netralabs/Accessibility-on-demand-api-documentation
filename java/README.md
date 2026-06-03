@@ -87,7 +87,7 @@ Step6CheckReport.java
 
 ### Step 1 — Upload your file(s) → `Step1Upload.java`
 
-**Edit:** your API key, and the `SIGNED_URLS` array.
+**Edit:** paste your API key, and the `SIGNED_URLS` array. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
 
 ```java
 static final String API_KEY = "aod-xxxxxxxxxxx";

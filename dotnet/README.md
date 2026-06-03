@@ -71,7 +71,7 @@ dotnet run -- step6   # check report
 
 ### Step 1 — Upload your file(s) → `Step1Upload.cs`
 
-**Edit:** the `SIGNED_URLS` array.
+**Edit:** paste your signed URL(s) into the `SIGNED_URLS` array. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
 
 ```csharp
 static readonly string[] SIGNED_URLS = {

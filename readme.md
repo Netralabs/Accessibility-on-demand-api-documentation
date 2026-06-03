@@ -123,6 +123,8 @@ You don't need to set this up by hand — the ready-made files in each language 
 | 5 | POST   | `/report/`                    | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
 | 6 | GET    | `/report/{job_id}`            | Returns the report **status** and a **link to the generated score report PDF** for the file. |
 
+> 🔗 **Don't have a signed URL yet?** See [How to get a signed URL](docs/getting-signed-urls.md) — step-by-step for Amazon S3 and Google Drive.
+
 [⬆ Back to top](#top)
 
 ---
@@ -183,7 +185,7 @@ The flow is the same in every language. To make it easy, each language has its *
 
 ### The flow (same for every language)
 
-1. **Upload** your file(s) → get a `file_id` for each (status starts as `Uploading`).
+1. **Upload** your file(s) → get a `file_id` for each (status starts as `Uploading`). *(Need a signed URL first? See [How to get a signed URL](docs/getting-signed-urls.md).)*
 2. **Check upload** → repeat until the status is `Uploaded`.
 3. **Create a job** with a `file_id` and a level (1 or 2) → get a `job_id`.
 4. **Check the job** → when `Completed`, get the tagged-PDF download link.
@@ -250,6 +252,7 @@ Jump to an endpoint:
 `POST /file-upload/`
 
 Starts uploading one or more files from signed URLs. Returns a `file_id` for each accepted file.
+> 🔗 New to signed URLs? See [How to get a signed URL](docs/getting-signed-urls.md) for S3 and Google Drive.
 
 > ⏱️ **Rate limited** — see [Section 6](#6-rate-limits). Cooldown grows with the number of URLs you send.
 
@@ -774,6 +777,9 @@ When contacting support, include the `request_id` — it lets us find your exact
 ---
 
 ## 10. FAQ
+
+**Q: Where do I get a signed URL to upload?**
+> See the step-by-step guide: [How to get a signed URL](docs/getting-signed-urls.md). It covers Amazon S3 and Google Drive, including how to turn a Drive share link into a direct-download link.
 
 **Q: I get a 401 error. Why?**
 > Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.

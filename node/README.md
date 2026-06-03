@@ -51,7 +51,7 @@ The API key and Base URL live in `helper.js`. You normally do **not** need to ed
 
 ## Step 1 — Upload your file(s) → `1_upload.js`
 
-**Edit:** paste your signed URL(s) into the `SIGNED_URLS` list (API key is already set in `helper.js`).
+**Edit:** paste your signed URL(s) into the `SIGNED_URLS` list (API key is already set in `helper.js`). *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
 
 ```javascript
 // ===== EDIT HERE =====
