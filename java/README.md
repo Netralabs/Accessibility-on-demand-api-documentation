@@ -42,20 +42,22 @@ java -version
 
 (New to Java? A quick search for "how to install Java JDK" will get you set up.)
 
-**2. Download Gson into a `lib` folder — one command, run from this folder.**
-It creates the `lib` folder and saves the jar as `lib/gson.jar` for you.
+**2. Download Gson into a `lib` folder — run these from inside the `java/` folder.**
+First `cd` into `java/`, then download. This creates `java/lib/gson.jar`, exactly where the run commands look for it.
 
 **Mac / Linux:**
 ```bash
+cd java
 mkdir -p lib && curl -L -o lib/gson.jar https://repo1.maven.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar
 ```
 
 **Windows (PowerShell):**
 ```powershell
+cd java
 mkdir lib -Force; curl.exe -L -o lib/gson.jar https://repo1.maven.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar
 ```
 
-> Prefer to download by hand? Save [this jar](https://repo1.maven.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar) into a new folder named `lib` (in this same directory) and rename it to `gson.jar`.
+> Prefer to download by hand? Inside the `java/` folder, create a new folder named `lib`, save [this jar](https://repo1.maven.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar) into it, and rename it to `gson.jar` (so the path is `java/lib/gson.jar`).
 
 **3. Open the root `config.json` and fill in your values** (it sits one level up from this `java/` folder — it's the only file you edit; see the next section).
 
