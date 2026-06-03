@@ -20,7 +20,6 @@ You only need **one** of the two methods — pick whichever you already use.
 - [Option B — Google Drive](#option-b--google-drive)
   - [B1. Upload your PDF](#b1-upload-your-pdf)
   - [B2. Share it with "anyone with the link"](#b2-share-it-with-anyone-with-the-link)
-  - [B3. Turn the share link into a direct link](#b3-turn-the-share-link-into-a-direct-link)
 - [Where to paste the URL in the code](#where-to-paste-the-url-in-the-code)
 - [Common mistakes](#common-mistakes)
 
@@ -94,32 +93,9 @@ The copied link looks like this:
 https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/view?usp=sharing
 ```
 
-### B3. Turn the share link into a direct link
+That's it — paste this link straight into the code. The API handles the rest.
 
-> ⚠️ **Important:** the link from the Share button is a "view" link — it opens a preview page, not the file itself. The API needs a **direct download** link. You must convert it.
-
-1. From your copied link, find the **file ID** — it's the long code between `/d/` and `/view`:
-
-   ```
-   https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/view?usp=sharing
-                                    └──────── this part ────────┘
-   ```
-
-   In this example the file ID is `1AbCdEfGhIjKlMnOpQrStUvWxYz`.
-
-2. Put that ID into this template:
-
-   ```
-   https://drive.google.com/uc?export=download&id=FILE_ID
-   ```
-
-3. So the final, usable link becomes:
-
-   ```
-   https://drive.google.com/uc?export=download&id=1AbCdEfGhIjKlMnOpQrStUvWxYz
-   ```
-
-That converted link is your signed URL. Use it in the [paste step](#where-to-paste-the-url-in-the-code).
+> ✅ **No conversion needed.** You can paste the normal Google Drive share ("view") link as-is — the API reads it directly. Just make sure the file is shared as **Anyone with the link** (step 2 above), or the API won't be able to reach it.
 
 ---
 
@@ -129,7 +105,7 @@ Once you have a link (from S3 or Google Drive), open **Step 1** of your language
 
 ```python
 SIGNED_URLS = [
-    "https://drive.google.com/uc?export=download&id=1AbCdEfGhIjKlMnOpQrStUvWxYz",
+    "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/view?usp=sharing",
     "https://my-aod-uploads-2026.s3.amazonaws.com/myfile.pdf?X-Amz-Algorithm=...",
 ]
 ```
@@ -140,7 +116,6 @@ You can mix sources and add as many URLs as you like — one line per file, each
 
 ## Common mistakes
 
-- **Pasting the Google Drive "view" link instead of the converted direct link.** This is the #1 cause of the "unsupported source" error — see [step B3](#b3-turn-the-share-link-into-a-direct-link).
-- **Drive file not shared as "Anyone with the link."** If it's still "Restricted," the API can't reach it.
+- **Google Drive file not shared as "Anyone with the link."** If it's still "Restricted," the API can't reach it — see [step B2](#b2-share-it-with-anyone-with-the-link).
 - **Expired S3 presigned URL.** Generate a fresh one and paste it again.
 - **A source other than S3 or Google Drive.** Only those two are supported right now; other cloud platforms are coming soon.
