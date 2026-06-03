@@ -209,23 +209,28 @@ java -cp ".:lib/gson.jar" Step1Upload.java
 
 ## How to run
 
-Every file is run the same way. The only OS-specific part is the classpath separator before the jar: **Mac/Linux use `:`, Windows use `;`.**
+First, move into the `java/` folder (do this once, in your terminal):
 
-**Mac / Linux:**
 ```bash
 cd java
+```
+
+Then run each step from there. The only OS-specific part is the classpath separator before the jar: **Mac/Linux use `:`, Windows use `;`.** Run them in order — copy one line at a time.
+
+**Mac / Linux:**
+
+```bash
 java -cp ".:lib/gson.jar" Step1Upload.java
+java -cp ".:lib/gson.jar" Step2CheckUpload.java
+java -cp ".:lib/gson.jar" Step3CreateJob.java
+java -cp ".:lib/gson.jar" Step4CheckJob.java
+java -cp ".:lib/gson.jar" Step5CreateReport.java
+java -cp ".:lib/gson.jar" Step6CheckReport.java
 ```
 
 **Windows:**
+
 ```bash
-cd java
-java -cp ".;lib\gson.jar" Step1Upload.java
-```
-
-Run them in order, swapping in each filename:
-
-```
 java -cp ".;lib\gson.jar" Step1Upload.java
 java -cp ".;lib\gson.jar" Step2CheckUpload.java
 java -cp ".;lib\gson.jar" Step3CreateJob.java
@@ -234,7 +239,7 @@ java -cp ".;lib\gson.jar" Step5CreateReport.java
 java -cp ".;lib\gson.jar" Step6CheckReport.java
 ```
 
----
+> Run one line, wait for it to finish, then run the next. Steps 2, 4, and 6 are safe to re-run until everything shows as finished.
 
 ## Step-by-step
 
