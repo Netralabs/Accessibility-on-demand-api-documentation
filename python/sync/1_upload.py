@@ -1,65 +1,52 @@
 """
-1_upload.py  —  STEP 1: Upload your file(s)
-============================================
+1_upload.py (sync)  —  STEP 1: Upload your file(s)
+==================================================
 Sends your signed URLs to the API and gets back a file_id for each
 file that was accepted. Run this first.
+
+EDIT NOTHING HERE. All your values live in  ../config.json
+  (api_key, signed_urls, description).
 
 How to run:  python 1_upload.py
 
 About the responses you may see:
   - 200 = all files accepted for uploading.
   - 207 = some files were accepted, some failed (e.g. a bad/unsupported URL).
-          The script still saves the file_ids that succeeded and shows you
-          which URLs failed and why.
+          The script still saves the file_ids that succeeded, and logs the
+          ones that failed to errors.json (under "url_errors").
 
 What it saves to data.json:
-  "file_uploads": [
-      {"file_id": "....", "status": "Uploading"},
-      ...
-  ]
-Each accepted file starts with status "Uploading". Step 2 updates these
-to "uploaded" once the upload finishes.
+  "file_uploads": [ {"file_id": "....", "url": "....", "status": "Uploading"}, ... ]
 """
 
 import requests
-from helper import API_KEY, BASE_URL, build_headers, save_value, show_response, get_value
-
-# ============================================================
-# ===== EDIT HERE =====
-# ============================================================
-
-SIGNED_URLS = [  # 👈 paste your signed URL(s) here
-    "https://your-signed-url-2",
-    "https://your-signed-url-2",
-]
-
-DESCRIPTION = "description about batch - optional"  # 👈 optional text
-# ============================================================
-# ===== STOP EDITING (the rest runs by itself) =====
-# ============================================================
-
-ENDPOINT = f"{BASE_URL}/file-upload/"
-
-payload = {
-    "sign_urls": SIGNED_URLS,
-    "description": DESCRIPTION,
-}
+from helper import (
+    BASE_URL, load_config, api_key, get_string_array, build_headers,
+    save_value, show_response, get_value, log_url_error, log_other,
+)
 
 
 def extract_detail_blocks(body):
-    """
-    The 'detail' list lives in different places depending on the status:
-      - 200 -> body["data"]["detail"]
-      - 207 -> body["error"]["details"]
-    Returns whichever list is present (or an empty list).
-    """
+    """200 -> body['data']['detail'];  207 -> body['error']['details']."""
     data = body.get("data") or {}
     err = body.get("error") or {}
     return data.get("detail") or err.get("details") or []
 
 
-print("Uploading files...")
-response = requests.post(ENDPOINT, headers=build_headers(API_KEY), json=payload)
+cfg = load_config()
+key = api_key()
+description = cfg.get("description") or ""
+signed_urls = get_string_array(cfg, "signed_urls")
+
+if not signed_urls:
+    print('[X] No signed URLs found. Add at least one real URL to "signed_urls" in config.json.')
+    raise SystemExit
+
+ENDPOINT = f"{BASE_URL}/file-upload/"
+payload = {"sign_urls": signed_urls, "description": description}
+
+print(f"Uploading {len(signed_urls)} file(s)...")
+response = requests.post(ENDPOINT, headers=build_headers(key), json=payload)
 show_response(response)
 
 # Treat 200 and 207 as "we got results worth reading".
@@ -72,20 +59,15 @@ if response.status_code in (200, 207):
     for block in extract_detail_blocks(body):
         for item in block.get("successful_uploads", []):
             fid = item.get("file_id")
-            url = item.get("url")
             if fid:
-                # store the id with its status ("Uploading" at this point)
-                file_uploads.append(
-                    {
-                        "file_id": fid,
-                        "url": url,
-                        "status": item.get("status", "Uploading"),
-                    }
-                )
+                file_uploads.append({
+                    "file_id": fid,
+                    "url": item.get("url"),
+                    "status": item.get("status", "Uploading"),
+                })
         for item in block.get("failed_uploads", []):
             failed.append(item)
 
-    # Report what succeeded.
     if file_uploads:
         save_value("file_uploads", file_uploads)
         print("\n[OK] Uploaded files (status will be 'Uploading' at first):")
@@ -95,14 +77,20 @@ if response.status_code in (200, 207):
     else:
         print("\n[!] No files were accepted. See the failures below.")
 
-    # Report what failed (only happens on 207).
     if failed:
-        print("\n[!] Some files failed:")
+        print("\n[!] Some files failed (logged to errors.json):")
         for f in failed:
             print(f"   - URL: {f.get('url')}")
             print(f"     reason: {f.get('detail')}")
+            # 207 partial-failure item -> errors.json under url_errors
+            log_url_error(f.get("url") or "", response.status_code, f.get("detail") or "", f)
 else:
     print(
-        "\n[X] Upload request failed. Check your API key, your signed URLs, "
+        "\n[X] Upload request failed. Check your api_key, your signed_urls, "
         "and the status code above."
     )
+    try:
+        raw = response.json()
+    except ValueError:
+        raw = None
+    log_other(response.status_code, "File-upload request failed", raw)
