@@ -4,7 +4,7 @@ This folder contains **6 ready-to-run Java files**, one for each API step. The v
 
 **You only ever edit the root `config.json`.** The six step files read every value (API key, signed URLs, file IDs, level) from `../config.json`. They never need editing.
 
-Each step also writes its progress to a **`data.json` inside this `java/` folder** (created automatically) — that file is per-language and you don't touch it.
+Each step also writes its progress to a **`data.json` inside this `java/` folder** (created automatically) — that file is per-language and you don't touch it. Anything that **isn't** a clean success (a 207 partial upload, a non-200 response, or a failed job/report) is kept out of `data.json` and written to a separate **`errors.json`** instead, so your tracked data stays clean.
 
 These files need **one library — Gson** — for reading and writing JSON. It's a single jar you download once.
 
@@ -51,7 +51,8 @@ your-project/
 │   ├── config? NO — config is at the root, not here
 │   ├── lib/gson.jar      (you download this)
 │   ├── Step1Upload.java … Step6CheckReport.java
-│   └── data.json         (created automatically when you run a step)
+│   └── data.json         (created automatically — clean tracked items only)
+│   └── errors.json       (created only if something errors — see below)
 ├── dotnet/   …           (reads the same ../config.json, its own data.json)
 ├── node/     …
 └── python/   …
@@ -112,7 +113,47 @@ You fill these in **as you go** — `signed_urls` before Step 1, `process.file_i
 - **You → the scripts:** through the root **`../config.json`** (the only file you edit — shared by every language).
 - **Between scripts:** through **`data.json` inside this `java/` folder**, which the scripts create and update automatically. Each language keeps its own `data.json`, so runs in different languages don't collide. Each step **prints its result on screen** and **saves the important values into `data.json`**. The "check" files (steps 2, 4, 6) read `data.json`, loop through everything, skip anything already finished, and update the rest — so they're safe to run repeatedly until done.
 
-Each file has a small `AOD` helper class at the bottom (Base URL, headers, reads `../config.json`, reads/writes the local `data.json`). You do **not** need to edit it.
+Each file has a small `AOD` helper class at the bottom (Base URL, headers, reads `../config.json`, reads/writes the local `data.json`, and logs problems to `errors.json`). You do **not** need to edit it.
+
+### Errors — `errors.json`
+
+`data.json` only ever holds clean, tracked items. Anything else is written to **`errors.json`** in this folder (created the first time something goes wrong). Entries are **grouped by what they relate to** and **appended** (full history — nothing is overwritten), each with a UTC timestamp:
+
+| Section | What lands here | Carries |
+|---------|-----------------|---------|
+| `url_errors`  | A signed URL that failed to upload (e.g. a 207 partial upload, "unsupported source") | `url` |
+| `file_errors` | A problem tied to a `file_id` (can't check upload, 409 conflict, couldn't start job/report) | `file_id` |
+| `job_errors`  | A problem tied to a `job_id` (job or report failed, unreadable response) | `job_id` |
+| `other`        | Anything not clearly tied to one of the above (e.g. the whole request failed) | — |
+
+Every entry also has `timestamp_utc` (ISO-8601, e.g. `2025-06-03T10:07:42Z`), `status_code`, a short `message`, and the original `raw` response/detail. Example:
+
+```json
+{
+  "url_errors": [
+    {
+      "timestamp_utc": "2025-06-03T10:07:42Z",
+      "url": "https://your-signed-url-2",
+      "status_code": 207,
+      "message": "unsupported source",
+      "raw": { "url": "https://your-signed-url-2", "detail": "unsupported source" }
+    }
+  ],
+  "file_errors": [
+    {
+      "timestamp_utc": "2025-06-03T10:09:10Z",
+      "file_id": "file_abc",
+      "status_code": 409,
+      "message": "Conflict - file already processed",
+      "raw": { "error": { "code": "CONFLICT" } }
+    }
+  ],
+  "job_errors": [ ],
+  "other": [ ]
+}
+```
+
+Because it's append-only, `errors.json` is a running log — safe to re-run steps, and you can delete the file any time to start a fresh log.
 
 ---
 
@@ -153,7 +194,7 @@ Step6CheckReport.java
 java -cp ".:lib/gson.jar" Step1Upload.java
 ```
 
-**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some URLs fail (status **207**), the script lists which ones and why, but still saves the ones that succeeded.
+**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some URLs fail (status **207**), the failures are written to `errors.json` under `url_errors` (the successful ones are still saved to `data.json`).
 
 > ⏱️ This endpoint is rate-limited. Sending more URLs means a longer cooldown before your next upload (see the main README, Section 6).
 
@@ -199,7 +240,7 @@ run below to check status of added in processing
 java -cp ".:lib/gson.jar" Step4CheckJob.java
 ```
 
-**Result:** prints the status of each job. When a job is `Completed`, the script saves and prints the **tagged PDF `download_url`**. Jobs already `Completed` are skipped.
+**Result:** prints the status of each job. When a job is `Completed`, the script saves and prints the **tagged PDF `download_url`**. Jobs already `Completed` are skipped. Any job that comes back `Failed` (or whose response can't be read) is logged to `errors.json` under `job_errors`, not `data.json`.
 
 > ⏳ The download link expires (see `expires_in_seconds`, e.g. 300 = 5 minutes). Download the PDF soon.
 
@@ -225,7 +266,7 @@ run below to check status of added in generate report
 java -cp ".:lib/gson.jar" Step6CheckReport.java
 ```
 
-**Result:** prints the status of each report. When `Completed`, the script saves and prints the **score report PDF `download_url`**.
+**Result:** prints the status of each report. When `Completed`, the script saves and prints the **score report PDF `download_url`**. A `Failed` report (or unreadable response) is logged to `errors.json` under `job_errors`.
 
 > ⏳ Like the tagged PDF, this link also expires — download it soon or re-run this file for a fresh one.
 
@@ -233,6 +274,7 @@ java -cp ".:lib/gson.jar" Step6CheckReport.java
 
 ## Troubleshooting
 
+- **Where did my failures go?** Anything that wasn't a clean success is in **`errors.json`** (this folder), grouped into `url_errors` / `file_errors` / `job_errors` / `other`, newest appended last. `data.json` only keeps clean items.
 - **`config.json was not found at ../config.json`** — run the command from inside the `java/` folder, with `config.json` sitting in the folder above it (the repo root).
 - **`Please set your real "api_key"`** — `api_key` in `config.json` is still the placeholder. Paste your real key.
 - **`No signed URLs found` / `No file_id given`** — the matching field in `config.json` is still blank or a placeholder. Fill it in.

@@ -42,6 +42,7 @@ public class Step3CreateJob {
         int code = response.statusCode();
         if (code == 409) {
             System.out.println("\n[Conflict] This is already processed: change the file_id in config.json (" + fileId + ")");
+            AOD.logFileError(fileId, code, "Conflict - file already processed", body != null ? body : null);
         }
 
         if ((code == 200 || code == 201) && body != null) {
@@ -70,9 +71,11 @@ public class Step3CreateJob {
             } else {
                 System.out.println("\n[!] Could not find 'job_id' in the response. "
                         + "Check the printed response above and update the key name.");
+                AOD.logFileError(fileId, code, "No job_id in job-create response", body);
             }
-        } else {
+        } else if (code != 409) {
             System.out.println("\n[X] Could not start the job. Check the file_id, level, and status code above.");
+            AOD.logFileError(fileId, code, "Could not start job", body != null ? body : null);
         }
     }
 }
@@ -82,7 +85,7 @@ public class Step3CreateJob {
  * AOD — shared helper used by every step file.
  * You normally do NOT need to edit this. It holds the Base URL, builds the
  * Authorization header, sends requests, reads your values from config.json,
- * and reads/writes data.json.
+ * reads/writes data.json, and logs anything that is not a clean success to errors.json.
  *
  * ALL editable values live in  config.json  — you never edit the .java files.
  */
@@ -91,8 +94,10 @@ class AOD {
 
     // Shared config lives in the REPO ROOT (one level up from this language folder).
     static final java.nio.file.Path CONFIG_FILE = java.nio.file.Paths.get("..", "config.json");
-    // data.json stays inside THIS language folder.
+    // data.json (tracked, clean items) stays inside THIS language folder.
     static final java.nio.file.Path DATA_FILE = java.nio.file.Paths.get("data.json");
+    // errors.json (anything that is NOT a clean success) also stays in this folder.
+    static final java.nio.file.Path ERRORS_FILE = java.nio.file.Paths.get("errors.json");
     static final com.google.gson.Gson GSON =
             new com.google.gson.GsonBuilder().setPrettyPrinting().create();
     static final java.net.http.HttpClient CLIENT = java.net.http.HttpClient.newHttpClient();
@@ -245,5 +250,81 @@ class AOD {
             }
         }
         return new com.google.gson.JsonArray();
+    }
+
+    // ---------- errors.json (anything that is NOT a clean success) ----------
+    //
+    // Grouped, append-only history. Sections:
+    //   "url_errors"  — tied to a signed URL (Step 1 uploads)
+    //   "file_errors" — tied to a file_id (Steps 2, 3, 5)
+    //   "job_errors"  — tied to a job_id  (Steps 4, 6)
+    //   "other"       — anything not clearly tied to one of the above
+    // Every entry carries a UTC timestamp (ISO-8601, e.g. 2025-06-03T10:07:42Z).
+
+    static com.google.gson.JsonObject loadErrors() {
+        try {
+            if (!java.nio.file.Files.exists(ERRORS_FILE)) return new com.google.gson.JsonObject();
+            String txt = java.nio.file.Files.readString(ERRORS_FILE);
+            return com.google.gson.JsonParser.parseString(txt).getAsJsonObject();
+        } catch (Exception e) {
+            return new com.google.gson.JsonObject();
+        }
+    }
+
+    static String utcNow() {
+        return java.time.format.DateTimeFormatter.ISO_INSTANT
+                .format(java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS));
+    }
+
+    /**
+     * Log one error to errors.json. Pick the section by what the error relates to:
+     *   refKey = "url" | "file_id" | "job_id"  (or null/"" -> goes to "other")
+     * refValue is the actual URL / file_id / job_id (may be empty for "other").
+     * raw is the original response body or detail (JsonElement), or null.
+     */
+    static void logError(String refKey, String refValue, int statusCode, String message,
+                         com.google.gson.JsonElement raw) {
+        String section;
+        if ("url".equals(refKey))            section = "url_errors";
+        else if ("file_id".equals(refKey))   section = "file_errors";
+        else if ("job_id".equals(refKey))    section = "job_errors";
+        else                                  section = "other";
+
+        try {
+            com.google.gson.JsonObject all = loadErrors();
+            com.google.gson.JsonArray arr = all.has(section) && all.get(section).isJsonArray()
+                    ? all.getAsJsonArray(section) : new com.google.gson.JsonArray();
+
+            com.google.gson.JsonObject entry = new com.google.gson.JsonObject();
+            entry.addProperty("timestamp_utc", utcNow());
+            if (refKey != null && !refKey.isEmpty() && refValue != null && !refValue.isEmpty()) {
+                entry.addProperty(refKey, refValue);   // "url" / "file_id" / "job_id"
+            }
+            entry.addProperty("status_code", statusCode);
+            if (message != null && !message.isEmpty()) entry.addProperty("message", message);
+            if (raw != null && !raw.isJsonNull()) entry.add("raw", raw);
+
+            arr.add(entry);                 // append (full history, keeps growing)
+            all.add(section, arr);
+            java.nio.file.Files.writeString(ERRORS_FILE, GSON.toJson(all));
+            System.out.println("[error logged] -> errors.json (" + section + ")"
+                    + (refValue != null && !refValue.isEmpty() ? "  " + refKey + ": " + refValue : ""));
+        } catch (Exception e) {
+            System.out.println("[!] Could not write to errors.json: " + e.getMessage());
+        }
+    }
+
+    // Convenience overloads
+    static void logUrlError(String url, int statusCode, String message, com.google.gson.JsonElement raw) {
+        logError("url", url, statusCode, message, raw);
+    }
+    static void logFileError(String fileId, int statusCode, String message, com.google.gson.JsonElement raw) {
+        logError("file_id", fileId, statusCode, message, raw);
+    }
+    static void logJobError(String jobId, int statusCode, String message, com.google.gson.JsonElement raw) {
+        logError("job_id", jobId, statusCode, message, raw);
+    }
+    static void logOther(int statusCode, String message, com.google.gson.JsonElement raw) {
+        logError("other", "", statusCode, message, raw);
     }
 }
