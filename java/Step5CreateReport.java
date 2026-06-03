@@ -4,6 +4,9 @@
  * Asks the API to generate an axes4 accessibility score report for a file.
  * Returns a report job_id.
  *
+ * EDIT NOTHING HERE. Set this in  config.json  under "report":
+ *   "report": { "file_id": "<the file_id to generate a report for>" }
+ *
  * How to run (Java 11+):
  *   Mac/Linux:  java -cp ".:lib/gson.jar" Step5CreateReport.java
  *   Windows:    java -cp ".;lib\gson.jar" Step5CreateReport.java
@@ -16,22 +19,22 @@ import com.google.gson.*;
 
 public class Step5CreateReport {
 
-    // ===== EDIT HERE =====
-    static final String API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3
-    static final String FILE_ID = "";                // the file_id to generate a report for
-    // ===== STOP EDITING =====
-
     public static void main(String[] args) throws Exception {
-        if (FILE_ID == null || FILE_ID.isEmpty()) {
-            System.out.println("[X] No file_id given. Paste a FILE_ID above.");
+        JsonObject cfg = AOD.loadConfig();
+        String apiKey = AOD.apiKey();
+        JsonObject report = AOD.getObject(cfg, "report");
+        String fileId = AOD.getString(report, "file_id", "").trim();
+
+        if (fileId.isEmpty()) {
+            System.out.println("[X] No file_id given. Set \"report\": {\"file_id\": ...} in config.json.");
             return;
         }
 
         JsonObject payload = new JsonObject();
-        payload.addProperty("file_id", FILE_ID);
+        payload.addProperty("file_id", fileId);
 
-        System.out.println("Requesting a score report for file_id " + FILE_ID + " ...");
-        java.net.http.HttpResponse<String> response = AOD.post(AOD.BASE_URL + "/report/", API_KEY, payload.toString());
+        System.out.println("Requesting a score report for file_id " + fileId + " ...");
+        java.net.http.HttpResponse<String> response = AOD.post(AOD.BASE_URL + "/report/", apiKey, payload.toString());
         JsonObject body = AOD.showResponse(response);
 
         int code = response.statusCode();
@@ -50,7 +53,7 @@ public class Step5CreateReport {
                 }
                 if (!exists) {
                     JsonObject entry = new JsonObject();
-                    entry.addProperty("file_id", FILE_ID);
+                    entry.addProperty("file_id", fileId);
                     entry.addProperty("job_id", jobId);
                     entry.addProperty("status", "Processing");
                     reportProcess.add(entry);
@@ -68,18 +71,94 @@ public class Step5CreateReport {
     }
 }
 
+
 /*
  * AOD — shared helper used by every step file.
- * You normally do NOT need to edit this. It holds the Base URL,
- * builds the Authorization header, sends requests, and reads/writes data.json.
+ * You normally do NOT need to edit this. It holds the Base URL, builds the
+ * Authorization header, sends requests, reads your values from config.json,
+ * and reads/writes data.json.
+ *
+ * ALL editable values live in  config.json  — you never edit the .java files.
  */
 class AOD {
     static final String BASE_URL = "https://staging.api.accessibilityondemand.space/api/v1";
 
+    // Shared config lives in the REPO ROOT (one level up from this language folder).
+    static final java.nio.file.Path CONFIG_FILE = java.nio.file.Paths.get("..", "config.json");
+    // data.json stays inside THIS language folder.
     static final java.nio.file.Path DATA_FILE = java.nio.file.Paths.get("data.json");
     static final com.google.gson.Gson GSON =
             new com.google.gson.GsonBuilder().setPrettyPrinting().create();
     static final java.net.http.HttpClient CLIENT = java.net.http.HttpClient.newHttpClient();
+
+    // ---------- config.json (the one file you edit) ----------
+
+    static com.google.gson.JsonObject loadConfig() {
+        try {
+            if (!java.nio.file.Files.exists(CONFIG_FILE)) {
+                System.out.println("[X] config.json was not found at ../config.json (the repo root). "
+                        + "Run this file from inside the java folder, with config.json in the folder above it.");
+                System.exit(1);
+            }
+            String txt = java.nio.file.Files.readString(CONFIG_FILE);
+            return com.google.gson.JsonParser.parseString(txt).getAsJsonObject();
+        } catch (Exception e) {
+            System.out.println("[X] Could not read config.json (is the JSON valid?): " + e.getMessage());
+            System.exit(1);
+            return new com.google.gson.JsonObject(); // unreachable
+        }
+    }
+
+    /** Read the API key, with a friendly error if it's still the placeholder. */
+    static String apiKey() {
+        String key = getString(loadConfig(), "api_key", "");
+        if (key.isEmpty() || key.equals("aod-xxxxxxxxxxx")) {
+            System.out.println("[X] Please set your real \"api_key\" in config.json "
+                    + "(it is still the placeholder).");
+            System.exit(1);
+        }
+        return key;
+    }
+
+    /** Read a String value from a JsonObject, or return the default if missing/null. */
+    static String getString(com.google.gson.JsonObject obj, String key, String def) {
+        if (obj != null && obj.has(key) && !obj.get(key).isJsonNull()) {
+            return obj.get(key).getAsString();
+        }
+        return def;
+    }
+
+    /** Read an int value from a JsonObject, or return the default if missing/null. */
+    static int getInt(com.google.gson.JsonObject obj, String key, int def) {
+        if (obj != null && obj.has(key) && !obj.get(key).isJsonNull()) {
+            try { return obj.get(key).getAsInt(); } catch (Exception ignored) {}
+        }
+        return def;
+    }
+
+    /** Read a nested object (e.g. "process", "report") from config, or empty object. */
+    static com.google.gson.JsonObject getObject(com.google.gson.JsonObject obj, String key) {
+        if (obj != null && obj.has(key) && obj.get(key).isJsonObject()) {
+            return obj.getAsJsonObject(key);
+        }
+        return new com.google.gson.JsonObject();
+    }
+
+    /** Read a String array from config (e.g. "signed_urls"), ignoring blank/placeholder entries. */
+    static java.util.List<String> getStringArray(com.google.gson.JsonObject obj, String key) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (obj != null && obj.has(key) && obj.get(key).isJsonArray()) {
+            for (com.google.gson.JsonElement e : obj.getAsJsonArray(key)) {
+                if (e == null || e.isJsonNull()) continue;
+                String v = e.getAsString().trim();
+                if (v.isEmpty() || v.startsWith("https://your-signed-url")) continue;
+                out.add(v);
+            }
+        }
+        return out;
+    }
+
+    // ---------- HTTP ----------
 
     static java.net.http.HttpResponse<String> post(String url, String apiKey, String jsonBody)
             throws Exception {
@@ -114,6 +193,8 @@ class AOD {
             return null;
         }
     }
+
+    // ---------- data.json (shared between steps) ----------
 
     static com.google.gson.JsonObject loadData() {
         try {

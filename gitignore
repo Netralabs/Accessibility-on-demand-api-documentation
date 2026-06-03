@@ -300,3 +300,9 @@ scratch/
 sandbox/
 TODO.local
 NOTES.local
+
+# Ignore any folder named lib anywhere
+**/lib/
+
+# Ignore any file named data.json anywhere
+**/data.json

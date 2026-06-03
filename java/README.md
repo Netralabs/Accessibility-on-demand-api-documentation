@@ -1,6 +1,10 @@
 # Java — AOD-API
 
-This folder contains **6 ready-to-run Java files**, one for each API step. Each file is self-contained (it includes a small built-in `AOD` helper at the bottom), so you run it directly with `java` — no build tool, no project setup.
+This folder contains **6 ready-to-run Java files**, one for each API step. The values you edit live in **one shared `config.json` at the repo root** — so every language folder (Java, .NET, Node, Python) reads the same config, and you fill it in **once**. Each `.java` file is self-contained (it includes a small built-in `AOD` helper at the bottom), so you run it directly with `java` — no build tool, no project setup.
+
+**You only ever edit the root `config.json`.** The six step files read every value (API key, signed URLs, file IDs, level) from `../config.json`. They never need editing.
+
+Each step also writes its progress to a **`data.json` inside this `java/` folder** (created automatically) — that file is per-language and you don't touch it.
 
 These files need **one library — Gson** — for reading and writing JSON. It's a single jar you download once.
 
@@ -10,28 +14,85 @@ For the full API reference (every endpoint, request, and response), see the [mai
 
 ## Setup (one time)
 
-1. Make sure **Java 11 or newer** is installed (Java 11+ can run a single `.java` file directly, with no compile step). Check with:
+**1. Check Java 11 or newer is installed** (Java 11+ runs a single `.java` file directly, no compile step):
 
-   ```bash
-   java -version
-   ```
+```bash
+java -version
+```
 
-   (New to Java? A quick search for "how to install Java JDK" or asking an AI assistant will get you set up.)
+(New to Java? A quick search for "how to install Java JDK" will get you set up.)
 
-2. **Get the Gson jar.** Download it once from Maven Central:
+**2. Download Gson into a `lib` folder — one command, run from this folder.**
+It creates the `lib` folder and saves the jar as `lib/gson.jar` for you.
 
-   <https://repo1.maven.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar>
+**Mac / Linux:**
+```bash
+mkdir -p lib && curl -L -o lib/gson.jar https://repo1.maven.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar
+```
 
-   Save it inside the `lib` folder and rename it to **`gson.jar`** (so the path is `lib/gson.jar`).
+**Windows (PowerShell):**
+```powershell
+mkdir lib -Force; curl.exe -L -o lib/gson.jar https://repo1.maven.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar
+```
 
-3. Open each file and paste your API key into the `API_KEY` value at the top:
+> Prefer to download by hand? Save [this jar](https://repo1.maven.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar) into a new folder named `lib` (in this same directory) and rename it to `gson.jar`.
 
-   ```java
-   // ===== EDIT HERE =====
-   static final String API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3 of the main README
-   ```
+**3. Open the root `config.json` and fill in your values** (it sits one level up from this `java/` folder — it's the only file you edit; see the next section).
 
 You're now ready to run the steps in order.
+
+### Folder layout
+
+```
+your-project/
+├── config.json          ← the ONE file you edit (shared by all languages)
+├── java/
+│   ├── README.md         (this file)
+│   ├── config? NO — config is at the root, not here
+│   ├── lib/gson.jar      (you download this)
+│   ├── Step1Upload.java … Step6CheckReport.java
+│   └── data.json         (created automatically when you run a step)
+├── dotnet/   …           (reads the same ../config.json, its own data.json)
+├── node/     …
+└── python/   …
+```
+
+---
+
+## The one file you edit — `../config.json` (repo root)
+
+```json
+{
+  "api_key": "aod-xxxxxxxxxxx",
+
+  "description": "description about batch - optional",
+
+  "signed_urls": [
+    "https://your-signed-url-1",
+    "https://your-signed-url-2"
+  ],
+
+  "process": {
+    "file_id": "",
+    "level": 1
+  },
+
+  "report": {
+    "file_id": ""
+  }
+}
+```
+
+| Field | Used by | What to put |
+|-------|---------|-------------|
+| `api_key`            | every step | Your key from Section 3 of the main README |
+| `description`        | Step 1 | Optional text describing the batch |
+| `signed_urls`        | Step 1 | One or more signed URLs. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)* |
+| `process.file_id`    | Step 3 | An **uploaded** `file_id` (from Step 2) to process |
+| `process.level`      | Step 3 | `1` or `2` |
+| `report.file_id`     | Step 5 | The `file_id` you want a score report for |
+
+You fill these in **as you go** — `signed_urls` before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5. The steps tell you what to set next.
 
 ---
 
@@ -48,24 +109,23 @@ You're now ready to run the steps in order.
 
 ### How values are shared between files
 
-When you run a file, it **prints the result on screen** and **saves the important values into `data.json`** in this folder. The "check" files (steps 2, 4, 6) read from `data.json`, loop through everything, skip anything already finished, and update the rest — so they're safe to run repeatedly until done.
+- **You → the scripts:** through the root **`../config.json`** (the only file you edit — shared by every language).
+- **Between scripts:** through **`data.json` inside this `java/` folder**, which the scripts create and update automatically. Each language keeps its own `data.json`, so runs in different languages don't collide. Each step **prints its result on screen** and **saves the important values into `data.json`**. The "check" files (steps 2, 4, 6) read `data.json`, loop through everything, skip anything already finished, and update the rest — so they're safe to run repeatedly until done.
 
-Each file has a small `AOD` helper class at the bottom (Base URL, headers, `data.json` read/write). You normally do **not** need to edit it.
+Each file has a small `AOD` helper class at the bottom (Base URL, headers, reads `../config.json`, reads/writes the local `data.json`). You do **not** need to edit it.
 
 ---
 
 ## How to run
 
-Every file is run the same way. The only tricky part is putting the Gson jar on the "classpath" with `-cp`. Use the form for your operating system:
+Every file is run the same way. The only OS-specific part is the classpath separator before the jar: **Mac/Linux use `:`, Windows use `;`.**
 
-**Mac / Linux** (colon separator):
-
+**Mac / Linux:**
 ```bash
 java -cp ".:lib/gson.jar" Step1Upload.java
 ```
 
-**Windows** (semicolon separator):
-
+**Windows:**
 ```bash
 java -cp ".;lib\gson.jar" Step1Upload.java
 ```
@@ -87,18 +147,7 @@ Step6CheckReport.java
 
 ### Step 1 — Upload your file(s) → `Step1Upload.java`
 
-**Edit:** paste your API key, and the `SIGNED_URLS` array. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
-
-```java
-static final String API_KEY = "aod-xxxxxxxxxxx";
-static final String[] SIGNED_URLS = {
-    "https://your-signed-url-1",
-    "https://your-signed-url-2",
-};
-static final String DESCRIPTION = "description about batch - optional";
-```
-
-**Run** (Mac/Linux):
+**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`).
 
 ```bash
 java -cp ".:lib/gson.jar" Step1Upload.java
@@ -114,7 +163,7 @@ java -cp ".:lib/gson.jar" Step1Upload.java
 
 ### Step 2 — Check upload status → `Step2CheckUpload.java`
 
-**Edit:** only your API key.
+run below to check status of added for uploading
 
 ```bash
 java -cp ".:lib/gson.jar" Step2CheckUpload.java
@@ -122,19 +171,13 @@ java -cp ".:lib/gson.jar" Step2CheckUpload.java
 
 **Result:** prints the status of each file. Files already `Uploaded` are skipped; the rest are updated. Re-run until all show `Uploaded`.
 
-**Next:** once a file is `Uploaded`, use its `file_id` in Step 3.
+**Next:** copy an uploaded `file_id` into `config.json` under `process.file_id`, then run Step 3.
 
 ---
 
 ### Step 3 — Start processing → `Step3CreateJob.java`
 
-**Edit:** paste the `file_id` you want to process, and choose the **level** (1 or 2).
-
-```java
-static final String API_KEY = "aod-xxxxxxxxxxx";
-static final String FILE_ID = "paste-an-uploaded-file_id-here";
-static final int LEVEL = 1;     // 1 or 2
-```
+**In the root `../config.json`:** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
 ```bash
 java -cp ".:lib/gson.jar" Step3CreateJob.java
@@ -150,7 +193,7 @@ java -cp ".:lib/gson.jar" Step3CreateJob.java
 
 ### Step 4 — Check job & get tagged PDF → `Step4CheckJob.java`
 
-**Edit:** only your API key.
+run below to check status of added in processing
 
 ```bash
 java -cp ".:lib/gson.jar" Step4CheckJob.java
@@ -164,12 +207,7 @@ java -cp ".:lib/gson.jar" Step4CheckJob.java
 
 ### Step 5 — Request a score report → `Step5CreateReport.java`
 
-**Edit:** paste the `file_id` you want a report for.
-
-```java
-static final String API_KEY = "aod-xxxxxxxxxxx";
-static final String FILE_ID = "paste-a-file_id-here";
-```
+**In the root `../config.json`:** set `report.file_id` to the file you want a report for.
 
 ```bash
 java -cp ".:lib/gson.jar" Step5CreateReport.java
@@ -181,7 +219,7 @@ java -cp ".:lib/gson.jar" Step5CreateReport.java
 
 ### Step 6 — Get the score report → `Step6CheckReport.java`
 
-**Edit:** only your API key.
+run below to check status of added in generate report
 
 ```bash
 java -cp ".:lib/gson.jar" Step6CheckReport.java
@@ -195,9 +233,13 @@ java -cp ".:lib/gson.jar" Step6CheckReport.java
 
 ## Troubleshooting
 
+- **`config.json was not found at ../config.json`** — run the command from inside the `java/` folder, with `config.json` sitting in the folder above it (the repo root).
+- **`Please set your real "api_key"`** — `api_key` in `config.json` is still the placeholder. Paste your real key.
+- **`No signed URLs found` / `No file_id given`** — the matching field in `config.json` is still blank or a placeholder. Fill it in.
 - **`error: cannot find symbol` / `package com.google.gson does not exist`** — Gson isn't on the classpath. Make sure `lib/gson.jar` exists and you included `-cp ".:lib/gson.jar"` (Mac/Linux) or `-cp ".;lib\gson.jar"` (Windows).
 - **`class found in ... has wrong name`** — don't rename the files; each filename must match its class (e.g. `Step1Upload.java`).
-- **401 Unauthorized** — your API key is missing, wrong, or has extra spaces. Re-check the `API_KEY` value.
+- **`com.google.gson.JsonSyntaxException` reading config.json** — the JSON is malformed (a missing comma or quote). Paste it into any JSON validator to find the spot.
+- **401 Unauthorized** — your API key is missing, wrong, or has extra spaces. Re-check `api_key` in `config.json`.
 - **429 Too Many Requests** — you're calling too fast. Wait the `retry-after-sec` seconds shown in the response and try again.
 - **A URL failed with "unsupported source"** — only **S3** and **Google Drive** signed URLs are supported.
 

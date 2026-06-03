@@ -4,9 +4,12 @@
  * Sends your signed URLs to the API and gets back a file_id for each
  * file that was accepted. Run this first.
  *
+ * EDIT NOTHING HERE. All your values live in  config.json
+ *   (api_key, signed_urls, description).
+ *
  * How to run (Java 11+):
  *   Mac/Linux:  java -cp ".:lib/gson.jar" Step1Upload.java
- *   Windows:    java -cp ".;lib\\gson.jar" Step1Upload.java
+ *   Windows:    java -cp ".;lib\gson.jar" Step1Upload.java
  *
  * What it saves to data.json:
  *   "file_uploads": [ { "file_id": "....", "url": "....", "status": "Uploading" }, ... ]
@@ -16,32 +19,29 @@ import com.google.gson.*;
 
 public class Step1Upload {
 
-    // ============================================================
-    // ===== EDIT HERE =====
-    // ============================================================
-    static final String API_KEY = "aod-xxxxxxxxxxx"; // paste your key from Section 3
-
-    static final String[] SIGNED_URLS = {            // paste your signed URL(s) here
-        "https://your-signed-url-1",
-        "https://your-signed-url-2",
-    };
-
-    static final String DESCRIPTION = "description about batch - optional"; // optional text
-    // ============================================================
-    // ===== STOP EDITING (the rest runs by itself) =====
-    // ============================================================
-
     public static void main(String[] args) throws Exception {
+        // --- read everything from config.json ---
+        JsonObject cfg = AOD.loadConfig();
+        String apiKey = AOD.apiKey();
+        String description = AOD.getString(cfg, "description", "");
+        java.util.List<String> signedUrls = AOD.getStringArray(cfg, "signed_urls");
+
+        if (signedUrls.isEmpty()) {
+            System.out.println("[X] No signed URLs found. Add at least one real URL to "
+                    + "\"signed_urls\" in config.json.");
+            return;
+        }
+
         String endpoint = AOD.BASE_URL + "/file-upload/";
 
         JsonObject payload = new JsonObject();
         JsonArray urls = new JsonArray();
-        for (String u : SIGNED_URLS) urls.add(u);
+        for (String u : signedUrls) urls.add(u);
         payload.add("sign_urls", urls);
-        payload.addProperty("description", DESCRIPTION);
+        payload.addProperty("description", description);
 
-        System.out.println("Uploading files...");
-        java.net.http.HttpResponse<String> response = AOD.post(endpoint, API_KEY, payload.toString());
+        System.out.println("Uploading " + signedUrls.size() + " file(s)...");
+        java.net.http.HttpResponse<String> response = AOD.post(endpoint, apiKey, payload.toString());
         JsonObject body = AOD.showResponse(response);
 
         int code = response.statusCode();
@@ -93,7 +93,7 @@ public class Step1Upload {
                 }
             }
         } else {
-            System.out.println("\n[X] Upload request failed. Check your API key, your signed URLs, "
+            System.out.println("\n[X] Upload request failed. Check your api_key, your signed_urls, "
                     + "and the status code above.");
         }
     }
@@ -102,16 +102,91 @@ public class Step1Upload {
 
 /*
  * AOD — shared helper used by every step file.
- * You normally do NOT need to edit this. It holds the Base URL,
- * builds the Authorization header, sends requests, and reads/writes data.json.
+ * You normally do NOT need to edit this. It holds the Base URL, builds the
+ * Authorization header, sends requests, reads your values from config.json,
+ * and reads/writes data.json.
+ *
+ * ALL editable values live in  config.json  — you never edit the .java files.
  */
 class AOD {
     static final String BASE_URL = "https://staging.api.accessibilityondemand.space/api/v1";
 
+    // Shared config lives in the REPO ROOT (one level up from this language folder).
+    static final java.nio.file.Path CONFIG_FILE = java.nio.file.Paths.get("..", "config.json");
+    // data.json stays inside THIS language folder.
     static final java.nio.file.Path DATA_FILE = java.nio.file.Paths.get("data.json");
     static final com.google.gson.Gson GSON =
             new com.google.gson.GsonBuilder().setPrettyPrinting().create();
     static final java.net.http.HttpClient CLIENT = java.net.http.HttpClient.newHttpClient();
+
+    // ---------- config.json (the one file you edit) ----------
+
+    static com.google.gson.JsonObject loadConfig() {
+        try {
+            if (!java.nio.file.Files.exists(CONFIG_FILE)) {
+                System.out.println("[X] config.json was not found at ../config.json (the repo root). "
+                        + "Run this file from inside the java folder, with config.json in the folder above it.");
+                System.exit(1);
+            }
+            String txt = java.nio.file.Files.readString(CONFIG_FILE);
+            return com.google.gson.JsonParser.parseString(txt).getAsJsonObject();
+        } catch (Exception e) {
+            System.out.println("[X] Could not read config.json (is the JSON valid?): " + e.getMessage());
+            System.exit(1);
+            return new com.google.gson.JsonObject(); // unreachable
+        }
+    }
+
+    /** Read the API key, with a friendly error if it's still the placeholder. */
+    static String apiKey() {
+        String key = getString(loadConfig(), "api_key", "");
+        if (key.isEmpty() || key.equals("aod-xxxxxxxxxxx")) {
+            System.out.println("[X] Please set your real \"api_key\" in config.json "
+                    + "(it is still the placeholder).");
+            System.exit(1);
+        }
+        return key;
+    }
+
+    /** Read a String value from a JsonObject, or return the default if missing/null. */
+    static String getString(com.google.gson.JsonObject obj, String key, String def) {
+        if (obj != null && obj.has(key) && !obj.get(key).isJsonNull()) {
+            return obj.get(key).getAsString();
+        }
+        return def;
+    }
+
+    /** Read an int value from a JsonObject, or return the default if missing/null. */
+    static int getInt(com.google.gson.JsonObject obj, String key, int def) {
+        if (obj != null && obj.has(key) && !obj.get(key).isJsonNull()) {
+            try { return obj.get(key).getAsInt(); } catch (Exception ignored) {}
+        }
+        return def;
+    }
+
+    /** Read a nested object (e.g. "process", "report") from config, or empty object. */
+    static com.google.gson.JsonObject getObject(com.google.gson.JsonObject obj, String key) {
+        if (obj != null && obj.has(key) && obj.get(key).isJsonObject()) {
+            return obj.getAsJsonObject(key);
+        }
+        return new com.google.gson.JsonObject();
+    }
+
+    /** Read a String array from config (e.g. "signed_urls"), ignoring blank/placeholder entries. */
+    static java.util.List<String> getStringArray(com.google.gson.JsonObject obj, String key) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (obj != null && obj.has(key) && obj.get(key).isJsonArray()) {
+            for (com.google.gson.JsonElement e : obj.getAsJsonArray(key)) {
+                if (e == null || e.isJsonNull()) continue;
+                String v = e.getAsString().trim();
+                if (v.isEmpty() || v.startsWith("https://your-signed-url")) continue;
+                out.add(v);
+            }
+        }
+        return out;
+    }
+
+    // ---------- HTTP ----------
 
     static java.net.http.HttpResponse<String> post(String url, String apiKey, String jsonBody)
             throws Exception {
@@ -146,6 +221,8 @@ class AOD {
             return null;
         }
     }
+
+    // ---------- data.json (shared between steps) ----------
 
     static com.google.gson.JsonObject loadData() {
         try {

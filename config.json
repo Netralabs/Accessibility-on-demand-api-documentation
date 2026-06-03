@@ -1,0 +1,21 @@
+{
+  "_comment": "This is the ONLY file you edit. Fill in the values below, then run the steps in order. Nothing in the .java files needs changing.",
+  
+  "api_key": "aod-xxxxxxxxxxx", 
+
+  "description": "description about batch - optional",
+
+  "signed_urls": [
+    "https://your-signed-url-1",
+    "https://your-signed-url-2"
+  ],
+
+  "process": {
+    "file_id": "",
+    "level": 1
+  },
+
+  "report": {
+    "file_id": ""
+  }
+}
