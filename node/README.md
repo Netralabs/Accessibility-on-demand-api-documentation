@@ -269,7 +269,7 @@ node 6_check_report.js
 
 **Result:** prints the status of each report. When `Completed`, the script saves and prints the **score report PDF `download_url`**. A `Failed` report (or unreadable response) is logged to `errors.json` under `job_errors`.
 
-> ⏳ Like the tagged PDF, this link also expires — download it soon, or re-run this file for a fresh one.
+> ⏳ Like the tagged PDF, this link also expires — download it soon before it get expire.
 
 ---
 
