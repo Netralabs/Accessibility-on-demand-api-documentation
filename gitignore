@@ -1,0 +1,302 @@
+# =============================================================================
+#  GENERAL / OS
+# =============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*~
+*.swp
+*.swo
+*.bak
+*.tmp
+*.temp
+*.orig
+
+# =============================================================================
+#  ENVIRONMENT / SECRETS  (never push these)
+# =============================================================================
+.env
+.env.*
+!.env.example
+!.env.sample
+*.env
+.envrc
+secrets.*
+*.secret
+*.secrets
+credentials.json
+credentials.*
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json.example
+config.local.*
+*.local.json
+*.pem
+*.key
+*.crt
+*.cer
+*.pfx
+*.p12
+*.keystore
+*.jks
+*.der
+*.priv
+id_rsa
+id_dsa
+*.gpg
+data.json
+auth.json
+.npmrc
+.pypirc
+.netrc
+serviceaccount*.json
+gcp-*.json
+aws-*.json
+.aws/
+.azure/
+
+# =============================================================================
+#  IDE / EDITOR
+# =============================================================================
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.history/
+.settings/
+.project
+.classpath
+.factorypath
+.fleet/
+*.code-workspace
+nbproject/
+.metals/
+.bloop/
+
+# =============================================================================
+#  LOGS / TEMP / CACHE
+# =============================================================================
+*.log
+logs/
+log/
+*.pid
+*.seed
+*.pid.lock
+.cache/
+tmp/
+temp/
+.tmp/
+
+# =============================================================================
+#  PYTHON
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+.python-version
+.ipynb_checkpoints/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+__pypackages__/
+.ruff_cache/
+poetry.lock
+Pipfile.lock
+
+# =============================================================================
+#  JAVA / MAVEN / GRADLE
+# =============================================================================
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+build/
+out/
+bin/
+.gradletasknamecache
+*.hprof
+
+# =============================================================================
+#  .NET / C#
+# =============================================================================
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.tlog
+*.vspscc
+*.vssscc
+.builds
+packages/
+!packages/build/
+*.nuget.props
+*.nuget.targets
+BenchmarkDotNet.Artifacts/
+.dotnet/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# =============================================================================
+#  NODE / JAVASCRIPT
+# =============================================================================
+node_modules/
+jspm_packages/
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+.next/
+.nuxt/
+.svelte-kit/
+.turbo/
+.parcel-cache/
+.vite/
+coverage/
+.nyc_output/
+bower_components/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# =============================================================================
+#  DATABASES / DATA
+# =============================================================================
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.mdf
+*.ldf
+*.bak
+dump.rdb
+*.dump
+
+# =============================================================================
+#  DOCKER / DEPLOYMENT
+# =============================================================================
+docker-compose.override.yml
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# =============================================================================
+#  API DOCS BUILD OUTPUT  (uncomment what applies)
+# =============================================================================
+# _build/
+# site/
+# docs/_build/
+# .docusaurus/
+# .vuepress/dist/
+# public/
+swagger-gen/
+generated/
+
+# =============================================================================
+#  ARCHIVES / MISC LOCAL ARTIFACTS
+# =============================================================================
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.iso
+local/
+scratch/
+sandbox/
+TODO.local
+NOTES.local
