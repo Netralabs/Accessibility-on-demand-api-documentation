@@ -12,6 +12,26 @@ For the full API reference (every endpoint, request, and response), see the [mai
 
 ---
 
+## Contents
+
+- [Setup (one time)](#setup-one-time)
+- [Folder layout](#folder-layout)
+- [The one file you edit — `../config.json`](#the-one-file-you-edit--configjson-repo-root)
+- [The files](#the-files)
+- [How values are shared between files](#how-values-are-shared-between-files)
+- [Errors — `errors.json`](#errors--errorsjson)
+- [Paths & commands at a glance](#paths--commands-at-a-glance)
+- [How to run](#how-to-run)
+- [Step 1 — Upload your file(s)](#step-1--upload-your-files--step1uploadcs)
+- [Step 2 — Check upload status](#step-2--check-upload-status--step2checkuploadcs)
+- [Step 3 — Start processing](#step-3--start-processing--step3createjobcs)
+- [Step 4 — Check job & get tagged PDF](#step-4--check-job--get-tagged-pdf--step4checkjobcs)
+- [Step 5 — Request a score report](#step-5--request-a-score-report--step5createreportcs)
+- [Step 6 — Get the score report](#step-6--get-the-score-report--step6checkreportcs)
+- [Troubleshooting](#troubleshooting)
+
+---
+
 ## Setup (one time)
 
 1. Make sure the **.NET SDK 8.0 or newer** is installed. Check with:
@@ -143,11 +163,41 @@ Because it's append-only, `errors.json` is a running log — safe to re-run step
 
 ---
 
+## Paths & commands at a glance
+
+Everything below assumes you have **opened a terminal and changed into this folder first**:
+
+```bash
+cd dotnet
+```
+
+All commands are run from inside `dotnet/`. The three files you care about:
+
+| Purpose | File | Path (from inside `dotnet/`) |
+|---------|------|--------------------------------|
+| **Edit** your inputs (api_key, signed_urls, file ids, level) | `config.json` | `../config.json` (repo root) |
+| **View** your tracked results (file_ids, job_ids, download links) | `data.json` | `./data.json` (this folder) |
+| **View** anything that failed (207 / errors / failed jobs) | `errors.json` | `./errors.json` (this folder) |
+
+- To **edit** your values, open `../config.json` (one level up from here).
+- To **see results**, open `dotnet/data.json` after running a step.
+- To **see failures**, open `dotnet/errors.json` (created only when something goes wrong).
+
+A step is always run the same way — `cd` in first, then run, e.g.:
+
+```bash
+cd dotnet
+dotnet run -- step1
+```
+
+---
+
 ## How to run
 
 From inside this folder, run a step by name:
 
 ```bash
+cd dotnet
 dotnet run -- step1   # upload
 dotnet run -- step2   # check upload
 dotnet run -- step3   # create job
@@ -166,9 +216,10 @@ dotnet run -- step6   # check report
 
 ### Step 1 — Upload your file(s) → `Step1Upload.cs`
 
-**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`). *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
+**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`).
 
 ```bash
+cd dotnet
 dotnet run -- step1
 ```
 
@@ -185,6 +236,7 @@ dotnet run -- step1
 run below to check status of the files added for uploading
 
 ```bash
+cd dotnet
 dotnet run -- step2
 ```
 
@@ -199,6 +251,7 @@ dotnet run -- step2
 **In the root `../config.json`:** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
 ```bash
+cd dotnet
 dotnet run -- step3
 ```
 
@@ -215,6 +268,7 @@ dotnet run -- step3
 run below to check status of the files added for processing
 
 ```bash
+cd dotnet
 dotnet run -- step4
 ```
 
@@ -229,6 +283,7 @@ dotnet run -- step4
 **In the root `../config.json`:** set `report.file_id` to the file you want a report for.
 
 ```bash
+cd dotnet
 dotnet run -- step5
 ```
 
@@ -241,6 +296,7 @@ dotnet run -- step5
 run below to check status of the report being generated
 
 ```bash
+cd dotnet
 dotnet run -- step6
 ```
 

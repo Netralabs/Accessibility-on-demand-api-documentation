@@ -20,6 +20,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
 - [The files](#the-files)
 - [How values are shared between files](#how-values-are-shared-between-files)
 - [Errors — `errors.json`](#errors--errorsjson)
+- [Paths & commands at a glance](#paths--commands-at-a-glance)
 - [Step 1 — Upload your file(s)](#step-1--upload-your-files--1_uploadjs)
 - [Step 2 — Check upload status](#step-2--check-upload-status--2_check_uploadjs)
 - [Step 3 — Start processing](#step-3--start-processing--3_create_jobjs)
@@ -151,11 +152,41 @@ Because it's append-only, `errors.json` is a running log — safe to re-run step
 
 ---
 
-## Step 1 — Upload your file(s) → `1_upload.js`
+## Paths & commands at a glance
 
-**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`). *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
+Everything below assumes you have **opened a terminal and changed into this folder first**:
 
 ```bash
+cd node
+```
+
+All commands are run from inside `node/`. The three files you care about:
+
+| Purpose | File | Path (from inside `node/`) |
+|---------|------|--------------------------------|
+| **Edit** your inputs (api_key, signed_urls, file ids, level) | `config.json` | `../config.json` (repo root) |
+| **View** your tracked results (file_ids, job_ids, download links) | `data.json` | `./data.json` (this folder) |
+| **View** anything that failed (207 / errors / failed jobs) | `errors.json` | `./errors.json` (this folder) |
+
+- To **edit** your values, open `../config.json` (one level up from here).
+- To **see results**, open `node/data.json` after running a step.
+- To **see failures**, open `node/errors.json` (created only when something goes wrong).
+
+A step is always run the same way — `cd` in first, then run, e.g.:
+
+```bash
+cd node
+node 1_upload.js
+```
+
+---
+
+## Step 1 — Upload your file(s) → `1_upload.js`
+
+**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`).
+
+```bash
+cd node
 node 1_upload.js
 ```
 
@@ -172,6 +203,7 @@ node 1_upload.js
 run below to check status of the files added for uploading — it checks **every** file from Step 1, all at once.
 
 ```bash
+cd node
 node 2_check_upload.js
 ```
 
@@ -186,6 +218,7 @@ node 2_check_upload.js
 **In the root `../config.json`:** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
 ```bash
+cd node
 node 3_create_job.js
 ```
 
@@ -202,6 +235,7 @@ node 3_create_job.js
 run below to check status of the files added for processing — it checks **every** job, all at once.
 
 ```bash
+cd node
 node 4_check_job.js
 ```
 
@@ -216,6 +250,7 @@ node 4_check_job.js
 **In the root `../config.json`:** set `report.file_id` to the file you want a report for.
 
 ```bash
+cd node
 node 5_create_report.js
 ```
 
@@ -228,6 +263,7 @@ node 5_create_report.js
 run below to check status of the report being generated — it checks **every** report, all at once.
 
 ```bash
+cd node
 node 6_check_report.js
 ```
 

@@ -1,6 +1,6 @@
-# Python (async) — AOD-API
+# Python (sync) — AOD-API
 
-This folder contains **6 ready-to-run async Python files**, one for each API step, plus a shared `helper.py`. They use **`httpx`** with `asyncio`, so the "check" steps (2, 4, 6) check many files/jobs/reports **at the same time** — faster when you have a lot of them. (Prefer plain, one-at-a-time requests? Use the `python-sync/` folder instead — same behavior, no async.)
+This folder contains **6 ready-to-run Python files**, one for each API step, plus a shared `helper.py`. They use **`requests`** the plain, one-at-a-time way (one request after another) — the simplest setup. (Want the "check" steps to check many files/jobs/reports at once for speed? Use the `python-async/` folder instead — same behavior, using `httpx` + `asyncio`.)
 
 The values you edit live in **one shared `config.json` at the repo root** — so every language folder (Java, .NET, Node, Python) reads the same config, and you fill it in **once**.
 
@@ -8,7 +8,7 @@ The values you edit live in **one shared `config.json` at the repo root** — so
 
 Each step also writes its progress to a **`data.json` inside this folder** (created automatically) — that file is per-folder and you don't touch it. Anything that **isn't** a clean success (a 207 partial upload, a non-200 response, or a failed job/report) is kept out of `data.json` and written to a separate **`errors.json`** instead, so your tracked data stays clean.
 
-For the full API reference (every endpoint, request, and response), see the [main README](../readme.md).
+For the full API reference (every endpoint, request, and response), see the [main README](../../readme.md).
 
 ---
 
@@ -20,6 +20,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
 - [The files](#the-files)
 - [How values are shared between files](#how-values-are-shared-between-files)
 - [Errors — `errors.json`](#errors--errorsjson)
+- [Paths & commands at a glance](#paths--commands-at-a-glance)
 - [Step 1 — Upload your file(s)](#step-1--upload-your-files--1_uploadpy)
 - [Step 2 — Check upload status](#step-2--check-upload-status--2_check_uploadpy)
 - [Step 3 — Start processing](#step-3--start-processing--3_create_jobpy)
@@ -33,10 +34,10 @@ For the full API reference (every endpoint, request, and response), see the [mai
 ## Setup (one time)
 
 1. Make sure **Python 3.8 or newer** is installed. (New to Python? A quick search for "how to install Python" will get you set up.)
-2. Install the async HTTP library used by these files. In your terminal, inside this folder, run:
+2. Install the HTTP library used by these files. In your terminal, inside this folder, run:
 
    ```bash
-   pip install httpx
+   pip install requests
    ```
 
 3. **Open the root `config.json` and fill in your values** (it sits one level up from this folder — it's the only file you edit; see below).
@@ -48,13 +49,13 @@ You're now ready to run the steps in order.
 ```
 your-project/
 ├── config.json          ← the ONE file you edit (shared by all languages)
-├── python-async/
+├── python-sync/
 │   ├── README.md         (this file)
 │   ├── helper.py         (reads ../config.json, writes data.json + errors.json)
 │   ├── 1_upload.py … 6_check_report.py
 │   ├── data.json         (created automatically — clean tracked items only)
 │   └── errors.json       (created only if something errors — see below)
-├── python-sync/  …       (same, but uses requests instead of httpx)
+├── python-async/  …      (same, but uses httpx + asyncio for concurrent checks)
 ├── java/     …           (reads the same ../config.json, its own data.json)
 ├── dotnet/   …
 └── node/     …
@@ -104,16 +105,16 @@ You fill these in **as you go** — `signed_urls` before Step 1, `process.file_i
 | Step | File | What it does |
 |------|------|--------------|
 | 1 | `1_upload.py`        | Upload your file(s) → save each `file_id` (status starts as `Uploading`) |
-| 2 | `2_check_upload.py`  | Check **all** uploads concurrently → update each to `Uploaded` when ready |
+| 2 | `2_check_upload.py`  | Check **all** uploads → update each to `Uploaded` when ready |
 | 3 | `3_create_job.py`    | Start processing one file → get a `job_id` |
-| 4 | `4_check_job.py`     | Check **all** jobs concurrently → get the tagged-PDF download link |
+| 4 | `4_check_job.py`     | Check **all** jobs → get the tagged-PDF download link |
 | 5 | `5_create_report.py` | Request a score report for one file → get a report `job_id` |
-| 6 | `6_check_report.py`  | Check **all** reports concurrently → get the score-report PDF download link |
+| 6 | `6_check_report.py`  | Check **all** reports → get the score-report PDF download link |
 
 ### How values are shared between files
 
 - **You → the scripts:** through the root **`../config.json`** (the only file you edit — shared by every language).
-- **Between scripts:** through **`data.json` inside this folder**, which the scripts create and update automatically. Each folder keeps its own `data.json`, so runs in different languages don't collide. Each step **prints its result on screen** and **saves the important values into `data.json`**. The "check" files (steps 2, 4, 6) read `data.json`, check everything at once with `asyncio.gather`, skip anything already finished, and update the rest — so they're safe to run repeatedly until done.
+- **Between scripts:** through **`data.json` inside this folder**, which the scripts create and update automatically. Each folder keeps its own `data.json`, so runs in different languages don't collide. Each step **prints its result on screen** and **saves the important values into `data.json`**. The "check" files (steps 2, 4, 6) read `data.json`, loop through everything, skip anything already finished, and update the rest — so they're safe to run repeatedly until done.
 
 The Base URL and all the config-reading + error-logging live in `helper.py`. You normally do **not** need to edit it.
 
@@ -151,11 +152,41 @@ Because it's append-only, `errors.json` is a running log — safe to re-run step
 
 ---
 
+## Paths & commands at a glance
+
+Everything below assumes you have **opened a terminal and changed into this folder first**:
+
+```bash
+cd python-sync
+```
+
+All commands are run from inside `python-sync/`. The three files you care about:
+
+| Purpose | File | Path (from inside `python-sync/`) |
+|---------|------|--------------------------------|
+| **Edit** your inputs (api_key, signed_urls, file ids, level) | `config.json` | `../config.json` (repo root) |
+| **View** your tracked results (file_ids, job_ids, download links) | `data.json` | `./data.json` (this folder) |
+| **View** anything that failed (207 / errors / failed jobs) | `errors.json` | `./errors.json` (this folder) |
+
+- To **edit** your values, open `../config.json` (one level up from here).
+- To **see results**, open `python-sync/data.json` after running a step.
+- To **see failures**, open `python-sync/errors.json` (created only when something goes wrong).
+
+A step is always run the same way — `cd` in first, then run, e.g.:
+
+```bash
+cd python-sync
+python 1_upload.py
+```
+
+---
+
 ## Step 1 — Upload your file(s) → `1_upload.py`
 
 **In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`).
 
 ```bash
+cd python-sync
 python 1_upload.py
 ```
 
@@ -169,9 +200,10 @@ python 1_upload.py
 
 ## Step 2 — Check upload status → `2_check_upload.py`
 
-run below to check status of the files added for uploading — it checks **every** file from Step 1, all at once.
+run below to check status of the files added for uploading — it checks **every** file from Step 1.
 
 ```bash
+cd python-sync
 python 2_check_upload.py
 ```
 
@@ -186,6 +218,7 @@ python 2_check_upload.py
 **In the root `../config.json`:** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
 ```bash
+cd python-sync
 python 3_create_job.py
 ```
 
@@ -199,9 +232,10 @@ python 3_create_job.py
 
 ## Step 4 — Check job & get tagged PDF → `4_check_job.py`
 
-run below to check status of the files added for processing — it checks **every** job, all at once.
+run below to check status of the files added for processing — it checks **every** job.
 
 ```bash
+cd python-sync
 python 4_check_job.py
 ```
 
@@ -216,6 +250,7 @@ python 4_check_job.py
 **In the root `../config.json`:** set `report.file_id` to the file you want a report for.
 
 ```bash
+cd python-sync
 python 5_create_report.py
 ```
 
@@ -225,9 +260,10 @@ python 5_create_report.py
 
 ## Step 6 — Get the score report → `6_check_report.py`
 
-run below to check status of the report being generated — it checks **every** report, all at once.
+run below to check status of the report being generated — it checks **every** report.
 
 ```bash
+cd python-sync
 python 6_check_report.py
 ```
 
@@ -243,9 +279,9 @@ python 6_check_report.py
 - **`config.json was not found at ../config.json`** — run these scripts from inside this folder, with `config.json` sitting in the folder above it (the repo root).
 - **`Please set your real "api_key"`** — `api_key` in `config.json` is still the placeholder. Paste your real key.
 - **`No signed URLs found` / `No file_id given`** — the matching field in `config.json` is still blank or a placeholder. Fill it in.
-- **`ModuleNotFoundError: No module named 'httpx'`** — you skipped the install step. Run `pip install httpx`.
+- **`ModuleNotFoundError: No module named 'requests'`** — you skipped the install step. Run `pip install requests`.
 - **401 Unauthorized** — your API key is missing, wrong, or has extra spaces. Re-check `api_key` in `config.json`.
 - **429 Too Many Requests** — you're calling too fast. Wait the `retry-after-sec` seconds shown in the response and try again.
 - **A URL failed with "unsupported source"** — only **S3** and **Google Drive** signed URLs are supported.
 
-For the complete list of status codes and error shapes, see Section 9 of the [main README](../readme.md).
+For the complete list of status codes and error shapes, see Section 9 of the [main README](../../readme.md).

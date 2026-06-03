@@ -1,11 +1,14 @@
 # How to get a signed URL (S3 or Google Drive)
 
+> 📘 Part of the **AOD-API** docs. Back to the [main README](../readme.md) · or jump to your language folder: [Java](../java) · [.NET](../dotnet) · [Node.js](../node) · [Python (sync)](../python-sync) · [Python (async)](../python-async).
+
+
 The AOD API doesn't take a file upload directly. Instead, you give it a **signed URL** — a web link the API can use to download your PDF. Right now the API supports two sources: **Amazon S3** and **Google Drive**.
 
 This guide shows, step by step, how to:
 1. Put your PDF in S3 or Google Drive,
 2. Get a link the API can use, and
-3. Paste that link into the code (the `SIGNED_URLS` list).
+3. Paste that link into the root **`config.json`** (the `signed_urls` list).
 
 You only need **one** of the two methods — pick whichever you already use.
 
@@ -103,16 +106,19 @@ That's it — paste this link straight into the code. The API handles the rest.
 
 ## Where to paste the URL in the code
 
-Once you have a link (from S3 or Google Drive), open **Step 1** of your language folder and paste it into the `SIGNED_URLS` list. For example, in Python:
+Once you have a link (from S3 or Google Drive), open the **`config.json` in the repository root** (the same `config.json` every language folder shares) and add it to the `signed_urls` list:
 
-```python
-SIGNED_URLS = [
+```json
+{
+  "api_key": "aod-xxxxxxxxxxx",
+  "signed_urls": [
     "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/view?usp=sharing",
-    "https://my-aod-uploads-2026.s3.amazonaws.com/myfile.pdf?X-Amz-Algorithm=...",
-]
+    "https://my-aod-uploads-2026.s3.amazonaws.com/myfile.pdf?X-Amz-Algorithm=..."
+  ]
+}
 ```
 
-You can mix sources and add as many URLs as you like — one line per file, each in quotes, separated by commas. Then run Step 1 as described in your language's README.
+You can mix sources and add as many URLs as you like — one line per file, each in quotes, separated by commas. Then run **Step 1** as described in your language's README (`cd` into the folder first, then run the Step 1 command). You never edit the language files themselves — only this one `config.json`.
 
 ---
 

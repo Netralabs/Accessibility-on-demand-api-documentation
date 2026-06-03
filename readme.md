@@ -106,7 +106,19 @@ Breaking that down:
 - `Bearer` must be written exactly as shown, followed by **one space**.
 - `aod-xxxxxxxxxxx` is your actual API key (the one you copied in Section 3).
 
-You don't need to set this up by hand — the ready-made files in each language folder do it for you. You only have to paste your key in **one place** — the `===== EDIT HERE =====` section in the helper file (for Java, in each step file) — and the rest is handled automatically.
+You don't need to set this up by hand — the ready-made files in each language folder do it for you. You only have to paste your key in **one place**: the **`config.json` file in the repository root** (the folder that contains `java/`, `dotnet/`, `node/`, `python-sync/`, and `python-async/`). Every language reads the same `config.json`, so you fill it in **once** and the rest is handled automatically.
+
+```json
+{
+  "api_key": "aod-xxxxxxxxxxx",
+  "description": "description about batch - optional",
+  "signed_urls": ["https://your-signed-url-1", "https://your-signed-url-2"],
+  "process": { "file_id": "", "level": 1 },
+  "report":  { "file_id": "" }
+}
+```
+
+You never edit the language files themselves. See [Section 7](#7-how-to-call-the-apis-pick-your-language) for what each `config.json` field is for and when to fill it in, and your language folder's own README for the exact path and commands.
 
 [⬆ Back to top](#top)
 
@@ -171,12 +183,24 @@ Just wait the number of seconds shown in `retry-after-sec`, then try again.
 
 ## 7. How to call the APIs (pick your language)
 
-The flow is the same in every language. To make it easy, each language has its **own folder** in this repository with **6 ready-to-run files** — one per step. You only edit a clearly marked section at the top of each file (your API key and inputs); the rest runs by itself.
+The flow is the same in every language. To make it easy, each language has its **own folder** in this repository with **6 ready-to-run files** — one per step. You don't edit those files at all: you fill in a single **`config.json` at the repository root**, and every language reads from it.
+
+```
+your-project/
+├── config.json          ← the ONE file you edit (shared by every language)
+├── java/                Java step files          (+ its own data.json / errors.json)
+├── dotnet/              .NET step files          (+ its own data.json / errors.json)
+├── node/                Node.js step files       (+ its own data.json / errors.json)
+├── python-sync/         Python (requests)        (+ its own data.json / errors.json)
+├── python-async/        Python (httpx + asyncio) (+ its own data.json / errors.json)
+└── docs/
+    └── getting-signed-urls.md
+```
 
 | Language | Folder | Status |
 |----------|--------|--------|
-| Python (sync)  | [`/python/sync`](python/sync)   | ✅ Available |
-| Python (async) | [`/python/async`](python/async) | ✅ Available |
+| Python (sync)  | [`/python-sync`](python-sync)   | ✅ Available |
+| Python (async) | [`/python-async`](python-async) | ✅ Available |
 | Node.js  | [`/node`](node)     | ✅ Available |
 | Java     | [`/java`](java)     | ✅ Available |
 | .NET     | [`/dotnet`](dotnet) | ✅ Available |
@@ -194,9 +218,18 @@ The flow is the same in every language. To make it easy, each language has its *
 
 ### How the ready-made files work
 
-- Each file has a section marked **`===== EDIT HERE =====`** at the top. That's the **only** part you change — your API key and your inputs.
-- Running a file **prints the result on screen** AND **saves the important values** (file_ids, job_ids, and their status) into a shared **`data.json`** file in that folder.
+- **You edit one file: `config.json` in the repo root.** It holds your `api_key`, `signed_urls`, the `process` file/level, and the `report` file. You fill it in **as you go** (URLs before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5). You never edit the language files themselves.
+- Running a step **prints the result on screen** AND **saves the important values** (file_ids, job_ids, and their status) into a **`data.json`** file **inside that language folder**. Each language keeps its own `data.json`, so running, say, Node and Python side by side won't collide.
+- Anything that **isn't** a clean success — a 207 partial upload, a non-200 response, or a failed job/report — is kept out of `data.json` and written to a separate **`errors.json`** in the same folder (grouped into `url_errors` / `file_errors` / `job_errors` / `other`, append-only, each with a UTC timestamp).
 - The "check" files (steps 2, 4, 6) automatically **loop through everything saved**, skip anything already finished, and update the rest. They are safe to run again and again until everything is done.
+
+Each language folder therefore has three JSON files in play:
+
+| File | Where | You… | Holds |
+|------|-------|------|-------|
+| `config.json` | repo **root** (shared) | **edit** this | your api_key, signed_urls, process/report file ids + level |
+| `data.json`   | inside the language folder | **view** (auto-written) | clean tracked items (file_uploads, job_process, report_process) |
+| `errors.json` | inside the language folder | **view** when something fails | grouped error history |
 
 Here is roughly what `data.json` looks like after a few steps:
 
@@ -219,7 +252,7 @@ Here is roughly what `data.json` looks like after a few steps:
 }
 ```
 
-> 📂 **Open your language's folder and follow its own README** for the exact commands to run each file. The API behaves identically regardless of language — see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
+> 📂 **Open your language's folder and follow its own README** for the exact path to `config.json`, the path to that folder's `data.json` / `errors.json`, and the commands to run each step (each README tells you to `cd` into the folder first). The API behaves identically regardless of language — see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
 > ⏳ **Download links expire** (see `expires_in_seconds`, e.g. 300 = 5 minutes, 0 = link expired). Download the file promptly and store it.
 
@@ -785,7 +818,7 @@ When contacting support, include the `request_id` — it lets us find your exact
 > Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
 
 **Q: Which languages are supported?**
-> All four are available now, each in its own folder with the same 6 steps: Python — [`/python/sync`](python/sync) and [`/python/async`](python/async), Node.js — [`/node`](node), Java — [`/java`](java), and .NET — [`/dotnet`](dotnet). The API works the same in any language; see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
+> All four are available now, each in its own folder with the same 6 steps: Python — [`/python-sync`](python-sync) and [`/python-async`](python-async), Node.js — [`/node`](node), Java — [`/java`](java), and .NET — [`/dotnet`](dotnet). The API works the same in any language; see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
 **Q: Should I use the sync or async Python code?**
 > Use **sync** if you're new or working one step at a time — it's the simplest. Use **async** if you want to check many files or jobs at once for speed. Both make exactly the same API calls.

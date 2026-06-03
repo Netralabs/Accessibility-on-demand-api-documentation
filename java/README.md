@@ -12,6 +12,26 @@ For the full API reference (every endpoint, request, and response), see the [mai
 
 ---
 
+## Contents
+
+- [Setup (one time)](#setup-one-time)
+- [Folder layout](#folder-layout)
+- [The one file you edit — `../config.json`](#the-one-file-you-edit--configjson-repo-root)
+- [The files](#the-files)
+- [How values are shared between files](#how-values-are-shared-between-files)
+- [Errors — `errors.json`](#errors--errorsjson)
+- [Paths & commands at a glance](#paths--commands-at-a-glance)
+- [How to run](#how-to-run)
+- [Step 1 — Upload your file(s)](#step-1--upload-your-files--step1uploadjava)
+- [Step 2 — Check upload status](#step-2--check-upload-status--step2checkuploadjava)
+- [Step 3 — Start processing](#step-3--start-processing--step3createjobjava)
+- [Step 4 — Check job & get tagged PDF](#step-4--check-job--get-tagged-pdf--step4checkjobjava)
+- [Step 5 — Request a score report](#step-5--request-a-score-report--step5createreportjava)
+- [Step 6 — Get the score report](#step-6--get-the-score-report--step6checkreportjava)
+- [Troubleshooting](#troubleshooting)
+
+---
+
 ## Setup (one time)
 
 **1. Check Java 11 or newer is installed** (Java 11+ runs a single `.java` file directly, no compile step):
@@ -48,10 +68,9 @@ your-project/
 ├── config.json          ← the ONE file you edit (shared by all languages)
 ├── java/
 │   ├── README.md         (this file)
-│   ├── config? NO — config is at the root, not here
 │   ├── lib/gson.jar      (you download this)
 │   ├── Step1Upload.java … Step6CheckReport.java
-│   └── data.json         (created automatically — clean tracked items only)
+│   ├── data.json         (created automatically — clean tracked items only)
 │   └── errors.json       (created only if something errors — see below)
 ├── dotnet/   …           (reads the same ../config.json, its own data.json)
 ├── node/     …
@@ -157,17 +176,48 @@ Because it's append-only, `errors.json` is a running log — safe to re-run step
 
 ---
 
+## Paths & commands at a glance
+
+Everything below assumes you have **opened a terminal and changed into this folder first**:
+
+```bash
+cd java
+```
+
+All commands are run from inside `java/`. The three files you care about:
+
+| Purpose | File | Path (from inside `java/`) |
+|---------|------|--------------------------------|
+| **Edit** your inputs (api_key, signed_urls, file ids, level) | `config.json` | `../config.json` (repo root) |
+| **View** your tracked results (file_ids, job_ids, download links) | `data.json` | `./data.json` (this folder) |
+| **View** anything that failed (207 / errors / failed jobs) | `errors.json` | `./errors.json` (this folder) |
+
+- To **edit** your values, open `../config.json` (one level up from here).
+- To **see results**, open `java/data.json` after running a step.
+- To **see failures**, open `java/errors.json` (created only when something goes wrong).
+
+A step is always run the same way — `cd` in first, then run, e.g.:
+
+```bash
+cd java
+java -cp ".:lib/gson.jar" Step1Upload.java
+```
+
+---
+
 ## How to run
 
 Every file is run the same way. The only OS-specific part is the classpath separator before the jar: **Mac/Linux use `:`, Windows use `;`.**
 
 **Mac / Linux:**
 ```bash
+cd java
 java -cp ".:lib/gson.jar" Step1Upload.java
 ```
 
 **Windows:**
 ```bash
+cd java
 java -cp ".;lib\gson.jar" Step1Upload.java
 ```
 
@@ -188,9 +238,10 @@ Step6CheckReport.java
 
 ### Step 1 — Upload your file(s) → `Step1Upload.java`
 
-**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`).*(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
+**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`).
 
 ```bash
+cd java
 java -cp ".:lib/gson.jar" Step1Upload.java
 ```
 
@@ -207,6 +258,7 @@ java -cp ".:lib/gson.jar" Step1Upload.java
 run below to check status of added for uploading
 
 ```bash
+cd java
 java -cp ".:lib/gson.jar" Step2CheckUpload.java
 ```
 
@@ -221,6 +273,7 @@ java -cp ".:lib/gson.jar" Step2CheckUpload.java
 **In the root `../config.json`:** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
 ```bash
+cd java
 java -cp ".:lib/gson.jar" Step3CreateJob.java
 ```
 
@@ -237,6 +290,7 @@ java -cp ".:lib/gson.jar" Step3CreateJob.java
 run below to check status of added in processing
 
 ```bash
+cd java
 java -cp ".:lib/gson.jar" Step4CheckJob.java
 ```
 
@@ -251,6 +305,7 @@ java -cp ".:lib/gson.jar" Step4CheckJob.java
 **In the root `../config.json`:** set `report.file_id` to the file you want a report for.
 
 ```bash
+cd java
 java -cp ".:lib/gson.jar" Step5CreateReport.java
 ```
 
@@ -263,6 +318,7 @@ java -cp ".:lib/gson.jar" Step5CreateReport.java
 run below to check status of added in generate report
 
 ```bash
+cd java
 java -cp ".:lib/gson.jar" Step6CheckReport.java
 ```
 
