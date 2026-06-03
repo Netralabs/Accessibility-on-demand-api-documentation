@@ -4,6 +4,9 @@
  * Sends your signed URLs to the API and gets back a file_id for each
  * file that was accepted. Run this first:  dotnet run -- step1
  *
+ * EDIT NOTHING HERE. All your values live in  ../config.json
+ *   (api_key, signed_urls, description).
+ *
  * What it saves to data.json:
  *   "file_uploads": [ { "file_id": "....", "url": "....", "status": "Uploading" }, ... ]
  */
@@ -17,34 +20,34 @@ namespace Aod
 {
     public static class Step1Upload
     {
-        // ============================================================
-        // ===== EDIT HERE =====
-        // ============================================================
-        static readonly string[] SIGNED_URLS = {   // paste your signed URL(s) here
-            "https://your-signed-url-1",
-            "https://your-signed-url-2",
-        };
-
-        const string DESCRIPTION = "description about batch - optional"; // optional text
-        // ============================================================
-        // ===== STOP EDITING (the rest runs by itself) =====
-        // ============================================================
-
         public static async Task RunAsync()
         {
+            // --- read everything from ../config.json ---
+            JsonObject cfg = Helper.LoadConfig();
+            string apiKey = Helper.ApiKey();
+            string description = Helper.GetString(cfg, "description", "");
+            List<string> signedUrls = Helper.GetStringArray(cfg, "signed_urls");
+
+            if (signedUrls.Count == 0)
+            {
+                Console.WriteLine("[X] No signed URLs found. Add at least one real URL to "
+                    + "\"signed_urls\" in config.json.");
+                return;
+            }
+
             string endpoint = Helper.BaseUrl + "/file-upload/";
 
             var urls = new JsonArray();
-            foreach (var u in SIGNED_URLS) urls.Add(u);
+            foreach (var u in signedUrls) urls.Add(u);
 
             var payload = new JsonObject
             {
                 ["sign_urls"] = urls,
-                ["description"] = DESCRIPTION,
+                ["description"] = description,
             };
 
-            Console.WriteLine("Uploading files...");
-            var response = await Helper.PostAsync(endpoint, Helper.API_KEY, payload.ToJsonString());
+            Console.WriteLine($"Uploading {signedUrls.Count} file(s)...");
+            var response = await Helper.PostAsync(endpoint, apiKey, payload.ToJsonString());
             var body = await Helper.ShowResponseAsync(response);
 
             int code = (int)response.StatusCode;
@@ -97,18 +100,24 @@ namespace Aod
 
                 if (failed.Count > 0)
                 {
-                    Console.WriteLine("\n[!] Some files failed:");
+                    Console.WriteLine("\n[!] Some files failed (logged to errors.json):");
                     foreach (var f in failed)
                     {
-                        Console.WriteLine("   - URL: " + Helper.Str(f["url"]));
-                        Console.WriteLine("     reason: " + Helper.Str(f["detail"]));
+                        string fUrl = Helper.Str(f["url"]);
+                        string reason = Helper.Str(f["detail"]);
+                        Console.WriteLine("   - URL: " + fUrl);
+                        Console.WriteLine("     reason: " + reason);
+                        // 207 partial-failure item -> errors.json under url_errors
+                        Helper.LogUrlError(fUrl, code, reason, f);
                     }
                 }
             }
             else
             {
-                Console.WriteLine("\n[X] Upload request failed. Check your API key, your signed URLs, "
+                Console.WriteLine("\n[X] Upload request failed. Check your api_key, your signed_urls, "
                     + "and the status code above.");
+                // whole-request failure (non-2xx) -> errors.json
+                Helper.LogOther(code, "File-upload request failed", body);
             }
         }
     }

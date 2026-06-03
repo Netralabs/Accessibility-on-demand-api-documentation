@@ -4,7 +4,11 @@
  * Checks every job saved by Step 3 and updates its status.
  *   - Jobs already "Completed" are skipped.
  *   - When a job is Completed, the full "details" block is saved.
+ *   - Failed jobs (or unreadable responses) are logged to errors.json,
+ *     not data.json.
  * Run:  dotnet run -- step4
+ *
+ * EDIT NOTHING HERE. Your api_key lives in  ../config.json
  *
  * Note: the download_url expires after a short time (expires_in_seconds, e.g.
  * 300s = 5 minutes). Download the tagged PDF soon, or re-run this step.
@@ -18,12 +22,13 @@ namespace Aod
 {
     public static class Step4CheckJob
     {
-
         static bool IsFinished(string status) =>
             status != null && status.ToLower() == "completed";
 
         public static async Task RunAsync()
         {
+            string apiKey = Helper.ApiKey();
+
             JsonArray jobProcess = Helper.GetArray("job_process");
 
             if (jobProcess.Count == 0)
@@ -50,10 +55,16 @@ namespace Aod
                     continue;
                 }
 
-                var resp = await Helper.GetAsync(Helper.BaseUrl + "/jobs/" + jobId, Helper.API_KEY);
+                var resp = await Helper.GetAsync(Helper.BaseUrl + "/jobs/" + jobId, apiKey);
                 JsonObject body;
                 try { body = JsonNode.Parse(await resp.Content.ReadAsStringAsync()).AsObject(); }
-                catch { Console.WriteLine($"   - {jobId}: could not check (status code {(int)resp.StatusCode})"); pending++; continue; }
+                catch
+                {
+                    Console.WriteLine($"   - {jobId}: could not check (status code {(int)resp.StatusCode})");
+                    Helper.LogJobError(jobId, (int)resp.StatusCode, "Could not read/parse job response", null);
+                    pending++;
+                    continue;
+                }
 
                 string status;
                 JsonObject details = null;
@@ -82,7 +93,6 @@ namespace Aod
                 if (status.ToLower() == "completed" && details != null)
                 {
                     entry["details"] = details.DeepClone();
-                    entry.Remove("error");
                     changed = true;
                     Console.WriteLine("     download_url: " + Helper.Str(details["download_url"]));
                     Console.WriteLine("     expires_in_seconds: " +
@@ -91,9 +101,11 @@ namespace Aod
 
                 if (error != null)
                 {
-                    entry["error"] = error.DeepClone();
-                    changed = true;
-                    Console.WriteLine("     error: " + Helper.Str(error["code"]) + " - " + Helper.Str(error["detail"]));
+                    // Failed jobs are not kept in data.json — they go to errors.json (job_errors).
+                    string ecode = Helper.Str(error["code"]);
+                    string edetail = Helper.Str(error["detail"]);
+                    Console.WriteLine("     error: " + ecode + " - " + edetail);
+                    Helper.LogJobError(jobId, (int)resp.StatusCode, ($"{ecode} {edetail}").Trim(), error);
                 }
 
                 if (IsFinished(status)) done++; else pending++;
@@ -107,7 +119,8 @@ namespace Aod
             if (pending > 0)
                 Console.WriteLine("Some jobs are still processing. Wait a moment and run this step again.");
             else
-                Console.WriteLine("[OK] All jobs finished. You can now run  dotnet run -- step5");
+                Console.WriteLine("[OK] All jobs finished. To get a score report, put a file_id into config.json "
+                    + "(\"report\": {\"file_id\": ...}) and run  dotnet run -- step5");
         }
     }
 }

@@ -3,6 +3,8 @@
  * ====================================================
  * Checks every file saved by Step 1 and updates its status.
  * Files already "uploaded" are skipped. Run:  dotnet run -- step2
+ *
+ * EDIT NOTHING HERE. Your api_key lives in  ../config.json
  */
 
 using System;
@@ -13,8 +15,6 @@ namespace Aod
 {
     public static class Step2CheckUpload
     {
-
-
         static string ReadStatus(JsonObject body)
         {
             if (body["status"] != null) return Helper.Str(body["status"]);
@@ -25,6 +25,8 @@ namespace Aod
 
         public static async Task RunAsync()
         {
+            string apiKey = Helper.ApiKey();
+
             JsonArray fileUploads = Helper.GetArray("file_uploads");
 
             if (fileUploads.Count == 0)
@@ -51,17 +53,24 @@ namespace Aod
                     continue;
                 }
 
-                var resp = await Helper.GetAsync(Helper.BaseUrl + "/file-upload/" + fileId, Helper.API_KEY);
+                var resp = await Helper.GetAsync(Helper.BaseUrl + "/file-upload/" + fileId, apiKey);
                 if ((int)resp.StatusCode != 200)
                 {
                     Console.WriteLine($"   - {fileId}: could not check (status code {(int)resp.StatusCode})");
+                    Helper.LogFileError(fileId, (int)resp.StatusCode, "Could not check upload status", null);
                     pending++;
                     continue;
                 }
 
                 JsonObject respBody;
                 try { respBody = JsonNode.Parse(await resp.Content.ReadAsStringAsync()).AsObject(); }
-                catch { Console.WriteLine($"   - {fileId}: could not read response"); pending++; continue; }
+                catch
+                {
+                    Console.WriteLine($"   - {fileId}: could not read response");
+                    Helper.LogFileError(fileId, (int)resp.StatusCode, "Could not read/parse response body", null);
+                    pending++;
+                    continue;
+                }
 
                 string newStatus = ReadStatus(respBody) ?? "unknown";
                 Console.WriteLine($"   - {fileId}: {newStatus}");
@@ -83,7 +92,8 @@ namespace Aod
             if (pending > 0)
                 Console.WriteLine("Some files are still uploading. Wait a moment and run this step again.");
             else
-                Console.WriteLine("[OK] All files uploaded. Next: run  dotnet run -- step3");
+                Console.WriteLine("[OK] All files uploaded. Next: put an uploaded file_id into config.json "
+                    + "(\"process\": {\"file_id\": ...}) and run  dotnet run -- step3");
         }
     }
 }

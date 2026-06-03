@@ -4,6 +4,9 @@
  * Asks the API to generate an axes4 accessibility score report for a file.
  * Run:  dotnet run -- step5
  *
+ * EDIT NOTHING HERE. Set this in  ../config.json  under "report":
+ *   "report": { "file_id": "<the file_id to generate a report for>" }
+ *
  * What it saves to data.json:
  *   "report_process": [ { "file_id": "....", "job_id": "....", "status": "Processing" }, ... ]
  */
@@ -16,22 +19,23 @@ namespace Aod
 {
     public static class Step5CreateReport
     {
-        // ===== EDIT HERE =====
-        const string FILE_ID = "";                // the file_id to generate a report for
-        // ===== STOP EDITING =====
-
         public static async Task RunAsync()
         {
-            if (string.IsNullOrEmpty(FILE_ID))
+            JsonObject cfg = Helper.LoadConfig();
+            string apiKey = Helper.ApiKey();
+            JsonObject report = Helper.GetObject(cfg, "report");
+            string fileId = Helper.GetString(report, "file_id", "").Trim();
+
+            if (string.IsNullOrEmpty(fileId))
             {
-                Console.WriteLine("[X] No file_id given. Paste a FILE_ID above.");
+                Console.WriteLine("[X] No file_id given. Set \"report\": {\"file_id\": ...} in config.json.");
                 return;
             }
 
-            var payload = new JsonObject { ["file_id"] = FILE_ID };
+            var payload = new JsonObject { ["file_id"] = fileId };
 
-            Console.WriteLine($"Requesting a score report for file_id {FILE_ID} ...");
-            var response = await Helper.PostAsync(Helper.BaseUrl + "/report/", Helper.API_KEY, payload.ToJsonString());
+            Console.WriteLine($"Requesting a score report for file_id {fileId} ...");
+            var response = await Helper.PostAsync(Helper.BaseUrl + "/report/", apiKey, payload.ToJsonString());
             var body = await Helper.ShowResponseAsync(response);
 
             int code = (int)response.StatusCode;
@@ -51,7 +55,7 @@ namespace Aod
                     {
                         reportProcess.Add(new JsonObject
                         {
-                            ["file_id"] = FILE_ID,
+                            ["file_id"] = fileId,
                             ["job_id"] = jobId,
                             ["status"] = "Processing",
                         });
@@ -64,11 +68,13 @@ namespace Aod
                 {
                     Console.WriteLine("\n[!] Could not find 'job_id' in the response. "
                         + "Check the printed response above and update the key name.");
+                    Helper.LogFileError(fileId, code, "No job_id in report-create response", body);
                 }
             }
             else
             {
                 Console.WriteLine("\n[X] Could not request the report. Check the file_id and status code above.");
+                Helper.LogFileError(fileId, code, "Could not request report", body);
             }
         }
     }

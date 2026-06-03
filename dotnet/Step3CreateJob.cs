@@ -4,6 +4,9 @@
  * Sends an uploaded file for processing and gets back a job_id.
  * Run:  dotnet run -- step3
  *
+ * EDIT NOTHING HERE. Set these in  ../config.json  under "process":
+ *   "process": { "file_id": "<an uploaded file_id>", "level": 1 }   // level 1 or 2
+ *
  * What it saves to data.json:
  *   "job_process": [ { "file_id": "....", "job_id": "....", "status": "Queued" }, ... ]
  */
@@ -16,28 +19,33 @@ namespace Aod
 {
     public static class Step3CreateJob
     {
-        // ===== EDIT HERE =====
-        const string FILE_ID = "";                // an uploaded file_id to process
-        const int LEVEL = 1;                      // 1 or 2
-        // ===== STOP EDITING =====
-
         public static async Task RunAsync()
         {
-            if (string.IsNullOrEmpty(FILE_ID))
+            JsonObject cfg = Helper.LoadConfig();
+            string apiKey = Helper.ApiKey();
+            JsonObject process = Helper.GetObject(cfg, "process");
+            string fileId = Helper.GetString(process, "file_id", "").Trim();
+            int level = Helper.GetInt(process, "level", 1);
+
+            if (string.IsNullOrEmpty(fileId))
             {
-                Console.WriteLine("[X] No file_id given. Paste an uploaded FILE_ID above.");
+                Console.WriteLine("[X] No file_id given. Set \"process\": {\"file_id\": ...} in config.json "
+                    + "(use an uploaded file_id from Step 2).");
                 return;
             }
 
-            var payload = new JsonObject { ["file_id"] = FILE_ID, ["level"] = LEVEL };
+            var payload = new JsonObject { ["file_id"] = fileId, ["level"] = level };
 
-            Console.WriteLine($"Starting a job for file_id {FILE_ID} at level {LEVEL} ...");
-            var response = await Helper.PostAsync(Helper.BaseUrl + "/jobs/", Helper.API_KEY, payload.ToJsonString());
+            Console.WriteLine($"Starting a job for file_id {fileId} at level {level} ...");
+            var response = await Helper.PostAsync(Helper.BaseUrl + "/jobs/", apiKey, payload.ToJsonString());
             var body = await Helper.ShowResponseAsync(response);
 
             int code = (int)response.StatusCode;
             if (code == 409)
-                Console.WriteLine($"\n[Conflict] This is already processed: change file id {FILE_ID}");
+            {
+                Console.WriteLine($"\n[Conflict] This is already processed: change the file_id in config.json ({fileId})");
+                Helper.LogFileError(fileId, code, "Conflict - file already processed", body);
+            }
 
             if ((code == 200 || code == 201) && body != null)
             {
@@ -55,7 +63,7 @@ namespace Aod
                     {
                         jobProcess.Add(new JsonObject
                         {
-                            ["file_id"] = FILE_ID,
+                            ["file_id"] = fileId,
                             ["job_id"] = jobId,
                             ["status"] = "Queued",
                         });
@@ -68,11 +76,13 @@ namespace Aod
                 {
                     Console.WriteLine("\n[!] Could not find 'job_id' in the response. "
                         + "Check the printed response above and update the key name.");
+                    Helper.LogFileError(fileId, code, "No job_id in job-create response", body);
                 }
             }
-            else
+            else if (code != 409)
             {
                 Console.WriteLine("\n[X] Could not start the job. Check the file_id, level, and status code above.");
+                Helper.LogFileError(fileId, code, "Could not start job", body);
             }
         }
     }
