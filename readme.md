@@ -4,7 +4,7 @@
 
 > The Accessibility On Demand API lets you make PDFs accessible: upload a PDF, get back a tagged (accessibility-enhanced) version, and generate an axes4 accessibility score for the tagged PDF.
 
-This guide is written so that **anyone**  can call these APIs , Just follow the steps in order. The API works the same way no matter which programming language you use.
+This guide is written so that **anyone** can call these APIs. Just follow the steps in order. The API works the same way no matter which programming language you use.
 
 ---
 
@@ -46,7 +46,7 @@ The Accessibility On Demand API helps you turn ordinary PDF files into accessibl
 
 ## 2. Before you start (what you need)
 
-To call this API , you need two things:
+To call this API, you need two things:
 
 1. **A way to run code** in the language of your choice — Python, Node.js, Java, or .NET. Pick whichever you're comfortable with.
 2. **A code editor or terminal** to edit and run the files — for example, VS Code or your system's built-in terminal.
@@ -106,7 +106,7 @@ Breaking that down:
 - `Bearer` must be written exactly as shown, followed by **one space**.
 - `aod-xxxxxxxxxxx` is your actual API key (the one you copied in Section 3).
 
-You don't need to set this up by hand — the ready-made files in each language folder do it for you. You only have to paste your key in **one place** (the `===== EDIT HERE =====` section at the top of each helper file and for java each file), and the rest is handled automatically.
+You don't need to set this up by hand — the ready-made files in each language folder do it for you. You only have to paste your key in **one place** — the `===== EDIT HERE =====` section in the helper file (for Java, in each step file) — and the rest is handled automatically.
 
 [⬆ Back to top](#top)
 
@@ -116,11 +116,11 @@ You don't need to set this up by hand — the ready-made files in each language 
 
 | # | Method | Endpoint (add after Base URL) | What it does |
 |---|--------|-------------------------------|--------------|
-| 1 | POST   | `/file-upload/`                | Starts a file upload. You send **signed_urls** in the payload, and it returns the **file_ids** of the uploaded URLs. |
+| 1 | POST   | `/file-upload/`               | Starts a file upload. You send **signed_urls** in the payload, and it returns the **file_ids** of the uploaded URLs. |
 | 2 | GET    | `/file-upload/{file_id}`      | Returns the upload **status** (`Uploading` / `Uploaded`) for the given file_id. |
-| 3 | POST   | `/jobs/`                       | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id** and a **level** (1 or 2). Returns a **job_id**. |
+| 3 | POST   | `/jobs/`                      | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id** and a **level** (1 or 2). Returns a **job_id**. |
 | 4 | GET    | `/jobs/{job_id}`              | Returns the processing **status** and a **link to the tagged PDF**. |
-| 5 | POST   | `/report/`                     | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
+| 5 | POST   | `/report/`                    | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
 | 6 | GET    | `/report/{job_id}`            | Returns the report **status** and a **link to the generated score report PDF** for the file. |
 
 [⬆ Back to top](#top)
@@ -137,13 +137,12 @@ Two endpoints add an **extra cooldown** on top of that base limit. The full brea
 
 | # | Endpoint | Rate limit |
 |---|----------|------------|
-| 1 | `POST /file-upload/`        | Base limit **+** an extra cooldown equal to the **number of signed URLs** sent (e.g. 5 URLs → ~5 sec), per user. |
-| 2 | `GET /file-upload/{file_id}` | Base limit only (1 request/sec) , per user. |
-| 3 | `POST /jobs/`               | Base limit **+** an extra cooldown of **pages ÷ 10** (e.g. A 100-page file →  (100 ÷ 10) → wait about ~10 sec) , per user. |
-| 4 | `GET /jobs/{job_id}`       | Base limit only (1 request/sec) , per user. |
-| 5 | `POST /report/`            | Base limit only (1 request/sec) , per user. |
-| 6 | `GET /report/{job_id}`    | Base limit only (1 request/sec) , per user. |
-
+| 1 | `POST /file-upload/`         | Base limit **+** an extra cooldown equal to the **number of signed URLs** sent (e.g. 5 URLs → ~5 sec), per user. |
+| 2 | `GET /file-upload/{file_id}` | Base limit only (1 request/sec), per user. |
+| 3 | `POST /jobs/`                | Base limit **+** an extra cooldown of **pages ÷ 10** (e.g. a 100-page file → 100 ÷ 10 → wait about ~10 sec), per user. |
+| 4 | `GET /jobs/{job_id}`         | Base limit only (1 request/sec), per user. |
+| 5 | `POST /report/`              | Base limit only (1 request/sec), per user. |
+| 6 | `GET /report/{job_id}`       | Base limit only (1 request/sec), per user. |
 
 When you hit a limit, you'll get a response like this:
 
@@ -180,7 +179,6 @@ The flow is the same in every language. To make it easy, each language has its *
 | Java     | [`/java`](java)     | ✅ Available |
 | .NET     | [`/dotnet`](dotnet) | ✅ Available |
 
-
 > **Sync vs async (Python):** Use **sync** if you're new or doing things one step at a time — it's the simplest. Use **async** if you want to check many files/jobs at the same time for speed. Both do exactly the same API calls.
 
 ### The flow (same for every language)
@@ -214,14 +212,14 @@ Here is roughly what `data.json` looks like after a few steps:
     }
   ],
   "report_process": [
-    { "file_id": "aaa950240561cd149157e054", "job_id": "rep_123", "status": "queued" }
+    { "file_id": "aaa950240561cd149157e054", "job_id": "rep_123", "status": "Processing" }
   ]
 }
 ```
 
 > 📂 **Open your language's folder and follow its own README** for the exact commands to run each file. The API behaves identically regardless of language — see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
-> ⏳ **Download links expire** (see `expires_in_seconds`, e.g. 300 = 5 minutes , 0 = link expired ). Download the file promptly and store it.
+> ⏳ **Download links expire** (see `expires_in_seconds`, e.g. 300 = 5 minutes, 0 = link expired). Download the file promptly and store it.
 
 [⬆ Back to top](#top)
 
@@ -373,7 +371,7 @@ curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/file-upload
 | `successful_uploads[].file_id` | The ID you use in later steps. **Save this.** |
 | `successful_uploads[].status` | Always `Uploading` at this point |
 | `failed_uploads[].url` | The URL that could not be used |
-| `failed_uploads[].detail` | Why it failed (e.g. unsupported source — only s3 / gdrive allowed) |
+| `failed_uploads[].detail` | Why it failed (e.g. unsupported source — only S3 / Google Drive allowed) |
 | `request_id` | Unique ID for this request — quote it if contacting support |
 
 [⬆ Back to top](#top)
@@ -563,7 +561,7 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/v1/jobs/JOB_ID_
 |-------|---------|
 | `data.status` | e.g. `Processing`, `Completed`, `Failed` |
 | `data.details.download_url` | Link to download the tagged PDF (only when `Completed`) |
-| `data.details.expires_in_seconds` | How long the link stays valid (e.g. 300 = 5 minutes , 0 = Expired ) |
+| `data.details.expires_in_seconds` | How long the link stays valid (e.g. 300 = 5 minutes, 0 = expired) |
 | `error.code` / `error.detail` | Present only on failure |
 
 [⬆ Back to top](#top)
@@ -647,7 +645,7 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/v1/report/JOB_I
 |-------|---------|
 | `data.status` | e.g. `Processing`, `Completed`, `Failed` |
 | `data.details.download_url` | Link to download the score report PDF (only when `Completed`) |
-| `data.details.expires_in_seconds` | How long the link stays valid |
+| `data.details.expires_in_seconds` | How long the link stays valid (e.g. 300 = 5 minutes, 0 = expired) |
 
 [⬆ Back to top](#top)
 
@@ -774,6 +772,7 @@ When contacting support, include the `request_id` — it lets us find your exact
 [⬆ Back to top](#top)
 
 ---
+
 ## 10. FAQ
 
 **Q: I get a 401 error. Why?**
@@ -799,4 +798,4 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ---
 
-*Last updated: 29-05-2026 · Maintained by aod-tech*
+*Last updated: 02-06-2026 · Maintained by aod-tech*
