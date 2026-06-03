@@ -158,7 +158,7 @@ java -cp ".:lib/gson.jar" Step4CheckJob.java
 
 **Result:** prints the status of each job. When a job is `Completed`, the script saves and prints the **tagged PDF `download_url`**. Jobs already `Completed` are skipped.
 
-> ⏳ The download link expires (see `expires_in_seconds`, e.g. 300 = 5 minutes). Download the PDF soon, or re-run this file to get a fresh link.
+> ⏳ The download link expires (see `expires_in_seconds`, e.g. 300 = 5 minutes). Download the PDF soon.
 
 ---
 

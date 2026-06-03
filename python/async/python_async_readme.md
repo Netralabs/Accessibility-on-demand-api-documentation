@@ -2,6 +2,8 @@
 
 This folder contains **6 ready-to-run async Python files**, one for each API step, plus a shared `helper.py`. They do exactly the same thing as the sync version, but use **`httpx`** with `asyncio`, so the "check" steps (2, 4, 6) check many files/jobs/reports **at the same time** — faster when you have a lot of them.
 
+You set your **API key once** in `helper.py`; in the step files you only edit inputs like signed URLs or a file_id.
+
 For the full API reference (every endpoint, request, and response), see the [main README](../../readme.md).
 
 ---
@@ -16,14 +18,14 @@ For the full API reference (every endpoint, request, and response), see the [mai
    ```
 
 3. Open this folder in your editor (e.g. VS Code).
-3. Open **helper.js** file and paste your API key into the `API_KEY` variable at the top:
+4. Open **`helper.py`** and paste your API key into the `API_KEY` variable at the top:
 
    ```python
    # ===== EDIT HERE =====
    API_KEY = "aod-xxxxxxxxxxx"   # paste your key from Section 3 of the main README
    ```
 
-You're now ready to run the steps in order.
+That's the only place the key goes. You're now ready to run the steps in order.
 
 ---
 
@@ -42,19 +44,16 @@ You're now ready to run the steps in order.
 
 When you run a file, it **prints the result on screen** and **saves the important values into `data.json`** in this folder. The "check" files (steps 2, 4, 6) read from `data.json`, loop through everything, skip anything already finished, and update the rest — so they're safe to run repeatedly until done.
 
-Each file runs through `asyncio.run(main())`, so you start it the normal way: `python <file>`.
-
-You normally do **not** need to edit `helper.py` — it just holds the Base URL, builds the Authorization header, and reads/writes `data.json`.
+Each file runs through `asyncio.run(main())`, so you start it the normal way: `python <file>`. The API key and Base URL live in `helper.py`; you normally do **not** need to edit anything else in it.
 
 ---
 
 ## Step 1 — Upload your file(s) → `1_upload.py`
 
-**Edit:** your API key, and paste your signed URL(s) into the `SIGNED_URLS` list.
+**Edit:** paste your signed URL(s) into the `SIGNED_URLS` list (API key is already set in `helper.py`).
 
 ```python
 # ===== EDIT HERE =====
-API_KEY = "aod-xxxxxxxxxxx"
 SIGNED_URLS = [
     "https://your-signed-url-1",
     "https://your-signed-url-2",
@@ -70,7 +69,7 @@ python 1_upload.py
 
 **Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some URLs fail (status **207**), the script lists which ones and why, but still saves the ones that succeeded.
 
-> ⏱️ This endpoint is rate-limited. Sending more URLs means a longer cooldown before your next upload (see the main README, Endpoint 1).
+> ⏱️ This endpoint is rate-limited. Sending more URLs means a longer cooldown before your next upload (see the main README, Section 6).
 
 **Next:** run Step 2 to check when they finish uploading.
 
@@ -78,12 +77,7 @@ python 1_upload.py
 
 ## Step 2 — Check upload status → `2_check_upload.py`
 
-**Edit:** only your API key. The script checks **every** file from Step 1, all at once.
-
-```python
-# ===== EDIT HERE =====
-API_KEY = "aod-xxxxxxxxxxx"
-```
+**Edit:** nothing — the API key is already in `helper.py`. The script checks **every** file from Step 1, all at once.
 
 **Run:**
 
@@ -103,7 +97,6 @@ python 2_check_upload.py
 
 ```python
 # ===== EDIT HERE =====
-API_KEY = "aod-xxxxxxxxxxx"
 FILE_ID = "paste-an-uploaded-file_id-here"
 LEVEL   = 1     # 1 or 2
 ```
@@ -116,7 +109,7 @@ python 3_create_job.py
 
 **Result:** a `job_id`, saved to `data.json` under `job_process` with `status: "Queued"`.
 
-> ⏱️ This endpoint is rate-limited based on the number of pages in the file (see the main README, Endpoint 3).
+> ⏱️ This endpoint is rate-limited based on the number of pages in the file (see the main README, Section 6).
 
 **Next:** check it in Step 4.
 
@@ -124,12 +117,7 @@ python 3_create_job.py
 
 ## Step 4 — Check job & get tagged PDF → `4_check_job.py`
 
-**Edit:** only your API key. The script checks **every** job, all at once.
-
-```python
-# ===== EDIT HERE =====
-API_KEY = "aod-xxxxxxxxxxx"
-```
+**Edit:** nothing — the script checks **every** job, all at once.
 
 **Run:**
 
@@ -139,7 +127,7 @@ python 4_check_job.py
 
 **Result:** prints the status of each job. When a job is `Completed`, the script saves and prints the **tagged PDF `download_url`**. Jobs already `Completed` are skipped.
 
-> ⏳ The download link expires (see `expires_in_seconds`, e.g. 300 = 5 minutes). Download the PDF soon, or re-run this file to get a fresh link.
+> ⏳ The download link expires (see `expires_in_seconds`, e.g. 300 = 5 minutes). Download the PDF soon.
 
 ---
 
@@ -149,7 +137,6 @@ python 4_check_job.py
 
 ```python
 # ===== EDIT HERE =====
-API_KEY = "aod-xxxxxxxxxxx"
 FILE_ID = "paste-a-file_id-here"
 ```
 
@@ -165,12 +152,7 @@ python 5_create_report.py
 
 ## Step 6 — Get the score report → `6_check_report.py`
 
-**Edit:** only your API key. The script checks **every** report, all at once.
-
-```python
-# ===== EDIT HERE =====
-API_KEY = "aod-xxxxxxxxxxx"
-```
+**Edit:** nothing — the script checks **every** report, all at once.
 
 **Run:**
 
@@ -187,8 +169,8 @@ python 6_check_report.py
 ## Troubleshooting
 
 - **`ModuleNotFoundError: No module named 'httpx'`** — you skipped the install step. Run `pip install httpx`.
-- **401 Unauthorized** — your API key is missing, wrong, or has extra spaces. Re-check the `API_KEY` value.
+- **401 Unauthorized** — your API key is missing, wrong, or has extra spaces. Re-check the `API_KEY` value in `helper.py`.
 - **429 Too Many Requests** — you're calling too fast. Wait the `retry-after-sec` seconds shown in the response and try again.
-- **A URL failed with "unsupported source"** — only **s3** and **gdrive** signed URLs are supported.
+- **A URL failed with "unsupported source"** — only **S3** and **Google Drive** signed URLs are supported.
 
 For the complete list of status codes and error shapes, see Section 9 of the [main README](../../readme.md).

@@ -106,7 +106,7 @@ Breaking that down:
 - `Bearer` must be written exactly as shown, followed by **one space**.
 - `aod-xxxxxxxxxxx` is your actual API key (the one you copied in Section 3).
 
-You don't need to set this up by hand — the ready-made files in each language folder do it for you. You only have to paste your key in **one place** (the `===== EDIT HERE =====` section at the top of each file), and the rest is handled automatically.
+You don't need to set this up by hand — the ready-made files in each language folder do it for you. You only have to paste your key in **one place** (the `===== EDIT HERE =====` section at the top of each helper file and for java each file), and the rest is handled automatically.
 
 [⬆ Back to top](#top)
 
