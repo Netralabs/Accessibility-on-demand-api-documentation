@@ -2,7 +2,7 @@
 
 This folder contains **6 ready-to-run Java files**, one for each API step. The values you edit live in **one shared `config.json` at the repo root** — so every language folder (Java, .NET, Node, Python) reads the same config, and you fill it in **once**. Each `.java` file is self-contained (it includes a small built-in `AOD` helper at the bottom), so you run it directly with `java` — no build tool, no project setup.
 
-**You only ever edit the root `config.json`.** The six step files read every value (API key, signed URLs, file IDs, level) from `../config.json`. They never need editing.
+**You only ever edit the root `config.json`.** The six step files read every value (API key, signed URLs, file IDs, level) from [config.json](../config.json). They never need editing.
 
 Each step also writes its progress to a **`data.json` inside this `java/` folder** (created automatically) — that file is per-language and you don't touch it. Anything that **isn't** a clean success (a 207 partial upload, a non-200 response, or a failed job/report) is kept out of `data.json` and written to a separate **`errors.json`** instead, so your tracked data stays clean.
 
@@ -59,7 +59,7 @@ mkdir lib -Force; curl.exe -L -o lib/gson.jar https://repo1.maven.org/maven2/com
 
 > Prefer to download by hand? Inside the `java/` folder, create a new folder named `lib`, save [this jar](https://repo1.maven.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar) into it, and rename it to `gson.jar` (so the path is `java/lib/gson.jar`).
 
-**3. Open the root `config.json` and fill in your values** (it sits one level up from this `java/` folder — it's the only file you edit; see the next section).
+**3. Open  [config.json](../config.json) and fill in your values** (it sits one level up from this `java/` folder — it's the only file you edit; see the next section).
 
 You're now ready to run the steps in order.
 
@@ -81,7 +81,7 @@ your-project/
 
 ---
 
-## The one file you edit — `../config.json` (repo root)
+## The one file you edit — [config.json](../config.json) (repo root)
 
 ```json
 {
@@ -194,7 +194,7 @@ All commands are run from inside `java/`. The three files you care about:
 | **View** your tracked results (file_ids, job_ids, download links) | `data.json` | `./data.json` (this folder) |
 | **View** anything that failed (207 / errors / failed jobs) | `errors.json` | `./errors.json` (this folder) |
 
-- To **edit** your values, open `../config.json` (one level up from here).
+- To **edit** your values, open [config.json](../config.json) (one level up from here).
 - To **see results**, open `java/data.json` after running a step.
 - To **see failures**, open `java/errors.json` (created only when something goes wrong).
 
@@ -245,7 +245,7 @@ java -cp ".;lib\gson.jar" Step6CheckReport.java
 
 ### Step 1 — Upload your file(s) → `Step1Upload.java`
 
-**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`).
+**In the root [config.json](../config.json):** set `api_key` and add your `signed_urls` (and optionally `description`).
 
 ```bash
 cd java
@@ -277,7 +277,7 @@ java -cp ".:lib/gson.jar" Step2CheckUpload.java
 
 ### Step 3 — Start processing → `Step3CreateJob.java`
 
-**In the root `../config.json`:** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
+**In the root [config.json](../config.json):** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
 ```bash
 cd java
@@ -309,7 +309,7 @@ java -cp ".:lib/gson.jar" Step4CheckJob.java
 
 ### Step 5 — Request a score report → `Step5CreateReport.java`
 
-**In the root `../config.json`:** set `report.file_id` to the file you want a report for.
+**In the root [config.json](../config.json):** set `report.file_id` to the file you want a report for.
 
 ```bash
 cd java

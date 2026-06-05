@@ -2,7 +2,7 @@
 
 This folder contains **6 ready-to-run Node.js files**, one for each API step, plus a shared `helper.js`. You run them in order. The values you edit live in **one shared `config.json` at the repo root** — so every language folder (Java, .NET, Node, Python) reads the same config, and you fill it in **once**.
 
-**You only ever edit the root `config.json`.** The step files read every value (API key, signed URLs, file IDs, level) from `../config.json`. They never need editing.
+**You only ever edit the root `config.json`.** The step files read every value (API key, signed URLs, file IDs, level) from [config.json](../config.json). They never need editing.
 
 Each step also writes its progress to a **`data.json` inside this `node/` folder** (created automatically) — that file is per-language and you don't touch it. Anything that **isn't** a clean success (a 207 partial upload, a non-200 response, or a failed job/report) is kept out of `data.json` and written to a separate **`errors.json`** instead, so your tracked data stays clean.
 
@@ -41,7 +41,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
 
    (New to Node? A quick search for "how to install Node.js" will get you set up in about 10 minutes.)
 
-2. **Open the root `config.json` and fill in your values** (it sits one level up from this `node/` folder — it's the only file you edit; see below).
+2. **Open [config.json](../config.json) and fill in your values** (it sits one level up from this `node/` folder — it's the only file you edit; see below).
 
 You're now ready to run the steps in order. No `npm install` is needed.
 
@@ -168,7 +168,7 @@ All commands are run from inside `node/`. The three files you care about:
 | **View** your tracked results (file_ids, job_ids, download links) | `data.json` | `./data.json` (this folder) |
 | **View** anything that failed (207 / errors / failed jobs) | `errors.json` | `./errors.json` (this folder) |
 
-- To **edit** your values, open `../config.json` (one level up from here).
+- To **edit** your values, open [config.json](../config.json) (one level up from here).
 - To **see results**, open `node/data.json` after running a step.
 - To **see failures**, open `node/errors.json` (created only when something goes wrong).
 
@@ -183,7 +183,7 @@ node 1_upload.js
 
 ## Step 1 — Upload your file(s) → `1_upload.js`
 
-**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`).
+**In the root [config.json](../config.json):** set `api_key` and add your `signed_urls` (and optionally `description`).
 
 ```bash
 cd node
@@ -215,7 +215,7 @@ node 2_check_upload.js
 
 ## Step 3 — Start processing → `3_create_job.js`
 
-**In the root `../config.json`:** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
+**In the root [config.json](../config.json):** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
 ```bash
 cd node
@@ -247,7 +247,7 @@ node 4_check_job.js
 
 ## Step 5 — Request a score report → `5_create_report.js`
 
-**In the root `../config.json`:** set `report.file_id` to the file you want a report for.
+**In the root [config.json](../config.json):** set `report.file_id` to the file you want a report for.
 
 ```bash
 cd node

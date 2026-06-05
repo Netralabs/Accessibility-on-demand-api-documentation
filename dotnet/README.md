@@ -1,8 +1,8 @@
 # .NET (C#) — AOD-API
 
-This folder is **one small .NET project** with 6 steps for calling the API. You pick which step to run by passing its name, e.g. `dotnet run -- step1`. The values you edit live in **one shared `config.json` at the repo root** — so every language folder (Java, .NET, Node, Python) reads the same config, and you fill it in **once**.
+This folder is **one small .NET project** with 6 steps for calling the API. You pick which step to run by passing its name, e.g. `dotnet run -- step1`. The values you edit live in **one shared [config.json](../config.json) at the repo root** — so every language folder (Java, .NET, Node, Python) reads the same config, and you fill it in **once**.
 
-**You only ever edit the root `config.json`.** The step files read every value (API key, signed URLs, file IDs, level) from `../config.json`. They never need editing.
+**You only ever edit the root [config.json](../config.json).** The step files read every value (API key, signed URLs, file IDs, level) from [config.json](../config.json). They never need editing.
 
 Each step also writes its progress to a **`data.json` inside this `dotnet/` folder** (created automatically) — that file is per-language and you don't touch it. Anything that **isn't** a clean success (a 207 partial upload, a non-200 response, or a failed job/report) is kept out of `data.json` and written to a separate **`errors.json`** instead, so your tracked data stays clean.
 
@@ -42,7 +42,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
 
    (New to .NET? A quick search for "install .NET SDK" will get you set up.)
 
-2. **Open the root `config.json` and fill in your values** (it sits one level up from this `dotnet/` folder — it's the only file you edit; see the next section).
+2. **Open [config.json](../config.json) and fill in your values** (it sits one level up from this `dotnet/` folder — it's the only file you edit; see the next section).
 
 No `dotnet restore` of extra packages is needed — everything used is built into .NET.
 
@@ -66,7 +66,7 @@ your-project/
 
 ---
 
-## The one file you edit — `../config.json` (repo root)
+## The one file you edit — [config.json](../config.json) (repo root)
 
 ```json
 {
@@ -216,7 +216,7 @@ dotnet run -- step6   # check report
 
 ### Step 1 — Upload your file(s) → `Step1Upload.cs`
 
-**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`).
+**In the root [config.json](../config.json):** set `api_key` and add your `signed_urls` (and optionally `description`).
 
 ```bash
 cd dotnet
@@ -248,7 +248,7 @@ dotnet run -- step2
 
 ### Step 3 — Start processing → `Step3CreateJob.cs`
 
-**In the root `../config.json`:** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
+**In the root [config.json](../config.json):** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
 ```bash
 cd dotnet
@@ -280,7 +280,7 @@ dotnet run -- step4
 
 ### Step 5 — Request a score report → `Step5CreateReport.cs`
 
-**In the root `../config.json`:** set `report.file_id` to the file you want a report for.
+**In the root [config.json](../config.json):** set `report.file_id` to the file you want a report for.
 
 ```bash
 cd dotnet

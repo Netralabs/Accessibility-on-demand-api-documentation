@@ -2,9 +2,9 @@
 
 This folder contains **6 ready-to-run async Python files**, one for each API step, plus a shared `helper.py`. They use **`httpx`** with `asyncio`, so the "check" steps (2, 4, 6) check many files/jobs/reports **at the same time** — faster when you have a lot of them. (Prefer plain, one-at-a-time requests? Use the `python-sync/` folder instead — same behavior, no async.)
 
-The values you edit live in **one shared `config.json` at the repo root** — so every language folder (Java, .NET, Node, Python) reads the same config, and you fill it in **once**.
+The values you edit live in **one shared [config.json](../config.json) at the repo root** — so every language folder (Java, .NET, Node, Python) reads the same config, and you fill it in **once**.
 
-**You only ever edit the root `config.json`.** The step files read every value (API key, signed URLs, file IDs, level) from `../config.json`. They never need editing.
+**You only ever edit the root [config.json](../config.json).** The step files read every value (API key, signed URLs, file IDs, level) from [config.json](../config.json). They never need editing.
 
 Each step also writes its progress to a **`data.json` inside this folder** (created automatically) — that file is per-folder and you don't touch it. Anything that **isn't** a clean success (a 207 partial upload, a non-200 response, or a failed job/report) is kept out of `data.json` and written to a separate **`errors.json`** instead, so your tracked data stays clean.
 
@@ -40,7 +40,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
    pip install httpx
    ```
 
-3. **Open the root `config.json` and fill in your values** (it sits one level up from this folder — it's the only file you edit; see below).
+3. **Open [config.json](../config.json) and fill in your values** (it sits one level up from this folder — it's the only file you edit; see below).
 
 You're now ready to run the steps in order.
 
@@ -63,7 +63,7 @@ your-project/
 
 ---
 
-## The one file you edit — `../config.json` (repo root)
+## The one file you edit — [config.json](../config.json) (repo root)
 
 ```json
 {
@@ -183,7 +183,7 @@ python 1_upload.py
 
 ## Step 1 — Upload your file(s) → `1_upload.py`
 
-**In the root `../config.json`:** set `api_key` and add your `signed_urls` (and optionally `description`).
+**In the root [config.json](../config.json):** set `api_key` and add your `signed_urls` (and optionally `description`).
 
 ```bash
 cd python-async
@@ -215,7 +215,7 @@ python 2_check_upload.py
 
 ## Step 3 — Start processing → `3_create_job.py`
 
-**In the root `../config.json`:** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
+**In the root [config.json](../config.json):** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
 ```bash
 cd python-async
@@ -247,7 +247,7 @@ python 4_check_job.py
 
 ## Step 5 — Request a score report → `5_create_report.py`
 
-**In the root `../config.json`:** set `report.file_id` to the file you want a report for.
+**In the root [config.json](../config.json):** set `report.file_id` to the file you want a report for.
 
 ```bash
 cd python-async

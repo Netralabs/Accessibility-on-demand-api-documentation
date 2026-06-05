@@ -106,7 +106,7 @@ Breaking that down:
 - `Bearer` must be written exactly as shown, followed by **one space**.
 - `aod-xxxxxxxxxxx` is your actual API key (the one you copied in Section 3).
 
-You don't need to set this up by hand — the ready-made files in each language folder do it for you. You only have to paste your key in **one place**: the **`config.json` file in the repository root** (the folder that contains `java/`, `dotnet/`, `node/`, `python-sync/`, and `python-async/`). Every language reads the same `config.json`, so you fill it in **once** and the rest is handled automatically.
+You don't need to set this up by hand — the ready-made files in each language folder do it for you. You only have to paste your key in **one place**: the [config.json](config.json) file in the repository root** (the folder that contains `java/`, `dotnet/`, `node/`, `python-sync/`, and `python-async/`). Every language reads the same `config.json`, so you fill it in **once** and the rest is handled automatically.
 
 ```json
 {
@@ -183,7 +183,7 @@ Just wait the number of seconds shown in `retry-after-sec`, then try again.
 
 ## 7. How to call the APIs (pick your language)
 
-The flow is the same in every language. To make it easy, each language has its **own folder** in this repository with **6 ready-to-run files** — one per step. You don't edit those files at all: you fill in a single **`config.json` at the repository root**, and every language reads from it.
+The flow is the same in every language. To make it easy, each language has its **own folder** in this repository with **6 ready-to-run files** — one per step. You don't edit those files at all: you fill in a single [config.json](config.json), and every language reads from it.
 
 ```
 your-project/
@@ -218,7 +218,7 @@ your-project/
 
 ### How the ready-made files work
 
-- **You edit one file: `config.json` in the repo root.** It holds your `api_key`, `signed_urls`, the `process` file/level, and the `report` file. You fill it in **as you go** (URLs before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5). You never edit the language files themselves.
+- **You edit one file: [config.json](config.json) It holds your `api_key`, `signed_urls`, the `process` file/level, and the `report` file. You fill it in **as you go** (URLs before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5). You never edit the language files themselves.
 - Running a step **prints the result on screen** AND **saves the important values** (file_ids, job_ids, and their status) into a **`data.json`** file **inside that language folder**. Each language keeps its own `data.json`, so running, say, Node and Python side by side won't collide.
 - Anything that **isn't** a clean success — a 207 partial upload, a non-200 response, or a failed job/report — is kept out of `data.json` and written to a separate **`errors.json`** in the same folder (grouped into `url_errors` / `file_errors` / `job_errors` / `other`, append-only, each with a UTC timestamp).
 - The "check" files (steps 2, 4, 6) automatically **loop through everything saved**, skip anything already finished, and update the rest. They are safe to run again and again until everything is done.
