@@ -18,12 +18,13 @@ This guide is written so that **anyone** can call these APIs. Just follow the st
 6. [Rate limits](#6-rate-limits)
 7. [How to call the APIs (pick your language)](#7-how-to-call-the-apis-pick-your-language)
 8. [Full examples for every endpoint (curl + responses)](#8-full-examples-for-every-endpoint-curl--responses)
-   - [Endpoint 1 — Upload files](#endpoint-1--upload-files)
-   - [Endpoint 2 — Check upload status](#endpoint-2--check-upload-status)
-   - [Endpoint 3 — Start a processing job](#endpoint-3--start-a-processing-job)
-   - [Endpoint 4 — Check job & get tagged PDF](#endpoint-4--check-job--get-tagged-pdf)
-   - [Endpoint 5 — Request a score report](#endpoint-5--request-a-score-report)
-   - [Endpoint 6 — Get the score report](#endpoint-6--get-the-score-report)
+   - [Endpoint 1 — Upload files directly (form-data)](#endpoint-1--upload-files-directly-form-data)
+   - [Endpoint 2 — Upload files from signed URLs](#endpoint-2--upload-files-from-signed-urls)
+   - [Endpoint 3 — Check upload status](#endpoint-3--check-upload-status)
+   - [Endpoint 4 — Start a processing job](#endpoint-4--start-a-processing-job)
+   - [Endpoint 5 — Check job & get tagged PDF](#endpoint-5--check-job--get-tagged-pdf)
+   - [Endpoint 6 — Request a score report](#endpoint-6--request-a-score-report)
+   - [Endpoint 7 — Get the score report](#endpoint-7--get-the-score-report)
    - [Common errors (all endpoints)](#common-errors-all-endpoints)
 9. [Understanding errors](#9-understanding-errors)
 10. [FAQ](#10-faq)
@@ -35,7 +36,7 @@ This guide is written so that **anyone** can call these APIs. Just follow the st
 The Accessibility On Demand API helps you turn ordinary PDF files into accessible ones that people using screen readers and other assistive tools can read properly. You upload a PDF, the API adds the accessibility tags for you, and you can download the tagged version back. You can also ask the API for an **axes4 accessibility score**, which tells you how accessible the tagged PDF is.
 
 - **Base URL:** `https://staging.api.accessibilityondemand.space/api/v1`
-  *(This is the web address all the APIs live under. Every call starts with this, followed by the specific endpoint — for example `https://staging.api.accessibilityondemand.space/api/v1/file-upload/`.)*
+  *(This is the web address all the APIs live under. Every call starts with this, followed by the specific endpoint — for example `https://staging.api.accessibilityondemand.space/api/v1/files/upload/`.)*
 - **Environment:** This is the **staging** (testing) environment.
 - **Authentication:** Bearer token (an API key you send with every request).
 - **Data format:** JSON (a simple text format for sending and receiving data).
@@ -128,12 +129,13 @@ You never edit the language files themselves. See [Section 7](#7-how-to-call-the
 
 | # | Method | Endpoint (add after Base URL) | What it does |
 |---|--------|-------------------------------|--------------|
-| 1 | POST   | `/file-upload/`               | Starts a file upload. You send **signed_urls** in the payload, and it returns the **file_ids** of the uploaded URLs. |
-| 2 | GET    | `/file-upload/{file_id}`      | Returns the upload **status** (`Uploading` / `Uploaded`) for the given file_id. |
-| 3 | POST   | `/jobs/`                      | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id** and a **level** (1 or 2). Returns a **job_id**. |
-| 4 | GET    | `/jobs/{job_id}`              | Returns the processing **status** and a **link to the tagged PDF**. |
-| 5 | POST   | `/report/`                    | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
-| 6 | GET    | `/report/{job_id}`            | Returns the report **status** and a **link to the generated score report PDF** for the file. |
+| 1 | POST   | `/files/upload/`               | Uploads one or more PDFs **directly** as `multipart/form-data` (`files` + optional `description`). Returns a **file_id** for each accepted file. |
+| 2 | POST   | `/files/upload-from-url/`      | Starts a file upload **from signed URLs**. You send **signed_urls** in the payload, and it returns the **file_ids** of the uploaded URLs. |
+| 3 | GET    | `/files/status/{file_id}`      | Returns the upload **status** (`Uploading` / `Uploaded`) for the given file_id. |
+| 4 | POST   | `/jobs/`                       | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id** and a **level** (1 or 2). Returns a **job_id**. |
+| 5 | GET    | `/jobs/{job_id}`               | Returns the processing **status** and a **link to the tagged PDF**. |
+| 6 | POST   | `/report/`                     | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
+| 7 | GET    | `/report/{job_id}`             | Returns the report **status** and a **link to the generated score report PDF** for the file. |
 
 > 🔗 **Don't have a signed URL yet?** See [How to get a signed URL](docs/getting-signed-urls.md) — step-by-step for Amazon S3 and Google Drive.
 
@@ -151,12 +153,13 @@ Two endpoints add an **extra cooldown** on top of that base limit. The full brea
 
 | # | Endpoint | Rate limit |
 |---|----------|------------|
-| 1 | `POST /file-upload/`         | Base limit **+** an extra cooldown equal to the **number of signed URLs** sent (e.g. 5 URLs → ~5 sec), per user. |
-| 2 | `GET /file-upload/{file_id}` | Base limit only (1 request/sec), per user. |
-| 3 | `POST /jobs/`                | Base limit **+** an extra cooldown of **pages ÷ 10** (e.g. a 100-page file → 100 ÷ 10 → wait about ~10 sec), per user. |
-| 4 | `GET /jobs/{job_id}`         | Base limit only (1 request/sec), per user. |
-| 5 | `POST /report/`              | Base limit only (1 request/sec), per user. |
-| 6 | `GET /report/{job_id}`       | Base limit only (1 request/sec), per user. |
+| 1 | `POST /files/upload/`          | Base limit **+** an extra cooldown equal to the **number of files** sent (e.g. 5 files → ~5 sec), per user. |
+| 2 | `POST /files/upload-from-url/` | Base limit **+** an extra cooldown equal to the **number of signed URLs** sent (e.g. 5 URLs → ~5 sec), per user. |
+| 3 | `GET /files/status/{file_id}`  | Base limit only (1 request/sec), per user. |
+| 4 | `POST /jobs/`                  | Base limit **+** an extra cooldown of **pages ÷ 10** (e.g. a 100-page file → 100 ÷ 10 → wait about ~10 sec), per user. |
+| 5 | `GET /jobs/{job_id}`           | Base limit only (1 request/sec), per user. |
+| 6 | `POST /report/`                | Base limit only (1 request/sec), per user. |
+| 7 | `GET /report/{job_id}`         | Base limit only (1 request/sec), per user. |
 
 When you hit a limit, you'll get a response like this:
 
@@ -270,19 +273,130 @@ In every example, replace `aod-xxxxxxxxxxx` with your API key.
 
 Jump to an endpoint:
 
-- [Endpoint 1 — Upload files](#endpoint-1--upload-files)
-- [Endpoint 2 — Check upload status](#endpoint-2--check-upload-status)
-- [Endpoint 3 — Start a processing job](#endpoint-3--start-a-processing-job)
-- [Endpoint 4 — Check job & get tagged PDF](#endpoint-4--check-job--get-tagged-pdf)
-- [Endpoint 5 — Request a score report](#endpoint-5--request-a-score-report)
-- [Endpoint 6 — Get the score report](#endpoint-6--get-the-score-report)
+- [Endpoint 1 — Upload files directly (form-data)](#endpoint-1--upload-files-directly-form-data)
+- [Endpoint 2 — Upload files from signed URLs](#endpoint-2--upload-files-from-signed-urls)
+- [Endpoint 3 — Check upload status](#endpoint-3--check-upload-status)
+- [Endpoint 4 — Start a processing job](#endpoint-4--start-a-processing-job)
+- [Endpoint 5 — Check job & get tagged PDF](#endpoint-5--check-job--get-tagged-pdf)
+- [Endpoint 6 — Request a score report](#endpoint-6--request-a-score-report)
+- [Endpoint 7 — Get the score report](#endpoint-7--get-the-score-report)
 - [Common errors (all endpoints)](#common-errors-all-endpoints)
 
 ---
 
-### Endpoint 1 — Upload files
+### Endpoint 1 — Upload files directly (form-data)
 
-`POST /file-upload/`
+`POST /files/upload/`
+
+Uploads one or more PDFs **directly from your computer** as `multipart/form-data`. Returns a `file_id` for each accepted file. This is the alternative to signed URLs (Endpoint 2) when you'd rather send the file itself.
+
+**Form fields**
+
+| Field | Required | Meaning |
+|-------|----------|---------|
+| `files` | yes | One or more PDF files. Repeat the field to send several (`-F "files=@a.pdf" -F "files=@b.pdf"`). |
+| `description` | no | Optional text describing the batch |
+
+> ⏱️ **Rate limited** — see [Section 6](#6-rate-limits). Cooldown grows with the number of files you send.
+
+**Request**
+
+```bash
+curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/files/upload/" \
+  -H "Authorization: Bearer aod-xxxxxxxxxxx" \
+  -F "files=@/path/to/sample.pdf" \
+  -F "files=@/path/to/another.pdf" \
+  -F "description=description about batch - optional"
+```
+
+> ℹ️ Don't set `Content-Type` yourself — `curl -F` (and your HTTP library) sets `multipart/form-data` with the correct boundary automatically.
+
+**Success — `200 OK`** (all files accepted)
+
+```json
+{
+  "success": true,
+  "data": {
+    "code": "SUCCESS",
+    "message": "All batch uploading started.",
+    "detail": [
+      {
+        "successful_uploads": [
+          {
+            "success": true,
+            "file_id": "aaa950240561cd149157e054",
+            "filename": "sample.PDF.pdf",
+            "status": "Uploading"
+          }
+        ]
+      }
+    ]
+  },
+  "message": "Files accepted for uploading, file upload started",
+  "request_id": "9f5b2df0-2755-4346-a696-3c8393e4a2fe",
+  "timestamp": "2026-06-05T12:01:31.739179+00:00"
+}
+```
+
+**Partial success — `207 Multi-Status`** (some files succeeded, some failed)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "PARTIAL_SUCCESS",
+    "message": "Some files uploaded successfully, some files had errors",
+    "details": [
+      {
+        "successful_uploads": [
+          {
+            "success": true,
+            "file_id": "aaa950240561cd149157e054",
+            "filename": "sample.PDF.pdf",
+            "status": "Uploading"
+          },
+          {
+            "success": true,
+            "file_id": "aaa950240561cd149157e055",
+            "filename": "Lorem Ipsum-1-1.pdf",
+            "status": "Uploading"
+          }
+        ],
+        "failed_uploads": [
+          {
+            "filename": "eicar_embedded.pdf",
+            "status": 400,
+            "detail": "PDF rejected: malware detected: Eicar-Test-Signature"
+          }
+        ]
+      }
+    ]
+  },
+  "request_id": "9f5b2df0-2755-4346-a696-3c8393e4a2fe",
+  "timestamp": "2026-06-05T12:01:31.739179+00:00"
+}
+```
+
+**Field explanations**
+
+| Field | Meaning |
+|-------|---------|
+| `successful_uploads[].file_id` | The ID you use in later steps. **Save this.** |
+| `successful_uploads[].filename` | The name of the file that was accepted |
+| `successful_uploads[].status` | Always `Uploading` at this point |
+| `failed_uploads[].filename` | The file that could not be accepted |
+| `failed_uploads[].detail` | Why it failed (e.g. malware detected, unsupported content) |
+| `request_id` | Unique ID for this request — quote it if contacting support |
+
+(This endpoint shares the same success/207 shape as Endpoint 2 — the only difference is each entry carries a **`filename`** instead of a **`url`**.)
+
+[⬆ Back to top](#top)
+
+---
+
+### Endpoint 2 — Upload files from signed URLs
+
+`POST /files/upload-from-url/`
 
 Starts uploading one or more files from signed URLs. Returns a `file_id` for each accepted file.
 > 🔗 New to signed URLs? See [How to get a signed URL](docs/getting-signed-urls.md) for S3 and Google Drive.
@@ -292,7 +406,7 @@ Starts uploading one or more files from signed URLs. Returns a `file_id` for eac
 **Request**
 
 ```bash
-curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/file-upload/" \
+curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/files/upload-from-url/" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx" \
   -H "Content-Type: application/json" \
   -d '{
@@ -414,16 +528,16 @@ curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/file-upload
 
 ---
 
-### Endpoint 2 — Check upload status
+### Endpoint 3 — Check upload status
 
-`GET /file-upload/{file_id}`
+`GET /files/status/{file_id}`
 
 Returns whether a file has finished uploading.
 
 **Request**
 
 ```bash
-curl -X GET "https://staging.api.accessibilityondemand.space/api/v1/file-upload/aaa950240561cd149157e054" \
+curl -X GET "https://staging.api.accessibilityondemand.space/api/v1/files/status/aaa950240561cd149157e054" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx"
 ```
 
@@ -501,7 +615,7 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/v1/file-upload/
 
 ---
 
-### Endpoint 3 — Start a processing job
+### Endpoint 4 — Start a processing job
 
 `POST /jobs/`
 
@@ -546,7 +660,7 @@ curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/jobs/" \
 
 ---
 
-### Endpoint 4 — Check job & get tagged PDF
+### Endpoint 5 — Check job & get tagged PDF
 
 `GET /jobs/{job_id}`
 
@@ -604,7 +718,7 @@ curl -X GET "https://staging.api.accessibilityondemand.space/api/v1/jobs/JOB_ID_
 
 ---
 
-### Endpoint 5 — Request a score report
+### Endpoint 6 — Request a score report
 
 `POST /report/`
 
@@ -645,7 +759,7 @@ curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/report/" \
 
 ---
 
-### Endpoint 6 — Get the score report
+### Endpoint 7 — Get the score report
 
 `GET /report/{job_id}`
 
@@ -811,8 +925,11 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ## 10. FAQ
 
+**Q: What are the two ways to upload a file?**
+> You can either **send the file directly** as form-data ([Endpoint 1](#endpoint-1--upload-files-directly-form-data), `POST /files/upload/`) — simplest if the PDF is on your computer — or **upload from a signed URL** ([Endpoint 2](#endpoint-2--upload-files-from-signed-urls), `POST /files/upload-from-url/`) if the file already lives in S3 or Google Drive. Both return the same kind of `file_id`, and every later step works the same regardless of which you used.
+
 **Q: Where do I get a signed URL to upload?**
-> See the step-by-step guide: [How to get a signed URL](docs/getting-signed-urls.md). It covers Amazon S3 and Google Drive, including how to turn a Drive share link into a direct-download link.
+> See the step-by-step guide: [How to get a signed URL](docs/getting-signed-urls.md). It covers Amazon S3 and Google Drive, including how to turn a Drive share link into a direct-download link. (Or skip signed URLs entirely and send the file directly — see the question above.)
 
 **Q: I get a 401 error. Why?**
 > Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
@@ -837,4 +954,4 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ---
 
-*Last updated: 02-06-2026 · Maintained by aod-tech*
+*Last updated: 05-06-2026 · Maintained by aod-tech*
