@@ -212,7 +212,7 @@ your-project/
 
 ### The flow (same for every language)
 
-1. **Upload** your file(s) → get a `file_id` for each (status starts as `Uploading`). *(Need a signed URL first? See [How to get a signed URL](docs/getting-signed-urls.md).)*
+1. **Upload** your file(s) → get a `file_id` for each (status starts as `Uploading`). *(Two ways: drop PDFs into the **`uploads/`** folder for a direct upload, or use a signed URL — see [How to get a signed URL](docs/getting-signed-urls.md).)*
 2. **Check upload** → repeat until the status is `Uploaded`.
 3. **Create a job** with a `file_id` and a level (1 or 2) → get a `job_id`.
 4. **Check the job** → when `Completed`, get the tagged-PDF download link.
@@ -289,6 +289,8 @@ Jump to an endpoint:
 `POST /files/upload/`
 
 Uploads one or more PDFs **directly from your computer** as `multipart/form-data`. Returns a `file_id` for each accepted file. This is the alternative to signed URLs (Endpoint 2) when you'd rather send the file itself.
+
+> 📁 **Easiest way (with the ready-made code):** drop your PDFs into the repo's [uploads](uploads) folder and run Step 1 — it automatically picks up every PDF in that folder, so you don't type any file paths. Just copy/move your files into `uploads/` first. (See your language folder's README.)
 
 **Form fields**
 
@@ -928,8 +930,11 @@ When contacting support, include the `request_id` — it lets us find your exact
 **Q: What are the two ways to upload a file?**
 > You can either **send the file directly** as form-data ([Endpoint 1](#endpoint-1--upload-files-directly-form-data), `POST /files/upload/`) — simplest if the PDF is on your computer — or **upload from a signed URL** ([Endpoint 2](#endpoint-2--upload-files-from-signed-urls), `POST /files/upload-from-url/`) if the file already lives in S3 or Google Drive. Both return the same kind of `file_id`, and every later step works the same regardless of which you used.
 
+**Q: How do I upload my own PDFs from my computer?**
+> Drop them into the repo's [uploads](uploads) folder, then run Step 1. The ready-made code automatically picks up every PDF in that folder and uploads them for you — no file paths to type. (Your language folder's README has the exact command.)
+
 **Q: Where do I get a signed URL to upload?**
-> See the step-by-step guide: [How to get a signed URL](docs/getting-signed-urls.md). It covers Amazon S3 and Google Drive. (Or skip signed URLs entirely and send the file directly — see the question above.)
+> See the step-by-step guide: [How to get a signed URL](docs/getting-signed-urls.md). It covers Amazon S3 and Google Drive. (Or skip signed URLs entirely and just drop files into the [uploads](uploads) — see the questions above.)
 
 **Q: I get a 401 error. Why?**
 > Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
