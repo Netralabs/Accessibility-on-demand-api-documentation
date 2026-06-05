@@ -345,7 +345,7 @@ curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/files/uploa
   "success": false,
   "error": {
     "code": "PARTIAL_SUCCESS",
-    "message": "Some files uploaded successfully, some files had errors",
+    "message": "Some file successfully started uploading , some files had errors",
     "details": [
       {
         "successful_uploads": [
@@ -452,7 +452,7 @@ curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/files/uploa
   "success": false,
   "error": {
     "code": "PARTIAL_SUCCESS",
-    "message": "Some files uploaded successfully, some had errors",
+    "message": "Some file successfully started uploading , some files had errors",
     "details": [
       {
         "successful_uploads": [
@@ -929,7 +929,7 @@ When contacting support, include the `request_id` — it lets us find your exact
 > You can either **send the file directly** as form-data ([Endpoint 1](#endpoint-1--upload-files-directly-form-data), `POST /files/upload/`) — simplest if the PDF is on your computer — or **upload from a signed URL** ([Endpoint 2](#endpoint-2--upload-files-from-signed-urls), `POST /files/upload-from-url/`) if the file already lives in S3 or Google Drive. Both return the same kind of `file_id`, and every later step works the same regardless of which you used.
 
 **Q: Where do I get a signed URL to upload?**
-> See the step-by-step guide: [How to get a signed URL](docs/getting-signed-urls.md). It covers Amazon S3 and Google Drive, including how to turn a Drive share link into a direct-download link. (Or skip signed URLs entirely and send the file directly — see the question above.)
+> See the step-by-step guide: [How to get a signed URL](docs/getting-signed-urls.md). It covers Amazon S3 and Google Drive. (Or skip signed URLs entirely and send the file directly — see the question above.)
 
 **Q: I get a 401 error. Why?**
 > Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
