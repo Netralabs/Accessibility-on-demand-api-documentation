@@ -47,10 +47,12 @@ description = cfg.get("description") or ""
 pdf_paths = find_local_pdfs()
 
 if not pdf_paths:
-    print(f"[X] No PDF files found in the uploads/ folder.")
-    print(f"    Expected folder: {os.path.abspath(UPLOADS_DIR)}")
-    print("    Drop your .pdf file(s) there and run this again.")
-    print("    (Or use signed URLs instead:  python 1_upload_from_url.py)")
+    print("[X] No PDF files found to upload.")
+    print(f"    Add your PDF file(s) here, then run this again:")
+    print(f"      {os.path.abspath(UPLOADS_DIR)}")
+    print("    (Copy or move your .pdf files into that uploads/ folder.)")
+    print("    Already have files in S3 / Google Drive, or a signed URL?")
+    print("    Use signed URLs instead:  python 1_upload_from_url.py")
     raise SystemExit
 
 ENDPOINT = f"{BASE_URL}/files/upload/"
