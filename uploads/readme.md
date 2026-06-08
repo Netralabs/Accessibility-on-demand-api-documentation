@@ -1,1 +1,1 @@
-in this folder add your pdf to upload
+in this folder add your pdf files to upload
