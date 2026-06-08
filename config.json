@@ -5,7 +5,7 @@
 
   "description": "description about batch - optional",
 
-  "signed_urls": [
+  "sign_urls ": [
     "https://your-signed-url-1",
     "https://your-signed-url-2"
   ],

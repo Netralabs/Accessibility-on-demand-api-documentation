@@ -73,7 +73,7 @@ your-project/
 
   "description": "description about batch - optional",
 
-  "signed_urls": [
+  "sign_urls ": [
     "https://your-signed-url-1",
     "https://your-signed-url-2"
   ],
@@ -93,12 +93,12 @@ your-project/
 |-------|---------|-------------|
 | `api_key`            | every step | Your key from Section 3 of the main README |
 | `description`        | Step 1 | Optional text describing the batch (both upload options) |
-| `signed_urls`        | Step 1 (Option B) | One or more signed URLs — only if you use `1_upload_from_url.py`. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)* |
+| `sign_urls `        | Step 1 (Option B) | One or more signed URLs — only if you use `1_upload_from_url.py`. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)* |
 | `process.file_id`    | Step 3 | An **uploaded** `file_id` (from Step 2) to process |
 | `process.level`      | Step 3 | `1` or `2` |
 | `report.file_id`     | Step 5 | The `file_id` you want a score report for |
 
-You fill these in **as you go** — `signed_urls` before Step 1 (Option B; for Option A just drop PDFs in `uploads/`), `process.file_id` before Step 3, `report.file_id` before Step 5. The steps tell you what to set next.
+You fill these in **as you go** — `sign_urls ` before Step 1 (Option B; for Option A just drop PDFs in `uploads/`), `process.file_id` before Step 3, `report.file_id` before Step 5. The steps tell you what to set next.
 
 ---
 
@@ -107,7 +107,7 @@ You fill these in **as you go** — `signed_urls` before Step 1 (Option B; for O
 | Step | File | What it does |
 |------|------|--------------|
 | 1A | `1_upload.py`            | **Direct upload** — uploads every PDF in the repo-root `uploads/` folder (status starts as `Uploading`) |
-| 1B | `1_upload_from_url.py`   | **Signed-URL upload** — uploads from the `signed_urls` in `config.json` (use one *or* the other, not both) |
+| 1B | `1_upload_from_url.py`   | **Signed-URL upload** — uploads from the `sign_urls ` in `config.json` (use one *or* the other, not both) |
 | 2 | `2_check_upload.py`  | Check **all** uploads → update each to `Uploaded` when ready |
 | 3 | `3_create_job.py`    | Start processing one file → get a `job_id` |
 | 4 | `4_check_job.py`     | Check **all** jobs → get the tagged-PDF download link |
@@ -167,7 +167,7 @@ All commands are run from inside `python-sync/`. The three files you care about:
 
 | Purpose | File | Path (from inside `python-sync/`) |
 |---------|------|--------------------------------|
-| **Edit** your inputs (api_key, signed_urls, file ids, level) | `config.json` | `../config.json` (repo root) |
+| **Edit** your inputs (api_key, sign_urls , file ids, level) | `config.json` | `../config.json` (repo root) |
 | **View** your tracked results (file_ids, job_ids, download links) | `data.json` | `./data.json` (this folder) |
 | **View** anything that failed (207 / errors / failed jobs) | `errors.json` | `./errors.json` (this folder) |
 
@@ -211,7 +211,7 @@ It automatically picks up **every PDF** in `uploads/` — no file paths to type.
 
 Best if your files already live in S3 or Google Drive, or you already have signed URLs.
 
-**In [config.json](../config.json):** set `api_key` and add your `signed_urls` (and optionally `description`). *(Need a signed URL? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
+**In [config.json](../config.json):** set `api_key` and add your `sign_urls ` (and optionally `description`). *(Need a signed URL? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
 
 ```bash
 python 1_upload_from_url.py

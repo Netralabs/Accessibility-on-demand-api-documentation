@@ -9,7 +9,7 @@
  *   • Need a signed URL? See ../docs/getting-signed-urls.md
  *
  * EDIT NOTHING HERE. All your values live in  ../config.json
- *   (api_key, signed_urls, description).
+ *   (api_key, sign_urls , description).
  *
  * How to run:  node 1_upload_from_url.js
  *
@@ -42,10 +42,10 @@ async function main() {
   const cfg = loadConfig();
   const key = apiKey();
   const description = cfg.description || "";
-  const signedUrls = getStringArray(cfg, "signed_urls");
+  const signedUrls = getStringArray(cfg, "sign_urls ");
 
   if (signedUrls.length === 0) {
-    console.log('[X] No signed URLs found. Add at least one real URL to "signed_urls" in config.json.');
+    console.log('[X] No signed URLs found. Add at least one real URL to "sign_urls " in config.json.');
     console.log("    (Or drop PDFs into the uploads/ folder and run  node 1_upload.js  instead.)");
     return;
   }
@@ -104,7 +104,7 @@ async function main() {
     }
   } else {
     console.log(
-      "\n[X] Upload request failed. Check your api_key, your signed_urls, " +
+      "\n[X] Upload request failed. Check your api_key, your sign_urls , " +
         "and the status code above."
     );
     // whole-request failure (non-2xx) -> errors.json

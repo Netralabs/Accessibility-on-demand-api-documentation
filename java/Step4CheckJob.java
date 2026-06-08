@@ -188,7 +188,7 @@ class AOD {
         return new com.google.gson.JsonObject();
     }
 
-    /** Read a String array from config (e.g. "signed_urls"), ignoring blank/placeholder entries. */
+    /** Read a String array from config (e.g. "sign_urls "), ignoring blank/placeholder entries. */
     static java.util.List<String> getStringArray(com.google.gson.JsonObject obj, String key) {
         java.util.List<String> out = new java.util.ArrayList<>();
         if (obj != null && obj.has(key) && obj.get(key).isJsonArray()) {

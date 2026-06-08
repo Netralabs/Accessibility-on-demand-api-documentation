@@ -113,7 +113,7 @@ You don't need to set this up by hand — the ready-made files in each language 
 {
   "api_key": "aod-xxxxxxxxxxx",
   "description": "description about batch - optional",
-  "signed_urls": ["https://your-signed-url-1", "https://your-signed-url-2"],
+  "sign_urls ": ["https://your-signed-url-1", "https://your-signed-url-2"],
   "process": { "file_id": "", "level": 1 },
   "report":  { "file_id": "" }
 }
@@ -130,7 +130,7 @@ You never edit the language files themselves. See [Section 7](#7-how-to-call-the
 | # | Method | Endpoint (add after Base URL) | What it does |
 |---|--------|-------------------------------|--------------|
 | 1 | POST   | `/files/upload/`               | Uploads one or more PDFs **directly** as `multipart/form-data` (`files` + optional `description`). Returns a **file_id** for each accepted file. |
-| 2 | POST   | `/files/upload-from-url/`      | Starts a file upload **from signed URLs**. You send **signed_urls** in the payload, and it returns the **file_ids** of the uploaded URLs. |
+| 2 | POST   | `/files/upload-from-url/`      | Starts a file upload **from signed URLs**. You send **sign_urls ** in the payload, and it returns the **file_ids** of the uploaded URLs. |
 | 3 | GET    | `/files/status/{file_id}`      | Returns the upload **status** (`Uploading` / `Uploaded`) for the given file_id. |
 | 4 | POST   | `/jobs/`                       | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id** and a **level** (1 or 2). Returns a **job_id**. |
 | 5 | GET    | `/jobs/{job_id}`               | Returns the processing **status** and a **link to the tagged PDF**. |
@@ -226,13 +226,13 @@ You upload files in **one of two ways — pick whichever fits you.** They're alt
 | Your situation | Use | How |
 |----------------|-----|-----|
 | **I just have PDFs on my computer** and no cloud account | **Direct upload** (Endpoint 1) | Clone this repo, drop your PDFs into the **`uploads/`** folder, and run Step 1. It picks up every PDF automatically — nothing else to set up. |
-| **My files already live in S3 or Google Drive**, or I already have signed URLs | **Upload from signed URL** (Endpoint 2) | Put your signed URL(s) in `config.json` under `signed_urls`, then run Step 1. New to signed URLs? See [How to get a signed URL](docs/getting-signed-urls.md). |
+| **My files already live in S3 or Google Drive**, or I already have signed URLs | **Upload from signed URL** (Endpoint 2) | Put your signed URL(s) in `config.json` under `sign_urls `, then run Step 1. New to signed URLs? See [How to get a signed URL](docs/getting-signed-urls.md). |
 
 After this first step, **everything else is identical** — both paths give you a `file_id`, and Steps 2–6 work exactly the same no matter which upload you used.
 
 ### How the ready-made files work
 
-- **You edit one file:** [config.json](config.json) — it holds your `api_key`, `signed_urls`, the `process` file/level, and the `report` file. You fill it in **as you go** (URLs before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5). You never edit the language files themselves.
+- **You edit one file:** [config.json](config.json) — it holds your `api_key`, `sign_urls `, the `process` file/level, and the `report` file. You fill it in **as you go** (URLs before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5). You never edit the language files themselves.
 - Running a step **prints the result on screen** AND **saves the important values** (file_ids, job_ids, and their status) into a **`data.json`** file **inside that language folder**. Each language keeps its own `data.json`, so running, say, Node and Python side by side won't collide.
 - Anything that **isn't** a clean success — a 207 partial upload, a non-200 response, or a failed job/report — is kept out of `data.json` and written to a separate **`errors.json`** in the same folder (grouped into `url_errors` / `file_errors` / `job_errors` / `other`, append-only, each with a UTC timestamp).
 - The "check" files (steps 2, 4, 6) automatically **loop through everything saved**, skip anything already finished, and update the rest. They are safe to run again and again until everything is done.
@@ -241,7 +241,7 @@ Each language folder therefore has three JSON files in play:
 
 | File | Where | You… | Holds |
 |------|-------|------|-------|
-| `config.json` | repo **root** (shared) | **edit** this | your api_key, signed_urls, process/report file ids + level |
+| `config.json` | repo **root** (shared) | **edit** this | your api_key, sign_urls , process/report file ids + level |
 | `data.json`   | inside the language folder | **view** (auto-written) | clean tracked items (file_uploads, job_process, report_process) |
 | `errors.json` | inside the language folder | **view** when something fails | grouped error history |
 
@@ -423,7 +423,7 @@ curl -X POST "https://staging.api.accessibilityondemand.space/api/v1/files/uploa
   -H "Authorization: Bearer aod-xxxxxxxxxxx" \
   -H "Content-Type: application/json" \
   -d '{
-    "signed_urls": [
+    "sign_urls ": [
       "https://your-signed-url-1",
       "https://your-signed-url-2"
     ],
@@ -830,7 +830,7 @@ These errors can be returned by **any** endpoint. They all follow the same shape
     "message": "Request validation failed",
     "details": [
       {
-        "field": "signed_urls",
+        "field": "sign_urls ",
         "message": "Field required"
       }
     ]

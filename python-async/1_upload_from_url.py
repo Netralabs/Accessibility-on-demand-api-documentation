@@ -9,7 +9,7 @@ Google Drive (or you already have signed URLs).
   • Need a signed URL? See ../docs/getting-signed-urls.md
 
 EDIT NOTHING HERE. All your values live in  ../config.json
-  (api_key, signed_urls, description).
+  (api_key, sign_urls , description).
 
 How to run:  python 1_upload_from_url.py
 
@@ -42,17 +42,17 @@ async def main():
     cfg = load_config()
     key = api_key()
     description = cfg.get("description") or ""
-    signed_urls = get_string_array(cfg, "signed_urls")
+    sign_urls  = get_string_array(cfg, "sign_urls ")
 
-    if not signed_urls:
-        print('[X] No signed URLs found. Add at least one real URL to "signed_urls" in config.json.')
+    if not sign_urls :
+        print('[X] No signed URLs found. Add at least one real URL to "sign_urls " in config.json.')
         print('    (Or drop PDFs into the uploads/ folder and use  python 1_upload.py  instead.)')
         return
 
     endpoint = f"{BASE_URL}/files/upload-from-url/"
-    payload = {"sign_urls": signed_urls, "description": description}
+    payload = {"sign_urls": sign_urls , "description": description}
 
-    print(f"Uploading {len(signed_urls)} file(s) from signed URLs...")
+    print(f"Uploading {len(sign_urls )} file(s) from signed URLs...")
     async with httpx.AsyncClient() as client:
         response = await client.post(endpoint, headers=build_headers(key), json=payload)
 
@@ -95,7 +95,7 @@ async def main():
                 log_url_error(f.get("url") or "", response.status_code, f.get("detail") or "", f)
     else:
         print(
-            "\n[X] Upload request failed. Check your api_key, your signed_urls, "
+            "\n[X] Upload request failed. Check your api_key, your sign_urls , "
             "and the status code above."
         )
         # whole-request failure (non-2xx) -> errors.json
