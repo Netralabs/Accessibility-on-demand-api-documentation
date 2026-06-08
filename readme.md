@@ -219,6 +219,17 @@ your-project/
 5. **Request a report** with a `file_id` → get a report `job_id`.
 6. **Check the report** → when `Completed`, get the score-report PDF download link.
 
+### Which upload should I use? (Endpoint 1 vs Endpoint 2)
+
+You upload files in **one of two ways — pick whichever fits you.** They're alternatives; you don't need both.
+
+| Your situation | Use | How |
+|----------------|-----|-----|
+| **I just have PDFs on my computer** and no cloud account | **Direct upload** (Endpoint 1) | Clone this repo, drop your PDFs into the **`uploads/`** folder, and run Step 1. It picks up every PDF automatically — nothing else to set up. |
+| **My files already live in S3 or Google Drive**, or I already have signed URLs | **Upload from signed URL** (Endpoint 2) | Put your signed URL(s) in `config.json` under `signed_urls`, then run Step 1. New to signed URLs? See [How to get a signed URL](docs/getting-signed-urls.md). |
+
+After this first step, **everything else is identical** — both paths give you a `file_id`, and Steps 2–6 work exactly the same no matter which upload you used.
+
 ### How the ready-made files work
 
 - **You edit one file:** [config.json](config.json) — it holds your `api_key`, `signed_urls`, the `process` file/level, and the `report` file. You fill it in **as you go** (URLs before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5). You never edit the language files themselves.
