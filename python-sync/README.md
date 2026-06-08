@@ -178,9 +178,10 @@ All commands are run from inside `python-sync/`. The three files you care about:
 A step is always run the same way — `cd` in first, then run, e.g.:
 
 ```bash
-cd python-sync
 python 1_upload.py
 ```
+
+> 🧭 **Getting `can't open file '1_upload.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `1_upload.py` file when you type `ls`).
 
 ---
 
@@ -197,9 +198,10 @@ Best if your PDFs are on your laptop and you don't have a cloud account.
 3. Run:
 
 ```bash
-cd python-sync
 python 1_upload.py
 ```
+
+> 🧭 **Getting `can't open file '1_upload.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `1_upload.py` file when you type `ls`).
 
 It automatically picks up **every PDF** in `uploads/` — no file paths to type.
 
@@ -212,9 +214,10 @@ Best if your files already live in S3 or Google Drive, or you already have signe
 **In [config.json](../config.json):** set `api_key` and add your `signed_urls` (and optionally `description`). *(Need a signed URL? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
 
 ```bash
-cd python-sync
 python 1_upload_from_url.py
 ```
+
+> 🧭 **Getting `can't open file '1_upload_from_url.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `1_upload_from_url.py` file when you type `ls`).
 
 **Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some URLs fail (status **207**), the failures are written to `errors.json` under `url_errors` (the successful ones are still saved).
 
@@ -229,9 +232,10 @@ python 1_upload_from_url.py
 run below to check status of the files added for uploading — it checks **every** file from Step 1.
 
 ```bash
-cd python-sync
 python 2_check_upload.py
 ```
+
+> 🧭 **Getting `can't open file '2_check_upload.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `2_check_upload.py` file when you type `ls`).
 
 **Result:** prints the status of each file. Files already `Uploaded` are skipped; the rest are updated. Re-run until all show `Uploaded`.
 
@@ -244,9 +248,10 @@ python 2_check_upload.py
 **In the root [config.json](../config.json):** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
 ```bash
-cd python-sync
 python 3_create_job.py
 ```
+
+> 🧭 **Getting `can't open file '3_create_job.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `3_create_job.py` file when you type `ls`).
 
 **Result:** a `job_id`, saved to `data.json` under `job_process` with `status: "Queued"`.
 
@@ -261,9 +266,10 @@ python 3_create_job.py
 run below to check status of the files added for processing — it checks **every** job.
 
 ```bash
-cd python-sync
 python 4_check_job.py
 ```
+
+> 🧭 **Getting `can't open file '4_check_job.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `4_check_job.py` file when you type `ls`).
 
 **Result:** prints the status of each job. When a job is `Completed`, the script saves and prints the **tagged PDF `download_url`**. Jobs already `Completed` are skipped. Any job that comes back `Failed` (or whose response can't be read) is logged to `errors.json` under `job_errors`, not `data.json`.
 
@@ -276,9 +282,10 @@ python 4_check_job.py
 **In the root [config.json](../config.json):** set `report.file_id` to the file you want a report for.
 
 ```bash
-cd python-sync
 python 5_create_report.py
 ```
+
+> 🧭 **Getting `can't open file '5_create_report.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `5_create_report.py` file when you type `ls`).
 
 **Result:** a **report job_id**, saved to `data.json` under `report_process`.
 
@@ -289,9 +296,10 @@ python 5_create_report.py
 run below to check status of the report being generated — it checks **every** report.
 
 ```bash
-cd python-sync
 python 6_check_report.py
 ```
+
+> 🧭 **Getting `can't open file '6_check_report.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `6_check_report.py` file when you type `ls`).
 
 **Result:** prints the status of each report. When `Completed`, the script saves and prints the **score report PDF `download_url`**. A `Failed` report (or unreadable response) is logged to `errors.json` under `job_errors`.
 
