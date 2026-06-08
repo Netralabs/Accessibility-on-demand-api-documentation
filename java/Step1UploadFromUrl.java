@@ -1,56 +1,52 @@
 /*
- * Step1Upload.java  —  STEP 1 (option A): Upload files from your computer
- * ======================================================================
- * Uploads every PDF in the repo-root  uploads/  folder directly to the API
- * (multipart/form-data) and gets back a file_id for each accepted file.
- * Use this if your PDFs are on your computer and you don't have a cloud account.
+ * Step1UploadFromUrl.java  —  STEP 1 (option B): Upload from signed URLs
+ * =====================================================================
+ * Sends your signed URLs to the API and gets back a file_id for each
+ * file that was accepted. Use this if your files already live in S3 or
+ * Google Drive (or you already have signed URLs).
  *
- *   • Files already in S3 / Google Drive (or you have signed URLs)?
- *     Use  Step1UploadFromUrl.java  instead.
+ *   • Have PDFs on your computer instead? Use  Step1Upload.java  (direct upload).
+ *   • Need a signed URL? See ../docs/getting-signed-urls.md
  *
- * HOW TO USE:
- *   1. Drop your PDF file(s) into the  uploads/  folder at the repo root.
- *   2. (Optional) set "description" in ../config.json.
- *   3. Run (Java 11+):
- *        Mac/Linux:  java -cp ".:lib/gson.jar" Step1Upload.java
- *        Windows:    java -cp ".;lib\gson.jar" Step1Upload.java
+ * EDIT NOTHING HERE. All your values live in  config.json
+ *   (api_key, signed_urls, description).
  *
- * EDIT NOTHING HERE. Your api_key (and optional description) live in ../config.json.
+ * How to run (Java 11+):
+ *   Mac/Linux:  java -cp ".:lib/gson.jar" Step1UploadFromUrl.java
+ *   Windows:    java -cp ".;lib\gson.jar" Step1UploadFromUrl.java
  *
  * What it saves to data.json:
- *   "file_uploads": [ { "file_id": "....", "filename": "....", "status": "Uploading" }, ... ]
+ *   "file_uploads": [ { "file_id": "....", "url": "....", "status": "Uploading" }, ... ]
  */
 
 import com.google.gson.*;
 
-public class Step1Upload {
+public class Step1UploadFromUrl {
 
     public static void main(String[] args) throws Exception {
+        // --- read everything from config.json ---
         JsonObject cfg = AOD.loadConfig();
         String apiKey = AOD.apiKey();
         String description = AOD.getString(cfg, "description", "");
+        java.util.List<String> signedUrls = AOD.getStringArray(cfg, "signed_urls");
 
-        java.util.List<java.nio.file.Path> pdfPaths = AOD.findLocalPdfs();
-
-        if (pdfPaths.isEmpty()) {
-            System.out.println("[X] No PDF files found to upload.");
-            System.out.println("    Add your PDF file(s) here, then run this again:");
-            System.out.println("      " + AOD.UPLOADS_DIR.toAbsolutePath().normalize());
-            System.out.println("    (Copy or move your .pdf files into that uploads/ folder.)");
-            System.out.println("    Already have files in S3 / Google Drive, or a signed URL?");
-            System.out.println("    Use signed URLs instead:  Step1UploadFromUrl.java");
+        if (signedUrls.isEmpty()) {
+            System.out.println("[X] No signed URLs found. Add at least one real URL to "
+                    + "\"signed_urls\" in config.json.");
+            System.out.println("    (Or drop PDFs into the uploads/ folder and run  Step1Upload.java  instead.)");
             return;
         }
 
-        String endpoint = AOD.BASE_URL + "/files/upload/";
+        String endpoint = AOD.BASE_URL + "/files/upload-from-url/";
 
-        System.out.println("Uploading " + pdfPaths.size() + " file(s) from uploads/ ...");
-        for (java.nio.file.Path p : pdfPaths) {
-            System.out.println("   - " + p.getFileName().toString());
-        }
+        JsonObject payload = new JsonObject();
+        JsonArray urls = new JsonArray();
+        for (String u : signedUrls) urls.add(u);
+        payload.add("sign_urls", urls);
+        payload.addProperty("description", description);
 
-        java.net.http.HttpResponse<String> response =
-                AOD.postMultipart(endpoint, apiKey, pdfPaths, description);
+        System.out.println("Uploading " + signedUrls.size() + " file(s)...");
+        java.net.http.HttpResponse<String> response = AOD.post(endpoint, apiKey, payload.toString());
         JsonObject body = AOD.showResponse(response);
 
         int code = response.statusCode();
@@ -60,20 +56,21 @@ public class Step1Upload {
 
             for (JsonElement blockEl : AOD.extractDetailBlocks(body)) {
                 JsonObject block = blockEl.getAsJsonObject();
-
-                if (block.has("successful_uploads") && block.get("successful_uploads").isJsonArray()) {
+                if (block.has("successful_uploads")) {
                     for (JsonElement itEl : block.getAsJsonArray("successful_uploads")) {
                         JsonObject it = itEl.getAsJsonObject();
                         if (it.has("file_id") && !it.get("file_id").isJsonNull()) {
                             JsonObject entry = new JsonObject();
-                            entry.addProperty("file_id", AOD.getString(it, "file_id", ""));
-                            entry.addProperty("filename", AOD.getString(it, "filename", ""));
-                            entry.addProperty("status", AOD.getString(it, "status", "Uploading"));
+                            entry.addProperty("file_id", it.get("file_id").getAsString());
+                            entry.addProperty("url", it.has("url") && !it.get("url").isJsonNull()
+                                    ? it.get("url").getAsString() : "");
+                            entry.addProperty("status", it.has("status") && !it.get("status").isJsonNull()
+                                    ? it.get("status").getAsString() : "Uploading");
                             fileUploads.add(entry);
                         }
                     }
                 }
-                if (block.has("failed_uploads") && block.get("failed_uploads").isJsonArray()) {
+                if (block.has("failed_uploads")) {
                     for (JsonElement itEl : block.getAsJsonArray("failed_uploads")) {
                         failed.add(itEl.getAsJsonObject());
                     }
@@ -85,31 +82,30 @@ public class Step1Upload {
                 System.out.println("\n[OK] Uploaded files (status will be 'Uploading' at first):");
                 for (JsonElement e : fileUploads) {
                     JsonObject f = e.getAsJsonObject();
-                    System.out.println("   - file_id: " + AOD.getString(f, "file_id", "")
-                            + "  |  " + AOD.getString(f, "filename", "")
-                            + "  |  status: " + AOD.getString(f, "status", ""));
+                    System.out.println("   - file_id: " + f.get("file_id").getAsString()
+                            + "  |  status: " + f.get("status").getAsString());
                 }
                 System.out.println("\nNext: run  Step2CheckUpload.java");
             } else {
                 System.out.println("\n[!] No files were accepted. See the failures below.");
             }
 
-            if (failed.size() > 0) {
+            if (!failed.isEmpty()) {
                 System.out.println("\n[!] Some files failed (logged to errors.json):");
                 for (JsonObject f : failed) {
-                    // direct-upload failures carry 'filename' (not 'url').
-                    String name = AOD.getString(f, "filename", "");
-                    String reason = AOD.getString(f, "detail", "");
-                    System.out.println("   - file: " + name);
+                    String fUrl = f.has("url") && !f.get("url").isJsonNull() ? f.get("url").getAsString() : "";
+                    String reason = f.has("detail") && !f.get("detail").isJsonNull() ? f.get("detail").getAsString() : "";
+                    System.out.println("   - URL: " + fUrl);
                     System.out.println("     reason: " + reason);
-                    // Reuse the url_errors section; pass the filename as the reference value.
-                    AOD.logUrlError(name, code, reason, f);
+                    // 207 partial-failure item -> goes to errors.json under url_errors
+                    AOD.logUrlError(fUrl, code, reason, f);
                 }
             }
         } else {
-            System.out.println("\n[X] Upload request failed. Check your api_key, the files in uploads/, "
+            System.out.println("\n[X] Upload request failed. Check your api_key, your signed_urls, "
                     + "and the status code above.");
-            AOD.logOther(code, "Direct file upload request failed", body != null ? body : null);
+            // whole-request failure (non-2xx) -> errors.json
+            AOD.logOther(code, "File-upload request failed", body != null ? body : null);
         }
     }
 }

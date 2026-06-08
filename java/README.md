@@ -22,7 +22,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
 - [Errors — `errors.json`](#errors--errorsjson)
 - [Paths & commands at a glance](#paths--commands-at-a-glance)
 - [How to run](#how-to-run)
-- [Step 1 — Upload your file(s)](#step-1--upload-your-files--step1uploadjava)
+- [Step 1 — Upload your file(s)](#step-1--upload-your-files)
 - [Step 2 — Check upload status](#step-2--check-upload-status--step2checkuploadjava)
 - [Step 3 — Start processing](#step-3--start-processing--step3createjobjava)
 - [Step 4 — Check job & get tagged PDF](#step-4--check-job--get-tagged-pdf--step4checkjobjava)
@@ -71,12 +71,15 @@ your-project/
 ├── java/
 │   ├── README.md         (this file)
 │   ├── lib/gson.jar      (you download this)
-│   ├── Step1Upload.java … Step6CheckReport.java
+│   ├── Step1Upload.java        (direct upload from ../uploads/)
+│   ├── Step1UploadFromUrl.java (upload from signed URLs)
+│   ├── Step2CheckUpload.java … Step6CheckReport.java
 │   ├── data.json         (created automatically — clean tracked items only)
 │   └── errors.json       (created only if something errors — see below)
 ├── dotnet/   …           (reads the same ../config.json, its own data.json)
 ├── node/     …
-└── python/   …
+├── python-sync/   …
+└── python-async/  …
 ```
 
 ---
@@ -108,13 +111,13 @@ your-project/
 | Field | Used by | What to put |
 |-------|---------|-------------|
 | `api_key`            | every step | Your key from Section 3 of the main README |
-| `description`        | Step 1 | Optional text describing the batch |
-| `signed_urls`        | Step 1 | One or more signed URLs. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)* |
+| `description`        | Step 1 | Optional text describing the batch (both upload options) |
+| `signed_urls`        | Step 1 (Option B) | One or more signed URLs — only if you use `Step1UploadFromUrl.java`. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)* |
 | `process.file_id`    | Step 3 | An **uploaded** `file_id` (from Step 2) to process |
 | `process.level`      | Step 3 | `1` or `2` |
 | `report.file_id`     | Step 5 | The `file_id` you want a score report for |
 
-You fill these in **as you go** — `signed_urls` before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5. The steps tell you what to set next.
+You fill these in **as you go** — `signed_urls` before Step 1 (Option B; for Option A just drop PDFs in `uploads/`), `process.file_id` before Step 3, `report.file_id` before Step 5. The steps tell you what to set next.
 
 ---
 
@@ -122,7 +125,8 @@ You fill these in **as you go** — `signed_urls` before Step 1, `process.file_i
 
 | Step | File | What it does |
 |------|------|--------------|
-| 1 | `Step1Upload.java`       | Upload your file(s) → save each `file_id` (status starts as `Uploading`) |
+| 1A | `Step1Upload.java`        | **Direct upload** — uploads every PDF in the repo-root `uploads/` folder (status starts as `Uploading`) |
+| 1B | `Step1UploadFromUrl.java` | **Signed-URL upload** — uploads from `signed_urls` in `config.json` (use one *or* the other) |
 | 2 | `Step2CheckUpload.java`  | Check **all** uploads → update each to `Uploaded` when ready |
 | 3 | `Step3CreateJob.java`    | Start processing one file → get a `job_id` |
 | 4 | `Step4CheckJob.java`     | Check **all** jobs → get the tagged-PDF download link |
@@ -221,6 +225,7 @@ Then run each step from there. The only OS-specific part is the classpath separa
 
 ```bash
 java -cp ".:lib/gson.jar" Step1Upload.java
+java -cp ".:lib/gson.jar" Step1UploadFromUrl.java
 java -cp ".:lib/gson.jar" Step2CheckUpload.java
 java -cp ".:lib/gson.jar" Step3CreateJob.java
 java -cp ".:lib/gson.jar" Step4CheckJob.java
@@ -232,6 +237,7 @@ java -cp ".:lib/gson.jar" Step6CheckReport.java
 
 ```bash
 java -cp ".;lib\gson.jar" Step1Upload.java
+java -cp ".;lib\gson.jar" Step1UploadFromUrl.java
 java -cp ".;lib\gson.jar" Step2CheckUpload.java
 java -cp ".;lib\gson.jar" Step3CreateJob.java
 java -cp ".;lib\gson.jar" Step4CheckJob.java
@@ -239,22 +245,53 @@ java -cp ".;lib\gson.jar" Step5CreateReport.java
 java -cp ".;lib\gson.jar" Step6CheckReport.java
 ```
 
+> Note: `Step1Upload.java` and `Step1UploadFromUrl.java` are the **two upload options** — run only the one that fits you (see Step 1 below), not both.
+
 > Run one line, wait for it to finish, then run the next. Steps 2, 4, and 6 are safe to re-run until everything shows as finished.
 
 ## Step-by-step
 
-### Step 1 — Upload your file(s) → `Step1Upload.java`
+### Step 1 — Upload your file(s)
 
-**In the root [config.json](../config.json):** set `api_key` and add your `signed_urls` (and optionally `description`).
+There are **two ways** to upload — pick the one that fits you. Both save the same thing to `data.json`, so Steps 2–6 are identical afterwards. Run **one** of them.
+
+#### Option A — Direct upload from your computer → `Step1Upload.java`
+
+Best if your PDFs are on your laptop and you don't have a cloud account.
+
+1. Drop your PDF file(s) into the **`uploads/`** folder at the repo root.
+2. (Optional) set `description` in [config.json](../config.json).
+3. Run:
 
 ```bash
 cd java
+```
+
+```bash
 java -cp ".:lib/gson.jar" Step1Upload.java
 ```
 
-**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some URLs fail (status **207**), the failures are written to `errors.json` under `url_errors` (the successful ones are still saved to `data.json`).
+It automatically picks up **every PDF** in `uploads/` — no file paths to type. (Windows: use `-cp ".;lib\gson.jar"`.)
 
-> ⏱️ This endpoint is rate-limited. Sending more URLs means a longer cooldown before your next upload (see the main README, Section 6).
+**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some files fail (status **207**, e.g. malware detected), those are logged to `errors.json` under `url_errors`; the successful ones are still saved.
+
+#### Option B — Upload from signed URLs → `Step1UploadFromUrl.java`
+
+Best if your files already live in S3 or Google Drive, or you already have signed URLs.
+
+**In [config.json](../config.json):** set `api_key` and add your `signed_urls` (and optionally `description`). *(Need a signed URL? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
+
+```bash
+cd java
+```
+
+```bash
+java -cp ".:lib/gson.jar" Step1UploadFromUrl.java
+```
+
+**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some URLs fail (status **207**), the failures are written to `errors.json` under `url_errors` (the successful ones are still saved).
+
+> ⏱️ Both uploads are rate-limited. Sending more files/URLs means a longer cooldown before your next upload (see the main README, Section 6).
 
 **Next:** run Step 2.
 
@@ -265,7 +302,6 @@ java -cp ".:lib/gson.jar" Step1Upload.java
 run below to check status of added for uploading
 
 ```bash
-cd java
 java -cp ".:lib/gson.jar" Step2CheckUpload.java
 ```
 
@@ -280,7 +316,6 @@ java -cp ".:lib/gson.jar" Step2CheckUpload.java
 **In the root [config.json](../config.json):** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
 ```bash
-cd java
 java -cp ".:lib/gson.jar" Step3CreateJob.java
 ```
 
@@ -297,7 +332,6 @@ java -cp ".:lib/gson.jar" Step3CreateJob.java
 run below to check status of added in processing
 
 ```bash
-cd java
 java -cp ".:lib/gson.jar" Step4CheckJob.java
 ```
 
@@ -312,7 +346,6 @@ java -cp ".:lib/gson.jar" Step4CheckJob.java
 **In the root [config.json](../config.json):** set `report.file_id` to the file you want a report for.
 
 ```bash
-cd java
 java -cp ".:lib/gson.jar" Step5CreateReport.java
 ```
 
@@ -325,7 +358,6 @@ java -cp ".:lib/gson.jar" Step5CreateReport.java
 run below to check status of added in generate report
 
 ```bash
-cd java
 java -cp ".:lib/gson.jar" Step6CheckReport.java
 ```
 
