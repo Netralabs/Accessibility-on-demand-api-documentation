@@ -26,6 +26,8 @@ CONFIG_FILE = os.path.join(os.path.dirname(__file__), "..", "config.json")
 DATA_FILE = os.path.join(os.path.dirname(__file__), "data.json")
 # errors.json (anything that is NOT a clean success) also stays in this folder.
 ERRORS_FILE = os.path.join(os.path.dirname(__file__), "errors.json")
+# uploads/ folder (repo root) — where users drop PDFs for direct upload (Step 1).
+UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 
 
 # ---------- config.json (the one file you edit) ----------
@@ -67,6 +69,30 @@ def get_string_array(cfg, key):
             continue
         out.append(v)
     return out
+
+
+def find_local_pdfs():
+    """
+    Returns a sorted list of full paths to every .pdf in the repo-root uploads/ folder.
+    Used by Step 1 direct upload. Returns [] if the folder is missing or has no PDFs.
+    """
+    if not os.path.isdir(UPLOADS_DIR):
+        return []
+    out = []
+    for name in sorted(os.listdir(UPLOADS_DIR)):
+        if name.lower().endswith(".pdf"):
+            full = os.path.join(UPLOADS_DIR, name)
+            if os.path.isfile(full):
+                out.append(full)
+    return out
+
+
+def build_headers_auth_only(key):
+    """
+    Headers for multipart/form-data requests: Authorization ONLY.
+    Do NOT set Content-Type yourself — httpx sets the multipart boundary.
+    """
+    return {"Authorization": f"Bearer {key}"}
 
 
 def build_headers(key):

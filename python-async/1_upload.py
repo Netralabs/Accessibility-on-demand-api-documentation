@@ -1,13 +1,19 @@
 """
-1_upload.py (async)  —  STEP 1: Upload your file(s)
-===================================================
-Sends your signed URLs to the API and gets back a file_id for each
-file that was accepted. Run this first.
+1_upload.py (async)  —  STEP 1 (option A): Upload files from your computer
+==========================================================================
+Uploads every PDF in the repo-root  uploads/  folder directly to the API
+(multipart/form-data) and gets back a file_id for each accepted file.
+Use this if your PDFs are on your computer and you don't have a cloud account.
 
-EDIT NOTHING HERE. All your values live in  ../config.json
-  (api_key, signed_urls, description).
+  • Files already in S3 / Google Drive (or you have signed URLs)?
+    Use  1_upload_from_url.py  instead.
 
-How to run:  python 1_upload.py
+HOW TO USE:
+  1. Drop your PDF file(s) into the  uploads/  folder at the repo root.
+  2. (Optional) set "description" in ../config.json.
+  3. Run:  python 1_upload.py
+
+EDIT NOTHING HERE. Your api_key (and optional description) live in ../config.json.
 
 About the responses you may see:
   - 200 = all files accepted for uploading.
@@ -16,14 +22,15 @@ About the responses you may see:
           ones that failed to errors.json (under "url_errors").
 
 What it saves to data.json:
-  "file_uploads": [ {"file_id": "....", "url": "....", "status": "Uploading"}, ... ]
+  "file_uploads": [ {"file_id": "....", "filename": "....", "status": "Uploading"}, ... ]
 """
 
+import os
 import asyncio
 import httpx
 from helper import (
-    BASE_URL, load_config, api_key, get_string_array, build_headers,
-    save_value, show_response, get_value, log_url_error, log_other,
+    BASE_URL, load_config, api_key, find_local_pdfs, build_headers_auth_only,
+    save_value, show_response, get_value, log_url_error, log_other, UPLOADS_DIR,
 )
 
 
@@ -38,18 +45,41 @@ async def main():
     cfg = load_config()
     key = api_key()
     description = cfg.get("description") or ""
-    signed_urls = get_string_array(cfg, "signed_urls")
 
-    if not signed_urls:
-        print('[X] No signed URLs found. Add at least one real URL to "signed_urls" in config.json.')
+    pdf_paths = find_local_pdfs()
+
+    if not pdf_paths:
+        print("[X] No PDF files found to upload.")
+        print("    Add your PDF file(s) here, then run this again:")
+        print(f"      {os.path.abspath(UPLOADS_DIR)}")
+        print("    (Copy or move your .pdf files into that uploads/ folder.)")
+        print("    Already have files in S3 / Google Drive, or a signed URL?")
+        print("    Use signed URLs instead:  python 1_upload_from_url.py")
         return
 
-    endpoint = f"{BASE_URL}/file-upload/"
-    payload = {"sign_urls": signed_urls, "description": description}
+    endpoint = f"{BASE_URL}/files/upload/"
 
-    print(f"Uploading {len(signed_urls)} file(s)...")
+    print(f"Uploading {len(pdf_paths)} file(s) from uploads/ ...")
+    for p in pdf_paths:
+        print(f"   - {os.path.basename(p)}")
+
+    # Build the multipart payload: the 'files' field is repeated once per file.
+    # Read each file's bytes up front; httpx sends them as multipart/form-data.
+    # NOTE: do NOT set Content-Type — httpx adds the multipart boundary itself.
+    files_param = []
+    for p in pdf_paths:
+        with open(p, "rb") as fh:
+            files_param.append(("files", (os.path.basename(p), fh.read(), "application/pdf")))
+
+    data_param = {"description": description} if description else None
+
     async with httpx.AsyncClient() as client:
-        response = await client.post(endpoint, headers=build_headers(key), json=payload)
+        response = await client.post(
+            endpoint,
+            headers=build_headers_auth_only(key),
+            files=files_param,
+            data=data_param,
+        )
 
     show_response(response)
 
@@ -66,7 +96,7 @@ async def main():
                 if fid:
                     file_uploads.append({
                         "file_id": fid,
-                        "url": item.get("url"),
+                        "filename": item.get("filename"),
                         "status": item.get("status", "Uploading"),
                     })
             for item in block.get("failed_uploads", []):
@@ -76,7 +106,7 @@ async def main():
             save_value("file_uploads", file_uploads)
             print("\n[OK] Uploaded files (status will be 'Uploading' at first):")
             for f in file_uploads:
-                print(f"   - file_id: {f['file_id']}  |  status: {f['status']}")
+                print(f"   - file_id: {f['file_id']}  |  {f.get('filename')}  |  status: {f['status']}")
             print("\nNext: run  python 2_check_upload.py")
         else:
             print("\n[!] No files were accepted. See the failures below.")
@@ -84,21 +114,22 @@ async def main():
         if failed:
             print("\n[!] Some files failed (logged to errors.json):")
             for f in failed:
-                print(f"   - URL: {f.get('url')}")
+                # direct-upload failures carry 'filename' (not 'url').
+                name = f.get("filename") or ""
+                print(f"   - file: {name}")
                 print(f"     reason: {f.get('detail')}")
-                # 207 partial-failure item -> errors.json under url_errors
-                log_url_error(f.get("url") or "", response.status_code, f.get("detail") or "", f)
+                # Reuse the url_errors section; pass the filename as the reference value.
+                log_url_error(name, response.status_code, f.get("detail") or "", f)
     else:
         print(
-            "\n[X] Upload request failed. Check your api_key, your signed_urls, "
+            "\n[X] Upload request failed. Check your api_key, the files in uploads/, "
             "and the status code above."
         )
-        # whole-request failure (non-2xx) -> errors.json
         try:
             raw = response.json()
         except ValueError:
             raw = None
-        log_other(response.status_code, "File-upload request failed", raw)
+        log_other(response.status_code, "Direct file upload request failed", raw)
 
 
 if __name__ == "__main__":
