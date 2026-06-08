@@ -21,7 +21,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
 - [How values are shared between files](#how-values-are-shared-between-files)
 - [Errors — `errors.json`](#errors--errorsjson)
 - [Paths & commands at a glance](#paths--commands-at-a-glance)
-- [Step 1 — Upload your file(s)](#step-1--upload-your-files--1_uploadpy)
+- [Step 1 — Upload your file(s)](#step-1--upload-your-files)
 - [Step 2 — Check upload status](#step-2--check-upload-status--2_check_uploadpy)
 - [Step 3 — Start processing](#step-3--start-processing--3_create_jobpy)
 - [Step 4 — Check job & get tagged PDF](#step-4--check-job--get-tagged-pdf--4_check_jobpy)
@@ -52,7 +52,9 @@ your-project/
 ├── python-sync/
 │   ├── README.md         (this file)
 │   ├── helper.py         (reads ../config.json, writes data.json + errors.json)
-│   ├── 1_upload.py … 6_check_report.py
+│   ├── 1_upload.py            (direct upload from ../uploads/)
+│   ├── 1_upload_from_url.py   (upload from signed URLs)
+│   ├── 2_check_upload.py … 6_check_report.py
 │   ├── data.json         (created automatically — clean tracked items only)
 │   └── errors.json       (created only if something errors — see below)
 ├── python-async/  …      (same, but uses httpx + asyncio for concurrent checks)
@@ -90,13 +92,13 @@ your-project/
 | Field | Used by | What to put |
 |-------|---------|-------------|
 | `api_key`            | every step | Your key from Section 3 of the main README |
-| `description`        | Step 1 | Optional text describing the batch |
-| `signed_urls`        | Step 1 | One or more signed URLs. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)* |
+| `description`        | Step 1 | Optional text describing the batch (both upload options) |
+| `signed_urls`        | Step 1 (Option B) | One or more signed URLs — only if you use `1_upload_from_url.py`. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)* |
 | `process.file_id`    | Step 3 | An **uploaded** `file_id` (from Step 2) to process |
 | `process.level`      | Step 3 | `1` or `2` |
 | `report.file_id`     | Step 5 | The `file_id` you want a score report for |
 
-You fill these in **as you go** — `signed_urls` before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5. The steps tell you what to set next.
+You fill these in **as you go** — `signed_urls` before Step 1 (Option B; for Option A just drop PDFs in `uploads/`), `process.file_id` before Step 3, `report.file_id` before Step 5. The steps tell you what to set next.
 
 ---
 
@@ -104,7 +106,8 @@ You fill these in **as you go** — `signed_urls` before Step 1, `process.file_i
 
 | Step | File | What it does |
 |------|------|--------------|
-| 1 | `1_upload.py`        | Upload your file(s) → save each `file_id` (status starts as `Uploading`) |
+| 1A | `1_upload.py`            | **Direct upload** — uploads every PDF in the repo-root `uploads/` folder (status starts as `Uploading`) |
+| 1B | `1_upload_from_url.py`   | **Signed-URL upload** — uploads from the `signed_urls` in `config.json` (use one *or* the other, not both) |
 | 2 | `2_check_upload.py`  | Check **all** uploads → update each to `Uploaded` when ready |
 | 3 | `3_create_job.py`    | Start processing one file → get a `job_id` |
 | 4 | `4_check_job.py`     | Check **all** jobs → get the tagged-PDF download link |
@@ -181,18 +184,41 @@ python 1_upload.py
 
 ---
 
-## Step 1 — Upload your file(s) → `1_upload.py`
+## Step 1 — Upload your file(s)
 
-**In the root [config.json](../config.json):** set `api_key` and add your `signed_urls` (and optionally `description`).
+There are **two ways** to upload — pick the one that fits you. Both save the same thing to `data.json`, so Steps 2–6 are identical afterwards. Run **one** of them.
+
+### Option A — Direct upload from your computer → `1_upload.py`
+
+Best if your PDFs are on your laptop and you don't have a cloud account.
+
+1. Drop your PDF file(s) into the **`uploads/`** folder at the repo root.
+2. (Optional) set `description` in [config.json](../config.json).
+3. Run:
 
 ```bash
 cd python-sync
 python 1_upload.py
 ```
 
-**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some URLs fail (status **207**), the failures are written to `errors.json` under `url_errors` (the successful ones are still saved to `data.json`).
+It automatically picks up **every PDF** in `uploads/` — no file paths to type.
 
-> ⏱️ This endpoint is rate-limited. Sending more URLs means a longer cooldown before your next upload (see the main README, Section 6).
+**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some files fail (status **207**, e.g. malware detected), those are logged to `errors.json` under `url_errors`; the successful ones are still saved.
+
+### Option B — Upload from signed URLs → `1_upload_from_url.py`
+
+Best if your files already live in S3 or Google Drive, or you already have signed URLs.
+
+**In [config.json](../config.json):** set `api_key` and add your `signed_urls` (and optionally `description`). *(Need a signed URL? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
+
+```bash
+cd python-sync
+python 1_upload_from_url.py
+```
+
+**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some URLs fail (status **207**), the failures are written to `errors.json` under `url_errors` (the successful ones are still saved).
+
+> ⏱️ Both uploads are rate-limited. Sending more files/URLs means a longer cooldown before your next upload (see the main README, Section 6).
 
 **Next:** run Step 2 to check when they finish uploading.
 
