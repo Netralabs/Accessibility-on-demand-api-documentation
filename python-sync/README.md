@@ -309,6 +309,7 @@ python 6_check_report.py
 
 ## Troubleshooting
 
+- **`can't open file '....py': [Errno 2] No such file or directory`** — you're running from the wrong folder. `cd python-async` first, then run the command (type `ls` — you should see the step files).
 - **Where did my failures go?** Anything that wasn't a clean success is in **`errors.json`** (this folder), grouped into `url_errors` / `file_errors` / `job_errors` / `other`, newest appended last. `data.json` only keeps clean items.
 - **`config.json was not found at ../config.json`** — run these scripts from inside this folder, with `config.json` sitting in the folder above it (the repo root).
 - **`Please set your real "api_key"`** — `api_key` in `config.json` is still the placeholder. Paste your real key.

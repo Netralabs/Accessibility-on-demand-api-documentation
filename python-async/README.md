@@ -21,7 +21,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
 - [How values are shared between files](#how-values-are-shared-between-files)
 - [Errors — `errors.json`](#errors--errorsjson)
 - [Paths & commands at a glance](#paths--commands-at-a-glance)
-- [Step 1 — Upload your file(s)](#step-1--upload-your-files--1_uploadpy)
+- [Step 1 — Upload your file(s)](#step-1--upload-your-files)
 - [Step 2 — Check upload status](#step-2--check-upload-status--2_check_uploadpy)
 - [Step 3 — Start processing](#step-3--start-processing--3_create_jobpy)
 - [Step 4 — Check job & get tagged PDF](#step-4--check-job--get-tagged-pdf--4_check_jobpy)
@@ -52,7 +52,9 @@ your-project/
 ├── python-async/
 │   ├── README.md         (this file)
 │   ├── helper.py         (reads ../config.json, writes data.json + errors.json)
-│   ├── 1_upload.py … 6_check_report.py
+│   ├── 1_upload.py            (direct upload from ../uploads/)
+│   ├── 1_upload_from_url.py   (upload from signed URLs)
+│   ├── 2_check_upload.py … 6_check_report.py
 │   ├── data.json         (created automatically — clean tracked items only)
 │   └── errors.json       (created only if something errors — see below)
 ├── python-sync/  …       (same, but uses requests instead of httpx)
@@ -90,13 +92,13 @@ your-project/
 | Field | Used by | What to put |
 |-------|---------|-------------|
 | `api_key`            | every step | Your key from Section 3 of the main README |
-| `description`        | Step 1 | Optional text describing the batch |
-| `signed_urls`        | Step 1 | One or more signed URLs. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)* |
+| `description`        | Step 1 | Optional text describing the batch (both upload options) |
+| `signed_urls`        | Step 1 (Option B) | One or more signed URLs — only if you use `1_upload_from_url.py`. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)* |
 | `process.file_id`    | Step 3 | An **uploaded** `file_id` (from Step 2) to process |
 | `process.level`      | Step 3 | `1` or `2` |
 | `report.file_id`     | Step 5 | The `file_id` you want a score report for |
 
-You fill these in **as you go** — `signed_urls` before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5. The steps tell you what to set next.
+You fill these in **as you go** — `signed_urls` before Step 1 (Option B; for Option A just drop PDFs in `uploads/`), `process.file_id` before Step 3, `report.file_id` before Step 5. The steps tell you what to set next.
 
 ---
 
@@ -104,7 +106,8 @@ You fill these in **as you go** — `signed_urls` before Step 1, `process.file_i
 
 | Step | File | What it does |
 |------|------|--------------|
-| 1 | `1_upload.py`        | Upload your file(s) → save each `file_id` (status starts as `Uploading`) |
+| 1A | `1_upload.py`            | **Direct upload** — uploads every PDF in the repo-root `uploads/` folder (status starts as `Uploading`) |
+| 1B | `1_upload_from_url.py`   | **Signed-URL upload** — uploads from the `signed_urls` in `config.json` (use one *or* the other, not both) |
 | 2 | `2_check_upload.py`  | Check **all** uploads concurrently → update each to `Uploaded` when ready |
 | 3 | `3_create_job.py`    | Start processing one file → get a `job_id` |
 | 4 | `4_check_job.py`     | Check **all** jobs concurrently → get the tagged-PDF download link |
@@ -181,18 +184,50 @@ python 1_upload.py
 
 ---
 
-## Step 1 — Upload your file(s) → `1_upload.py`
+## Step 1 — Upload your file(s)
 
-**In the root [config.json](../config.json):** set `api_key` and add your `signed_urls` (and optionally `description`).
+There are **two ways** to upload — pick the one that fits you. Both save the same thing to `data.json`, so Steps 2–6 are identical afterwards. Run **one** of them.
+
+### Option A — Direct upload from your computer → `1_upload.py`
+
+Best if your PDFs are on your laptop and you don't have a cloud account.
+
+1. Drop your PDF file(s) into the **`uploads/`** folder at the repo root.
+2. (Optional) set `description` in [config.json](../config.json).
+3. Run:
 
 ```bash
 cd python-async
+
+```
+
+```bash
 python 1_upload.py
 ```
 
-**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some URLs fail (status **207**), the failures are written to `errors.json` under `url_errors` (the successful ones are still saved to `data.json`).
+It automatically picks up **every PDF** in `uploads/` — no file paths to type.
 
-> ⏱️ This endpoint is rate-limited. Sending more URLs means a longer cooldown before your next upload (see the main README, Section 6).
+**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some files fail (status **207**, e.g. malware detected), those are logged to `errors.json` under `url_errors`; the successful ones are still saved.
+
+> 🧭 **Getting `can't open file '1_upload.py'`?** You're in the wrong folder. The step files live inside `python-async/`. Run `cd python-async` first (you should see the `1_upload.py` file when you type `ls`).
+
+### Option B — Upload from signed URLs → `1_upload_from_url.py`
+
+Best if your files already live in S3 or Google Drive, or you already have signed URLs.
+
+**In [config.json](../config.json):** set `api_key` and add your `signed_urls` (and optionally `description`). *(Need a signed URL? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
+
+```bash
+cd python-async
+```
+
+```bash
+python 1_upload_from_url.py
+```
+
+**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some URLs fail (status **207**), the failures are written to `errors.json` under `url_errors` (the successful ones are still saved).
+
+> ⏱️ Both uploads are rate-limited. Sending more files/URLs means a longer cooldown before your next upload (see the main README, Section 6).
 
 **Next:** run Step 2 to check when they finish uploading.
 
@@ -203,9 +238,10 @@ python 1_upload.py
 run below to check status of the files added for uploading — it checks **every** file from Step 1, all at once.
 
 ```bash
-cd python-async
 python 2_check_upload.py
 ```
+
+> 🧭 **Getting `can't open file '2_check_upload.py'`?** You're in the wrong folder. The step files live inside `python-async/`. Run `cd python-async` first (you should see the `2_check_upload.py` file when you type `ls`).
 
 **Result:** prints the status of each file. Files already `Uploaded` are skipped; the rest are updated. Re-run until all show `Uploaded`.
 
@@ -218,9 +254,10 @@ python 2_check_upload.py
 **In the root [config.json](../config.json):** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
 ```bash
-cd python-async
 python 3_create_job.py
 ```
+
+> 🧭 **Getting `can't open file '3_create_job.py'`?** You're in the wrong folder. The step files live inside `python-async/`. Run `cd python-async` first (you should see the `3_create_job.py` file when you type `ls`).
 
 **Result:** a `job_id`, saved to `data.json` under `job_process` with `status: "Queued"`.
 
@@ -235,9 +272,10 @@ python 3_create_job.py
 run below to check status of the files added for processing — it checks **every** job, all at once.
 
 ```bash
-cd python-async
 python 4_check_job.py
 ```
+
+> 🧭 **Getting `can't open file '4_check_job.py'`?** You're in the wrong folder. The step files live inside `python-async/`. Run `cd python-async` first (you should see the `4_check_job.py` file when you type `ls`).
 
 **Result:** prints the status of each job. When a job is `Completed`, the script saves and prints the **tagged PDF `download_url`**. Jobs already `Completed` are skipped. Any job that comes back `Failed` (or whose response can't be read) is logged to `errors.json` under `job_errors`, not `data.json`.
 
@@ -250,9 +288,10 @@ python 4_check_job.py
 **In the root [config.json](../config.json):** set `report.file_id` to the file you want a report for.
 
 ```bash
-cd python-async
 python 5_create_report.py
 ```
+
+> 🧭 **Getting `can't open file '5_create_report.py'`?** You're in the wrong folder. The step files live inside `python-async/`. Run `cd python-async` first (you should see the `5_create_report.py` file when you type `ls`).
 
 **Result:** a **report job_id**, saved to `data.json` under `report_process`.
 
@@ -263,9 +302,10 @@ python 5_create_report.py
 run below to check status of the report being generated — it checks **every** report, all at once.
 
 ```bash
-cd python-async
 python 6_check_report.py
 ```
+
+> 🧭 **Getting `can't open file '6_check_report.py'`?** You're in the wrong folder. The step files live inside `python-async/`. Run `cd python-async` first (you should see the `6_check_report.py` file when you type `ls`).
 
 **Result:** prints the status of each report. When `Completed`, the script saves and prints the **score report PDF `download_url`**. A `Failed` report (or unreadable response) is logged to `errors.json` under `job_errors`.
 
@@ -275,6 +315,7 @@ python 6_check_report.py
 
 ## Troubleshooting
 
+- **`can't open file '....py': [Errno 2] No such file or directory`** — you're running from the wrong folder. `cd python-async` first, then run the command (type `ls` — you should see the step files).
 - **Where did my failures go?** Anything that wasn't a clean success is in **`errors.json`** (this folder), grouped into `url_errors` / `file_errors` / `job_errors` / `other`, newest appended last. `data.json` only keeps clean items.
 - **`config.json was not found at ../config.json`** — run these scripts from inside this folder, with `config.json` sitting in the folder above it (the repo root).
 - **`Please set your real "api_key"`** — `api_key` in `config.json` is still the placeholder. Paste your real key.

@@ -54,7 +54,7 @@ public class Step2CheckUpload {
                 continue;
             }
 
-            java.net.http.HttpResponse<String> resp = AOD.get(AOD.BASE_URL + "/file-upload/" + fileId, apiKey);
+            java.net.http.HttpResponse<String> resp = AOD.get(AOD.BASE_URL + "/files/status/" + fileId, apiKey);
             if (resp.statusCode() != 200) {
                 System.out.println("   - " + fileId + ": could not check (status code " + resp.statusCode() + ")");
                 AOD.logFileError(fileId, resp.statusCode(), "Could not check upload status", null);

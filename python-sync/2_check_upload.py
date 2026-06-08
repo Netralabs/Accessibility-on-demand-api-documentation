@@ -42,7 +42,7 @@ for entry in file_uploads:
         print(f"   - {file_id}: already uploaded (skipped)")
         continue
 
-    response = requests.get(f"{BASE_URL}/file-upload/{file_id}", headers=headers)
+    response = requests.get(f"{BASE_URL}/files/status/{file_id}", headers=headers)
 
     if response.status_code != 200:
         print(f"   - {file_id}: could not check (status code {response.status_code})")

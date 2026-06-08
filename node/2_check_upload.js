@@ -12,7 +12,7 @@
 
 const { BASE_URL, apiKey, buildHeaders, getValue, saveValue, logFileError } = require("./helper");
 
-// Pulls the status out of the GET /file-upload/{file_id} response.
+// Pulls the status out of the GET /files/status/{file_id} response.
 function readStatus(body) {
   if (body && typeof body === "object" && "status" in body) return body.status;
   const data = body && body.data;
@@ -26,7 +26,7 @@ async function checkOne(entry, headers) {
   const fileId = entry.file_id;
   let resp;
   try {
-    resp = await fetch(`${BASE_URL}/file-upload/${fileId}`, { headers });
+    resp = await fetch(`${BASE_URL}/files/status/${fileId}`, { headers });
   } catch (e) {
     console.log(`   - ${fileId}: request error (${e.message})`);
     logFileError(fileId, 0, "Request error: " + e.message, null);

@@ -26,7 +26,7 @@ def read_status(body):
 async def check_one(client, entry, headers):
     file_id = entry.get("file_id")
     try:
-        resp = await client.get(f"{BASE_URL}/file-upload/{file_id}", headers=headers)
+        resp = await client.get(f"{BASE_URL}/files/status/{file_id}", headers=headers)
     except httpx.HTTPError as e:
         print(f"   - {file_id}: request error ({e})")
         log_file_error(file_id, 0, f"Request error: {e}", None)

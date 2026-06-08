@@ -53,7 +53,7 @@ namespace Aod
                     continue;
                 }
 
-                var resp = await Helper.GetAsync(Helper.BaseUrl + "/file-upload/" + fileId, apiKey);
+                var resp = await Helper.GetAsync(Helper.BaseUrl + "/files/status/" + fileId, apiKey);
                 if ((int)resp.StatusCode != 200)
                 {
                     Console.WriteLine($"   - {fileId}: could not check (status code {(int)resp.StatusCode})");
