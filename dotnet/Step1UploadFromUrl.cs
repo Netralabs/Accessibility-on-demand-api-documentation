@@ -1,35 +1,30 @@
 /*
- * Step1Upload.cs  —  STEP 1 (option A): Upload files from your computer
- * =====================================================================
- * Uploads every PDF in the repo-root  uploads/  folder directly to the API
- * (multipart/form-data) and gets back a file_id for each accepted file.
- * Use this if your PDFs are on your computer and you don't have a cloud account.
+ * Step1UploadFromUrl.cs  —  STEP 1 (option B): Upload from signed URLs
+ * ====================================================================
+ * Sends your signed URLs to the API and gets back a file_id for each
+ * file that was accepted. Use this if your files already live in S3 or
+ * Google Drive (or you already have signed URLs).
  *
- *   Run:  dotnet run -- step1
+ *   Run:  dotnet run -- step1url
  *
- *   • Files already in S3 / Google Drive (or you have signed URLs)?
- *     Use  dotnet run -- step1url  instead.
+ *   • Have PDFs on your computer instead? Use  dotnet run -- step1  (direct upload).
+ *   • Need a signed URL? See ../docs/getting-signed-urls.md
  *
- * HOW TO USE:
- *   1. Drop your PDF file(s) into the  uploads/  folder at the repo root.
- *   2. (Optional) set "description" in ../config.json.
- *   3. Run:  dotnet run -- step1
- *
- * EDIT NOTHING HERE. Your api_key (and optional description) live in ../config.json.
+ * EDIT NOTHING HERE. All your values live in  ../config.json
+ *   (api_key, signed_urls, description).
  *
  * What it saves to data.json:
- *   "file_uploads": [ { "file_id": "....", "filename": "....", "status": "Uploading" }, ... ]
+ *   "file_uploads": [ { "file_id": "....", "url": "....", "status": "Uploading" }, ... ]
  */
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace Aod
 {
-    public static class Step1Upload
+    public static class Step1UploadFromUrl
     {
         public static async Task RunAsync()
         {
@@ -37,27 +32,29 @@ namespace Aod
             JsonObject cfg = Helper.LoadConfig();
             string apiKey = Helper.ApiKey();
             string description = Helper.GetString(cfg, "description", "");
+            List<string> signedUrls = Helper.GetStringArray(cfg, "signed_urls");
 
-            List<string> pdfPaths = Helper.FindLocalPdfs();
-
-            if (pdfPaths.Count == 0)
+            if (signedUrls.Count == 0)
             {
-                Console.WriteLine("[X] No PDF files found to upload.");
-                Console.WriteLine("    Add your PDF file(s) here, then run this again:");
-                Console.WriteLine("      " + Path.GetFullPath(Helper.UploadsDir));
-                Console.WriteLine("    (Copy or move your .pdf files into that uploads/ folder.)");
-                Console.WriteLine("    Already have files in S3 / Google Drive, or a signed URL?");
-                Console.WriteLine("    Use signed URLs instead:  dotnet run -- step1url");
+                Console.WriteLine("[X] No signed URLs found. Add at least one real URL to "
+                    + "\"signed_urls\" in config.json.");
+                Console.WriteLine("    (Or drop PDFs into the uploads/ folder and use  dotnet run -- step1  instead.)");
                 return;
             }
 
-            string endpoint = Helper.BaseUrl + "/files/upload/";
+            string endpoint = Helper.BaseUrl + "/files/upload-from-url/";
 
-            Console.WriteLine($"Uploading {pdfPaths.Count} file(s) from uploads/ ...");
-            foreach (var p in pdfPaths)
-                Console.WriteLine("   - " + Path.GetFileName(p));
+            var urls = new JsonArray();
+            foreach (var u in signedUrls) urls.Add(u);
 
-            var response = await Helper.PostMultipartAsync(endpoint, apiKey, pdfPaths, description);
+            var payload = new JsonObject
+            {
+                ["sign_urls"] = urls,
+                ["description"] = description,
+            };
+
+            Console.WriteLine($"Uploading {signedUrls.Count} file(s) from signed URLs...");
+            var response = await Helper.PostAsync(endpoint, apiKey, payload.ToJsonString());
             var body = await Helper.ShowResponseAsync(response);
 
             int code = (int)response.StatusCode;
@@ -80,7 +77,7 @@ namespace Aod
                                 fileUploads.Add(new JsonObject
                                 {
                                     ["file_id"] = Helper.Str(it["file_id"]),
-                                    ["filename"] = Helper.Str(it["filename"]),
+                                    ["url"] = Helper.Str(it["url"]),
                                     ["status"] = it["status"] != null ? Helper.Str(it["status"]) : "Uploading",
                                 });
                             }
@@ -99,7 +96,7 @@ namespace Aod
                     foreach (var e in fileUploads)
                     {
                         var f = e.AsObject();
-                        Console.WriteLine($"   - file_id: {Helper.Str(f["file_id"])}  |  {Helper.Str(f["filename"])}  |  status: {Helper.Str(f["status"])}");
+                        Console.WriteLine($"   - file_id: {Helper.Str(f["file_id"])}  |  status: {Helper.Str(f["status"])}");
                     }
                     Console.WriteLine("\nNext: run  dotnet run -- step2");
                 }
@@ -113,22 +110,21 @@ namespace Aod
                     Console.WriteLine("\n[!] Some files failed (logged to errors.json):");
                     foreach (var f in failed)
                     {
-                        // direct-upload failures carry 'filename' (not 'url').
-                        string name = Helper.Str(f["filename"]);
+                        string fUrl = Helper.Str(f["url"]);
                         string reason = Helper.Str(f["detail"]);
-                        Console.WriteLine("   - file: " + name);
+                        Console.WriteLine("   - URL: " + fUrl);
                         Console.WriteLine("     reason: " + reason);
-                        // Reuse the url_errors section; pass the filename as the reference value.
-                        Helper.LogUrlError(name, code, reason, f);
+                        // 207 partial-failure item -> errors.json under url_errors
+                        Helper.LogUrlError(fUrl, code, reason, f);
                     }
                 }
             }
             else
             {
-                Console.WriteLine("\n[X] Upload request failed. Check your api_key, the files in uploads/, "
+                Console.WriteLine("\n[X] Upload request failed. Check your api_key, your signed_urls, "
                     + "and the status code above.");
                 // whole-request failure (non-2xx) -> errors.json
-                Helper.LogOther(code, "Direct file upload request failed", body);
+                Helper.LogOther(code, "File upload-from-url request failed", body);
             }
         }
     }

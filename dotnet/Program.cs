@@ -3,7 +3,8 @@
  * -------------------------
  * Decides which step to run based on the argument you pass:
  *
- *   dotnet run -- step1   (upload)
+ *   dotnet run -- step1   (upload PDFs from the uploads/ folder)
+ *   dotnet run -- step1url (upload from signed URLs)
  *   dotnet run -- step2   (check upload)
  *   dotnet run -- step3   (create job)
  *   dotnet run -- step4   (check job)
@@ -27,6 +28,7 @@ namespace Aod
             switch (step)
             {
                 case "step1": await Step1Upload.RunAsync(); break;
+                case "step1url": await Step1UploadFromUrl.RunAsync(); break;
                 case "step2": await Step2CheckUpload.RunAsync(); break;
                 case "step3": await Step3CreateJob.RunAsync(); break;
                 case "step4": await Step4CheckJob.RunAsync(); break;
@@ -36,9 +38,11 @@ namespace Aod
                     Console.WriteLine("Please say which step to run, for example:");
                     Console.WriteLine("  dotnet run -- step1");
                     Console.WriteLine("\nSteps:");
-                    Console.WriteLine("  step1 = upload         step4 = check job");
-                    Console.WriteLine("  step2 = check upload   step5 = create report");
-                    Console.WriteLine("  step3 = create job     step6 = check report");
+                    Console.WriteLine("  step1    = upload PDFs from the uploads/ folder (direct)");
+                    Console.WriteLine("  step1url = upload from signed URLs (S3 / Google Drive)");
+                    Console.WriteLine("  step2    = check upload     step4 = check job");
+                    Console.WriteLine("  step3    = create job       step5 = create report");
+                    Console.WriteLine("                              step6 = check report");
                     break;
             }
         }

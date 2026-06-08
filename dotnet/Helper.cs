@@ -40,6 +40,10 @@ namespace Aod
         public static readonly string ErrorsFile =
             Path.Combine(Directory.GetCurrentDirectory(), "errors.json");
 
+        // uploads/ folder (repo root) — where users drop PDFs for direct upload (Step 1).
+        public static readonly string UploadsDir =
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "uploads");
+
         private static readonly HttpClient Client = new HttpClient();
 
         private static readonly JsonSerializerOptions Pretty =
@@ -130,6 +134,22 @@ namespace Aod
             return outList;
         }
 
+        // Returns a sorted list of full paths to every .pdf in the repo-root uploads/ folder.
+        // Used by Step 1 direct upload. Returns an empty list if the folder is missing or has no PDFs.
+        public static List<string> FindLocalPdfs()
+        {
+            var outList = new List<string>();
+            if (!Directory.Exists(UploadsDir)) return outList;
+            var files = Directory.GetFiles(UploadsDir);
+            Array.Sort(files, StringComparer.OrdinalIgnoreCase);
+            foreach (var path in files)
+            {
+                if (path.ToLower().EndsWith(".pdf") && File.Exists(path))
+                    outList.Add(path);
+            }
+            return outList;
+        }
+
         // ---------- HTTP ----------
 
         public static async Task<HttpResponseMessage> PostAsync(string url, string apiKey, string jsonBody)
@@ -137,6 +157,32 @@ namespace Aod
             var req = new HttpRequestMessage(HttpMethod.Post, url);
             req.Headers.TryAddWithoutValidation("Authorization", "Bearer " + apiKey);
             req.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+            return await Client.SendAsync(req);
+        }
+
+        // POST one or more local files as multipart/form-data.
+        // The 'files' field is repeated once per file; 'description' is optional.
+        // Do NOT set Content-Type yourself — MultipartFormDataContent sets the boundary.
+        public static async Task<HttpResponseMessage> PostMultipartAsync(
+            string url, string apiKey, List<string> filePaths, string description)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Post, url);
+            req.Headers.TryAddWithoutValidation("Authorization", "Bearer " + apiKey);
+
+            var form = new MultipartFormDataContent();
+            foreach (var path in filePaths)
+            {
+                byte[] bytes = File.ReadAllBytes(path);
+                var fileContent = new ByteArrayContent(bytes);
+                fileContent.Headers.ContentType =
+                    new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+                // field name "files" (repeated), with the file's name
+                form.Add(fileContent, "files", Path.GetFileName(path));
+            }
+            if (!string.IsNullOrEmpty(description))
+                form.Add(new StringContent(description), "description");
+
+            req.Content = form;
             return await Client.SendAsync(req);
         }
 
