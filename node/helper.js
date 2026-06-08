@@ -25,6 +25,8 @@ const CONFIG_FILE = path.join(__dirname, "..", "config.json");
 const DATA_FILE = path.join(__dirname, "data.json");
 // errors.json (anything that is NOT a clean success) also stays in this folder.
 const ERRORS_FILE = path.join(__dirname, "errors.json");
+// uploads/ folder (repo root) — where users drop PDFs for direct upload (Step 1).
+const UPLOADS_DIR = path.join(__dirname, "..", "uploads");
 
 // ---------- config.json (the one file you edit) ----------
 
@@ -68,6 +70,26 @@ function buildHeaders(key) {
     Authorization: `Bearer ${key}`,
     "Content-Type": "application/json",
   };
+}
+
+// Headers for multipart/form-data: Authorization ONLY.
+// Do NOT set Content-Type yourself — fetch sets the multipart boundary from FormData.
+function buildHeadersAuthOnly(key) {
+  return { Authorization: `Bearer ${key}` };
+}
+
+// Returns a sorted list of full paths to every .pdf in the repo-root uploads/ folder.
+// Used by Step 1 direct upload. Returns [] if the folder is missing or has no PDFs.
+function findLocalPdfs() {
+  if (!fs.existsSync(UPLOADS_DIR) || !fs.statSync(UPLOADS_DIR).isDirectory()) {
+    return [];
+  }
+  return fs
+    .readdirSync(UPLOADS_DIR)
+    .filter((name) => name.toLowerCase().endsWith(".pdf"))
+    .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+    .map((name) => path.join(UPLOADS_DIR, name))
+    .filter((full) => fs.statSync(full).isFile());
 }
 
 // ---------- data.json (clean tracked items) ----------
@@ -175,10 +197,13 @@ const logOther = (code, msg, raw) => logError("other", "", code, msg, raw);
 
 module.exports = {
   BASE_URL,
+  UPLOADS_DIR,
   loadConfig,
   apiKey,
   getStringArray,
   buildHeaders,
+  buildHeadersAuthOnly,
+  findLocalPdfs,
   loadData,
   saveValue,
   getValue,
