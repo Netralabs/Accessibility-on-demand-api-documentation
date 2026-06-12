@@ -124,7 +124,7 @@ public class Step1Upload {
  * ALL editable values live in  config.json  — you never edit the .java files.
  */
 class AOD {
-    static final String BASE_URL = "https://staging.api.accessibilityondemand.space/api/v1";
+    static final String BASE_URL = "https://api.accessibilityondemand.space/api/v1";
 
     // Shared config lives in the REPO ROOT (one level up from this language folder).
     static final java.nio.file.Path CONFIG_FILE = java.nio.file.Paths.get("..", "config.json");

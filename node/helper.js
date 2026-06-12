@@ -17,7 +17,7 @@ const fs = require("fs");
 const path = require("path");
 
 // The web address all the APIs live under (from Section 1 of the README).
-const BASE_URL = "https://staging.api.accessibilityondemand.space/api/v1";
+const BASE_URL = "https://api.accessibilityondemand.space/api/v1";
 
 // Shared config lives in the REPO ROOT (one level up from this node folder).
 const CONFIG_FILE = path.join(__dirname, "..", "config.json");

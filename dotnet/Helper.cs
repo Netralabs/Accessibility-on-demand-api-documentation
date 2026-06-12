@@ -26,7 +26,7 @@ namespace Aod
     public static class Helper
     {
         // The web address all the APIs live under (from Section 1 of the README).
-        public const string BaseUrl = "https://staging.api.accessibilityondemand.space/api/v1";
+        public const string BaseUrl = "https://api.accessibilityondemand.space/api/v1";
 
         // Shared config lives in the REPO ROOT (one level up from this dotnet folder).
         public static readonly string ConfigFile =

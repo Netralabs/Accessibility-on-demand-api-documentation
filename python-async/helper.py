@@ -18,7 +18,7 @@ import sys
 from datetime import datetime, timezone
 
 # The web address all the APIs live under (from Section 1 of the README).
-BASE_URL = "https://staging.api.accessibilityondemand.space/api/v1"
+BASE_URL = "https://api.accessibilityondemand.space/api/v1"
 
 # Shared config lives in the REPO ROOT (one level up from this folder).
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "..", "config.json")
