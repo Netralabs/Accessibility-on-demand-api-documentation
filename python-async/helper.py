@@ -58,7 +58,7 @@ def api_key():
 
 
 def get_string_array(cfg, key):
-    """Reads a string list (e.g. sign_urls ), ignoring blank/placeholder entries."""
+    """Reads a string list (e.g. sign_urls), ignoring blank/placeholder entries."""
     arr = cfg.get(key) or []
     out = []
     for v in arr:

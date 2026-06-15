@@ -116,7 +116,7 @@ namespace Aod
             return new JsonObject();
         }
 
-        // Read a string array from config (e.g. "sign_urls "), ignoring blank/placeholder entries.
+        // Read a string array from config (e.g. "sign_urls"), ignoring blank/placeholder entries.
         public static List<string> GetStringArray(JsonObject obj, string key)
         {
             var outList = new List<string>();

@@ -57,7 +57,7 @@ function apiKey() {
   return key;
 }
 
-// Read a string array (e.g. sign_urls ), ignoring blank/placeholder entries.
+// Read a string array (e.g. sign_urls), ignoring blank/placeholder entries.
 function getStringArray(cfg, key) {
   const arr = Array.isArray(cfg[key]) ? cfg[key] : [];
   return arr

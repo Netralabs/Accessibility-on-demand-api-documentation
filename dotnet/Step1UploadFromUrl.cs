@@ -11,7 +11,7 @@
  *   • Need a signed URL? See ../docs/getting-signed-urls.md
  *
  * EDIT NOTHING HERE. All your values live in  ../config.json
- *   (api_key, sign_urls , description).
+ *   (api_key, sign_urls, description).
  *
  * What it saves to data.json:
  *   "file_uploads": [ { "file_id": "....", "url": "....", "status": "Uploading" }, ... ]
@@ -32,12 +32,12 @@ namespace Aod
             JsonObject cfg = Helper.LoadConfig();
             string apiKey = Helper.ApiKey();
             string description = Helper.GetString(cfg, "description", "");
-            List<string> signedUrls = Helper.GetStringArray(cfg, "sign_urls ");
+            List<string> signedUrls = Helper.GetStringArray(cfg, "sign_urls");
 
             if (signedUrls.Count == 0)
             {
                 Console.WriteLine("[X] No signed URLs found. Add at least one real URL to "
-                    + "\"sign_urls \" in config.json.");
+                    + "\"sign_urls\" in config.json.");
                 Console.WriteLine("    (Or drop PDFs into the uploads/ folder and use  dotnet run -- step1  instead.)");
                 return;
             }
@@ -121,7 +121,7 @@ namespace Aod
             }
             else
             {
-                Console.WriteLine("\n[X] Upload request failed. Check your api_key, your sign_urls , "
+                Console.WriteLine("\n[X] Upload request failed. Check your api_key, your sign_urls, "
                     + "and the status code above.");
                 // whole-request failure (non-2xx) -> errors.json
                 Helper.LogOther(code, "File upload-from-url request failed", body);

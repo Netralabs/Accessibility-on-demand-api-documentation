@@ -8,7 +8,7 @@ The AOD API doesn't take a file upload directly. Instead, you give it a **signed
 This guide shows, step by step, how to:
 1. Put your PDF in S3 or Google Drive,
 2. Get a link the API can use, and
-3. Paste that link into the root [config.json](../config.json) (the `sign_urls ` list).
+3. Paste that link into the root [config.json](../config.json) (the `sign_urls` list).
 
 You only need **one** of the two methods — pick whichever you already use.
 
@@ -106,12 +106,12 @@ That's it — paste this link straight into the code. The API handles the rest.
 
 ## Where to paste the URL in the code
 
-Once you have a link (from S3 or Google Drive), open the [config.json](../config.json) and add it to the `sign_urls ` list:
+Once you have a link (from S3 or Google Drive), open the [config.json](../config.json) and add it to the `sign_urls` list:
 
 ```json
 {
   "api_key": "aod-xxxxxxxxxxx",
-  "sign_urls ": [
+  "sign_urls": [
     "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/view?usp=sharing",
     "https://my-aod-uploads-2026.s3.amazonaws.com/myfile.pdf?X-Amz-Algorithm=..."
   ]

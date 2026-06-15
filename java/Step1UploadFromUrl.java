@@ -9,7 +9,7 @@
  *   • Need a signed URL? See ../docs/getting-signed-urls.md
  *
  * EDIT NOTHING HERE. All your values live in  config.json
- *   (api_key, sign_urls , description).
+ *   (api_key, sign_urls, description).
  *
  * How to run (Java 11+):
  *   Mac/Linux:  java -cp ".:lib/gson.jar" Step1UploadFromUrl.java
@@ -28,11 +28,11 @@ public class Step1UploadFromUrl {
         JsonObject cfg = AOD.loadConfig();
         String apiKey = AOD.apiKey();
         String description = AOD.getString(cfg, "description", "");
-        java.util.List<String> signedUrls = AOD.getStringArray(cfg, "sign_urls ");
+        java.util.List<String> signedUrls = AOD.getStringArray(cfg, "sign_urls");
 
         if (signedUrls.isEmpty()) {
             System.out.println("[X] No signed URLs found. Add at least one real URL to "
-                    + "\"sign_urls \" in config.json.");
+                    + "\"sign_urls\" in config.json.");
             System.out.println("    (Or drop PDFs into the uploads/ folder and run  Step1Upload.java  instead.)");
             return;
         }
@@ -102,7 +102,7 @@ public class Step1UploadFromUrl {
                 }
             }
         } else {
-            System.out.println("\n[X] Upload request failed. Check your api_key, your sign_urls , "
+            System.out.println("\n[X] Upload request failed. Check your api_key, your sign_urls, "
                     + "and the status code above.");
             // whole-request failure (non-2xx) -> errors.json
             AOD.logOther(code, "File-upload request failed", body != null ? body : null);
@@ -185,7 +185,7 @@ class AOD {
         return new com.google.gson.JsonObject();
     }
 
-    /** Read a String array from config (e.g. "sign_urls "), ignoring blank/placeholder entries. */
+    /** Read a String array from config (e.g. "sign_urls"), ignoring blank/placeholder entries. */
     static java.util.List<String> getStringArray(com.google.gson.JsonObject obj, String key) {
         java.util.List<String> out = new java.util.ArrayList<>();
         if (obj != null && obj.has(key) && obj.get(key).isJsonArray()) {
