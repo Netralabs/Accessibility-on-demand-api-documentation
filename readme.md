@@ -794,7 +794,7 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/jobs/JOB_ID_HERE" \
         "status": "Warning",
         "details": {
             "error": "Processing failed for pages 21–40, pages 71–80, pages 91–120, pages 131–140, pages 151–160, pages 171–180, pages 221–230, and pages 261–270. Please retry.",
-            "download_url": "your download url",
+            "download_url": "downloading url",
             "expires_in_seconds": 604800
         }
     },
