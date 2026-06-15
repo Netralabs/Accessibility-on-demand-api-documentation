@@ -17,7 +17,8 @@ This guide is written so that **anyone** can call these APIs. Just follow the st
 5. [List of all APIs (what each one does)](#5-list-of-all-apis-what-each-one-does)
 6. [Rate limits](#6-rate-limits)
 7. [How to call the APIs (pick your language)](#7-how-to-call-the-apis-pick-your-language)
-8. [Full examples for every endpoint (curl + responses)](#8-full-examples-for-every-endpoint-curl--responses)
+8. [A full end-to-end walkthrough](#8-a-full-end-to-end-walkthrough)
+9. [Full examples for every endpoint (curl + responses)](#9-full-examples-for-every-endpoint-curl--responses)
    - [Endpoint 1 — Upload files directly (form-data)](#endpoint-1--upload-files-directly-form-data)
    - [Endpoint 2 — Upload files from signed URLs](#endpoint-2--upload-files-from-signed-urls)
    - [Endpoint 3 — Check upload status](#endpoint-3--check-upload-status)
@@ -26,8 +27,8 @@ This guide is written so that **anyone** can call these APIs. Just follow the st
    - [Endpoint 6 — Request a score report](#endpoint-6--request-a-score-report)
    - [Endpoint 7 — Get the score report](#endpoint-7--get-the-score-report)
    - [Common errors (all endpoints)](#common-errors-all-endpoints)
-9. [Understanding errors](#9-understanding-errors)
-10. [FAQ](#10-faq)
+10. [Understanding errors](#10-understanding-errors)
+11. [FAQ](#11-faq)
 
 ---
 
@@ -112,7 +113,7 @@ You don't need to set this up by hand — the ready-made files in each language 
 {
   "api_key": "aod-xxxxxxxxxxx",
   "description": "description about batch - optional",
-  "sign_urls ": ["https://your-signed-url-1", "https://your-signed-url-2"],
+  "sign_urls": ["https://your-signed-url-1", "https://your-signed-url-2"],
   "process": { "file_id": "", "level": 1 },
   "report":  { "file_id": "" }
 }
@@ -129,7 +130,7 @@ You never edit the language files themselves. See [Section 7](#7-how-to-call-the
 | # | Method | Endpoint (add after Base URL) | What it does |
 |---|--------|-------------------------------|--------------|
 | 1 | POST   | `/files/upload/`               | Uploads one or more PDFs **directly** as `multipart/form-data` (`files` + optional `description`). Returns a **file_id** for each accepted file. |
-| 2 | POST   | `/files/upload-from-url/`      | Starts a file upload **from signed URLs**. You send **sign_urls ** in the payload, and it returns the **file_ids** of the uploaded URLs. |
+| 2 | POST   | `/files/upload-from-url/`      | Starts a file upload **from signed URLs**. You send **sign_urls** in the payload, and it returns the **file_ids** of the uploaded URLs. |
 | 3 | GET    | `/files/status/{file_id}`      | Returns the upload **status** (`Uploading` / `Uploaded`) for the given file_id. |
 | 4 | POST   | `/jobs/`                       | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id** and a **level** (1 or 2). Returns a **job_id**. |
 | 5 | GET    | `/jobs/{job_id}`               | Returns the processing **status** and a **link to the tagged PDF**. |
@@ -159,6 +160,8 @@ Two endpoints add an **extra cooldown** on top of that base limit. The full brea
 | 5 | `GET /jobs/{job_id}`           | Base limit only (1 request/sec), per user. |
 | 6 | `POST /report/`                | Base limit only (1 request/sec), per user. |
 | 7 | `GET /report/{job_id}`         | Base limit only (1 request/sec), per user. |
+
+> 🔁 **Polling tip.** The "check" endpoints (3, 5, 7) allow 1 request/sec, but you don't need to poll that fast. Polling **every few seconds** is plenty and keeps you well clear of `429`. Remember that every poll counts against the rate limit, so don't hammer it in a tight loop.
 
 When you hit a limit, you'll get a response like this:
 
@@ -190,6 +193,7 @@ The flow is the same in every language. To make it easy, each language has its *
 ```
 your-project/
 ├── config.json          ← the ONE file you edit (shared by every language)
+├── uploads/             ← drop your PDFs here for a direct upload (Endpoint 1)
 ├── java/                Java step files          (+ its own data.json / errors.json)
 ├── dotnet/              .NET step files          (+ its own data.json / errors.json)
 ├── node/                Node.js step files       (+ its own data.json / errors.json)
@@ -225,13 +229,13 @@ You upload files in **one of two ways — pick whichever fits you.** They're alt
 | Your situation | Use | How |
 |----------------|-----|-----|
 | **I just have PDFs on my computer** and no cloud account | **Direct upload** (Endpoint 1) | Clone this repo, drop your PDFs into the **`uploads/`** folder, and run Step 1. It picks up every PDF automatically — nothing else to set up. |
-| **My files already live in S3 or Google Drive**, or I already have signed URLs | **Upload from signed URL** (Endpoint 2) | Put your signed URL(s) in `config.json` under `sign_urls `, then run Step 1. New to signed URLs? See [How to get a signed URL](docs/getting-signed-urls.md). |
+| **My files already live in S3 or Google Drive**, or I already have signed URLs | **Upload from signed URL** (Endpoint 2) | Put your signed URL(s) in `config.json` under `sign_urls`, then run Step 1. New to signed URLs? See [How to get a signed URL](docs/getting-signed-urls.md). |
 
 After this first step, **everything else is identical** — both paths give you a `file_id`, and Steps 2–6 work exactly the same no matter which upload you used.
 
 ### How the ready-made files work
 
-- **You edit one file:** [config.json](config.json) — it holds your `api_key`, `sign_urls `, the `process` file/level, and the `report` file. You fill it in **as you go** (URLs before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5). You never edit the language files themselves.
+- **You edit one file:** [config.json](config.json) — it holds your `api_key`, `sign_urls`, the `process` file/level, and the `report` file. You fill it in **as you go** (URLs before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5). You never edit the language files themselves.
 - Running a step **prints the result on screen** AND **saves the important values** (file_ids, job_ids, and their status) into a **`data.json`** file **inside that language folder**. Each language keeps its own `data.json`, so running, say, Node and Python side by side won't collide.
 - Anything that **isn't** a clean success — a 207 partial upload, a non-200 response, or a failed job/report — is kept out of `data.json` and written to a separate **`errors.json`** in the same folder (grouped into `url_errors` / `file_errors` / `job_errors` / `other`, append-only, each with a UTC timestamp).
 - The "check" files (steps 2, 4, 6) automatically **loop through everything saved**, skip anything already finished, and update the rest. They are safe to run again and again until everything is done.
@@ -240,7 +244,7 @@ Each language folder therefore has three JSON files in play:
 
 | File | Where | You… | Holds |
 |------|-------|------|-------|
-| `config.json` | repo **root** (shared) | **edit** this | your api_key, sign_urls , process/report file ids + level |
+| `config.json` | repo **root** (shared) | **edit** this | your api_key, sign_urls, process/report file ids + level |
 | `data.json`   | inside the language folder | **view** (auto-written) | clean tracked items (file_uploads, job_process, report_process) |
 | `errors.json` | inside the language folder | **view** when something fails | grouped error history |
 
@@ -265,7 +269,7 @@ Here is roughly what `data.json` looks like after a few steps:
 }
 ```
 
-> 📂 **Open your language's folder and follow its own README** for the exact path to `config.json`, the path to that folder's `data.json` / `errors.json`, and the commands to run each step (each README tells you to `cd` into the folder first). The API behaves identically regardless of language — see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
+> 📂 **Open your language's folder and follow its own README** for the exact path to `config.json`, the path to that folder's `data.json` / `errors.json`, and the commands to run each step (each README tells you to `cd` into the folder first). The API behaves identically regardless of language — see [Section 9](#9-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
 > ⏳ **Download links expire** (see `expires_in_seconds`, e.g. 300 = 5 minutes, 0 = link expired). Download the file promptly and store it.
 
@@ -273,13 +277,76 @@ Here is roughly what `data.json` looks like after a few steps:
 
 ---
 
-## 8. Full examples for every endpoint (curl + responses)
+## 8. A full end-to-end walkthrough
+
+This threads a single file all the way through, so you can see how one step feeds the next. Replace `aod-xxxxxxxxxxx` with your key. (Section 9 has the full request/response detail for each call.)
+
+**Step 1 — Upload a PDF (direct).** Returns a `file_id`.
+
+```bash
+curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
+  -H "Authorization: Bearer aod-xxxxxxxxxxx" \
+  -F "files=@/path/to/sample.pdf"
+# → file_id: aaa950240561cd149157e054  (status: Uploading)
+```
+
+**Step 2 — Poll upload status** every few seconds until it reads `Uploaded`.
+
+```bash
+curl -X GET "https://api.accessibilityondemand.space/api/v1/files/status/aaa950240561cd149157e054" \
+  -H "Authorization: Bearer aod-xxxxxxxxxxx"
+# → uploading_status: Uploaded
+```
+
+**Step 3 — Start a processing job** with that `file_id`. Returns a `job_id`.
+
+```bash
+curl -X POST "https://api.accessibilityondemand.space/api/v1/jobs/" \
+  -H "Authorization: Bearer aod-xxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{ "file_id": "aaa950240561cd149157e054", "level": 1 }'
+# → job_id: job_123
+```
+
+**Step 4 — Poll the job** until `Completed`, then download the tagged PDF from `download_url` (before it expires).
+
+```bash
+curl -X GET "https://api.accessibilityondemand.space/api/v1/jobs/job_123" \
+  -H "Authorization: Bearer aod-xxxxxxxxxxx"
+# → status: Completed, details.download_url: ...
+```
+
+**Step 5 — Request a score report** for the same `file_id`. Returns a report `job_id`.
+
+```bash
+curl -X POST "https://api.accessibilityondemand.space/api/v1/report/" \
+  -H "Authorization: Bearer aod-xxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{ "file_id": "aaa950240561cd149157e054" }'
+# → job_id: rep_123
+```
+
+**Step 6 — Poll the report** until `Completed`, then download the score-report PDF.
+
+```bash
+curl -X GET "https://api.accessibilityondemand.space/api/v1/report/rep_123" \
+  -H "Authorization: Bearer aod-xxxxxxxxxxx"
+# → status: Completed, details.download_url: ...
+```
+
+That's the whole lifecycle: **upload → wait → tag → download → score → download.**
+
+[⬆ Back to top](#top)
+
+---
+
+## 9. Full examples for every endpoint (curl + responses)
 
 This section shows the **raw request and response** for each API, using `curl` (a command-line tool available on Mac, Linux, and Windows). Use it to understand exactly what each endpoint expects and returns — useful for debugging or for calling the API in any language.
 
 In every example, replace `aod-xxxxxxxxxxx` with your API key.
 
-> ℹ️ **About error messages:** where a `message` shows options separated by `/`, it means the API returns **one** of those messages depending on the situation — not all of them at once. Common errors that can occur on **any** endpoint (401, 422, 429, 500, etc.) are listed once at the [end of this section](#common-errors-all-endpoints), so they aren't repeated for every endpoint.
+> ℹ️ **About error messages:** where a `message` shows options separated by `/`, it means the API returns **one** of those messages depending on the situation — not all of them at once. Common errors that can occur on **any** endpoint (401, 422, 429, 500, 503, etc.) are listed once at the [end of this section](#common-errors-all-endpoints), so they aren't repeated for every endpoint.
 
 Jump to an endpoint:
 
@@ -422,7 +489,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload-from-u
   -H "Authorization: Bearer aod-xxxxxxxxxxx" \
   -H "Content-Type: application/json" \
   -d '{
-    "sign_urls ": [
+    "sign_urls": [
       "https://your-signed-url-1",
       "https://your-signed-url-2"
     ],
@@ -660,6 +727,21 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/jobs/" \
 }
 ```
 
+**Conflict — `409 Conflict`** (this file is already being processed)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "CONFLICT",
+    "message": "File is already in queued. Please wait until the current processing is complete.",
+    "details": []
+  },
+  "request_id": "....",
+  "timestamp": "2026-05-29T09:00:00.000000+00:00"
+}
+```
+
 **Field explanations**
 
 | Field | Meaning |
@@ -685,7 +767,7 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/jobs/JOB_ID_HERE" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx"
 ```
 
-**Success — `200 OK`**
+**Success — `200 OK`** (fully tagged)
 
 ```json
 {
@@ -703,17 +785,41 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/jobs/JOB_ID_HERE" \
 }
 ```
 
-**Error** (`success: false`)
+**`200 OK`** (partial — some pages failed, link still provided)
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "JOB_FAILED",
-    "detail": "Reason the job could not be completed"
-  },
-  "request_id": "....",
-  "timestamp": "2026-05-29T10:25:00.000000+00:00"
+    "success": true,
+    "data": {
+        "status": "Warning",
+        "details": {
+            "error": "Processing failed for pages 21–40, pages 71–80, pages 91–120, pages 131–140, pages 151–160, pages 171–180, pages 221–230, and pages 261–270. Please retry.",
+            "download_url": "your download url",
+            "expires_in_seconds": 604800
+        }
+    },
+    "message": null,
+    "request_id": "7ca32c46-37c9-4cc6-acd4-9314a102e918",
+    "timestamp": "2026-06-15T11:57:01.706394+00:00"
+}
+```
+
+**Error** (`success: false`)
+
+> ℹ️ **Note:** a failed job still returns HTTP `200`. The HTTP status only tells you the request was received — always check `data.status` (`Completed` / `Warning` / `Failed`) and `success` to know the actual outcome.
+
+```json
+{
+    "success": false,
+    "data": {
+        "status": "Failed",
+        "details": {
+          "error": "Unexpected error occurred"
+        }
+    },
+    "message": null,
+    "request_id": "eac48425-130e-4ca3-a28e-a969cfc60eab",
+    "timestamp": "2026-06-15T10:58:23.131026+00:00"
 }
 ```
 
@@ -721,10 +827,10 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/jobs/JOB_ID_HERE" \
 
 | Field | Meaning |
 |-------|---------|
-| `data.status` | e.g. `Processing`, `Completed`, `Failed` |
-| `data.details.download_url` | Link to download the tagged PDF (only when `Completed`) |
-| `data.details.expires_in_seconds` | How long the link stays valid (e.g. 300 = 5 minutes, 0 = expired) |
-| `error.code` / `error.detail` | Present only on failure |
+| `data.status` | e.g. `Processing`, `Completed`, `Warning`, `Failed` |
+| `data.details.download_url` | Link to download the tagged PDF (present on `Completed`, and on `Warning` where most pages succeeded) |
+| `data.details.expires_in_seconds` | How long the link stays valid (e.g. 300 = 5 minutes, 0 = expired; longer values are possible) |
+| `data.details.error` | On `Failed`, the reason the job failed; on `Warning`, which pages could not be processed |
 
 [⬆ Back to top](#top)
 
@@ -784,7 +890,7 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/report/JOB_ID_HERE" 
   -H "Authorization: Bearer aod-xxxxxxxxxxx"
 ```
 
-**Success — `200 OK`**
+**Success — `200 OK`** (report ready)
 
 ```json
 {
@@ -801,6 +907,25 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/report/JOB_ID_HERE" 
 }
 ```
 
+**Error** (`success: false`)
+
+> ℹ️ **Note:** a failed report still returns HTTP `200`. The HTTP status only tells you the request was received — always check `data.status` (`Completed` / `Failed`) and `success` to know the actual outcome.
+
+```json
+{
+    "success": false,
+    "data": {
+        "status": "Failed",
+        "details": {
+            "error": "Axes4 is temporarily unavailable. Please try again shortly."
+        }
+    },
+    "message": null,
+    "request_id": "2a2b06c9-cd9d-4125-93b5-c34c65916a64",
+    "timestamp": "2026-06-15T12:19:02.382910+00:00"
+}
+```
+
 **Field explanations**
 
 | Field | Meaning |
@@ -808,6 +933,7 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/report/JOB_ID_HERE" 
 | `data.status` | e.g. `Processing`, `Completed`, `Failed` |
 | `data.details.download_url` | Link to download the score report PDF (only when `Completed`) |
 | `data.details.expires_in_seconds` | How long the link stays valid (e.g. 300 = 5 minutes, 0 = expired) |
+| `data.details.error` | Present only on failure — the reason the report could not be generated |
 
 [⬆ Back to top](#top)
 
@@ -829,7 +955,7 @@ These errors can be returned by **any** endpoint. They all follow the same shape
     "message": "Request validation failed",
     "details": [
       {
-        "field": "sign_urls ",
+        "field": "sign_urls",
         "message": "Field required"
       }
     ]
@@ -896,11 +1022,28 @@ See [Section 6 — Rate limits](#6-rate-limits) for details. The `retry-after-se
 
 For a `500`, wait a moment and try again. If it keeps happening, contact support with the `request_id`.
 
+**Service unavailable — `503 Service Unavailable`** (the system is temporarily at capacity)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "SERVICE_UNAVAILABLE",
+    "message": "System is at max capacity. Please try again later.",
+    "details": []
+  },
+  "request_id": "e72bd513-c9c7-4a1e-bdbd-a690623a42d7",
+  "timestamp": "2026-06-15T08:31:15.541343+00:00"
+}
+```
+
+This means processing capacity is temporarily full — it isn't a problem with your request. Wait a short while and try the same call again. If it keeps happening, contact the support team with the `request_id`.
+
 [⬆ Back to top](#top)
 
 ---
 
-## 9. Understanding errors
+## 10. Understanding errors
 
 When something goes wrong, the API sends back a **status code** and a message. Here are the ones you may see.
 
@@ -913,10 +1056,11 @@ When something goes wrong, the API sends back a **status code** and a message. H
 | 403  | Forbidden | Your key is valid but not allowed to do this |
 | 404  | Not found | The ID or endpoint doesn't exist — check spelling |
 | 405  | Method not allowed | Wrong method, or a required path value (like a file_id) is missing |
-| 409  | Conflict | A conflict, such as reprocessing something already in progress |
+| 409  | Conflict | A conflict, such as reprocessing a file that already has a job in progress |
 | 422  | Validation error | Your request body failed validation — check the `details` |
 | 429  | Too many requests | You're calling too fast — wait the `retry-after-sec` seconds (see Section 6) |
 | 500  | Server error | Problem on our side — try again later |
+| 503  | Service unavailable | System is at max capacity — wait a bit and try the same call again |
 
 Every error response follows the same shape:
 
@@ -935,7 +1079,7 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ---
 
-## 10. FAQ
+## 11. FAQ
 
 **Q: What are the two ways to upload a file?**
 > You can either **send the file directly** as form-data ([Endpoint 1](#endpoint-1--upload-files-directly-form-data), `POST /files/upload/`) — simplest if the PDF is on your computer — or **upload from a signed URL** ([Endpoint 2](#endpoint-2--upload-files-from-signed-urls), `POST /files/upload-from-url/`) if the file already lives in S3 or Google Drive. Both return the same kind of `file_id`, and every later step works the same regardless of which you used.
@@ -950,16 +1094,19 @@ When contacting support, include the `request_id` — it lets us find your exact
 > Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
 
 **Q: Which languages are supported?**
-> All four are available now, each in its own folder with the same 6 steps: Python — [`/python-sync`](python-sync) and [`/python-async`](python-async), Node.js — [`/node`](node), Java — [`/java`](java), and .NET — [`/dotnet`](dotnet). The API works the same in any language; see [Section 8](#8-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
+> All four are available now, each in its own folder with the same 6 steps: Python — [`/python-sync`](python-sync) and [`/python-async`](python-async), Node.js — [`/node`](node), Java — [`/java`](java), and .NET — [`/dotnet`](dotnet). The API works the same in any language; see [Section 9](#9-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
 **Q: Should I use the sync or async Python code?**
 > Use **sync** if you're new or working one step at a time — it's the simplest. Use **async** if you want to check many files or jobs at once for speed. Both make exactly the same API calls.
 
 **Q: My download link stopped working.**
-> Download links expire after a short time (`expires_in_seconds`). If you need a new link, please contact the aod-support team.
+> Download links expire after a short time (`expires_in_seconds`).
 
 **Q: I keep getting 429 (too many requests).**
-> You're calling too fast. See [Section 6 — Rate limits](#6-rate-limits). Wait the number of seconds shown in `retry-after-sec` and try again.
+> You're calling too fast. See [Section 6 — Rate limits](#6-rate-limits). Wait the number of seconds shown in `retry-after-sec` and try again. When polling, every few seconds is plenty.
+
+**Q: I got a 503 ("System is at max capacity").**
+> The service is temporarily full — it's not a problem with your request. Wait a short while and send the same call again.
 
 **Q: A URL failed with "unsupported source".**
 > Only **S3** and **Google Drive** signed URLs are supported right now. Make sure your URL comes from one of those sources and hasn't expired. We currently support S3 and Google Drive, with other cloud platform integrations coming soon. For questions about cloud storage integration, reach out to aod-support.
@@ -969,4 +1116,4 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ---
 
-*Last updated: 12-06-2026 · Maintained by aod-tech*
+*Last updated: 15-06-2026 · Maintained by aod-tech*
