@@ -36,9 +36,9 @@ For the full API reference (every endpoint, request, and response), see the [mai
 1. Make sure **Python 3.8 or newer** is installed. (New to Python? A quick search for "how to install Python" will get you set up.)
 2. Install the async HTTP library used by these files. In your terminal, inside this folder, run:
 
-   ```bash
+```bash
    pip install httpx
-   ```
+```
 
 3. **Open [config.json](../config.json) and fill in your values** (it sits one level up from this folder — it's the only file you edit; see below).
 
@@ -49,6 +49,7 @@ You're now ready to run the steps in order.
 ```
 your-project/
 ├── config.json          ← the ONE file you edit (shared by all languages)
+├── uploads/             ← drop your PDFs here for a direct upload (Endpoint 1)
 ├── python-async/
 │   ├── README.md         (this file)
 │   ├── helper.py         (reads ../config.json, writes data.json + errors.json)
@@ -93,7 +94,7 @@ your-project/
 |-------|---------|-------------|
 | `api_key`            | every step | Your key from Section 3 of the main README |
 | `description`        | Step 1 | Optional text describing the batch (both upload options) |
-| `sign_urls`        | Step 1 (Option B) | One or more signed URLs — only if you use `1_upload_from_url.py`. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)* |
+| `sign_urls`          | Step 1 (Option B) | One or more signed URLs — only if you use `1_upload_from_url.py`. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)* |
 | `process.file_id`    | Step 3 | An **uploaded** `file_id` (from Step 2) to process |
 | `process.level`      | Step 3 | `1` or `2` |
 | `report.file_id`     | Step 5 | The `file_id` you want a score report for |
@@ -132,13 +133,13 @@ The Base URL and all the config-reading + error-logging live in `helper.py`. You
 | `job_errors`  | A problem tied to a `job_id` (job or report failed, unreadable response) | `job_id` |
 | `other`        | Anything not clearly tied to one of the above (e.g. the whole request failed) | — |
 
-Every entry also has `timestamp_utc` (ISO-8601, e.g. `2025-06-03T10:07:42Z`), `status_code`, a short `message`, and the original `raw` response/detail. Example:
+Every entry also has `timestamp_utc` (ISO-8601, e.g. `2026-06-03T10:07:42Z`), `status_code`, a short `message`, and the original `raw` response/detail. Example:
 
 ```json
 {
   "url_errors": [
     {
-      "timestamp_utc": "2025-06-03T10:07:42Z",
+      "timestamp_utc": "2026-06-03T10:07:42Z",
       "url": "https://your-signed-url-2",
       "status_code": 207,
       "message": "unsupported source",
@@ -207,7 +208,7 @@ python 1_upload.py
 
 It automatically picks up **every PDF** in `uploads/` — no file paths to type.
 
-**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some files fail (status **207**, e.g. malware detected), those are logged to `errors.json` under `url_errors`; the successful ones are still saved.
+**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some files fail (status **207**, e.g. malware detected), those are logged to `errors.json` under `url_errors` / `file_errors`; the successful ones are still saved.
 
 > 🧭 **Getting `can't open file '1_upload.py'`?** You're in the wrong folder. The step files live inside `python-async/`. Run `cd python-async` first (you should see the `1_upload.py` file when you type `ls`).
 
@@ -277,9 +278,9 @@ python 4_check_job.py
 
 > 🧭 **Getting `can't open file '4_check_job.py'`?** You're in the wrong folder. The step files live inside `python-async/`. Run `cd python-async` first (you should see the `4_check_job.py` file when you type `ls`).
 
-**Result:** prints the status of each job. When a job is `Completed`, the script saves and prints the **tagged PDF `download_url`**. Jobs already `Completed` are skipped. Any job that comes back `Failed` (or whose response can't be read) is logged to `errors.json` under `job_errors`, not `data.json`.
+**Result:** prints the status of each job. When a job is `Completed`, the script saves and prints the **tagged PDF `download_url`**. A job can also come back `Warning` — some pages failed but a download link is still provided (the skipped pages are listed in the response); the link is saved like a normal success. Jobs already finished are skipped. Any job that comes back `Failed` (or whose response can't be read) is logged to `errors.json` under `job_errors`, not `data.json`.
 
-> ⏳ The download link expires (see `expires_in_seconds`, e.g. 300 = 5 minutes). Download the PDF soon.
+> ⏳ The download link expires (see `expires_in_seconds`, e.g. 300 = 5 minutes; longer values are possible). Download the PDF soon.
 
 ---
 
@@ -309,7 +310,7 @@ python 6_check_report.py
 
 **Result:** prints the status of each report. When `Completed`, the script saves and prints the **score report PDF `download_url`**. A `Failed` report (or unreadable response) is logged to `errors.json` under `job_errors`.
 
-> ⏳ Like the tagged PDF, this link also expires — download it soon before it get expire.
+> ⏳ Like the tagged PDF, this link also expires — download it soon before it expires.
 
 ---
 
