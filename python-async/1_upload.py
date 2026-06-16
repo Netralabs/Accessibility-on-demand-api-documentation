@@ -35,10 +35,10 @@ from helper import (
 
 
 def extract_detail_blocks(body):
-    """200 -> body['data']['detail'];  207 -> body['error']['details']."""
+    """200 -> body['data']['details'];  207 -> body['error']['details']."""
     data = body.get("data") or {}
     err = body.get("error") or {}
-    return data.get("detail") or err.get("details") or []
+    return data.get("details") or err.get("details") or []
 
 
 async def main():

@@ -408,7 +408,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
   "data": {
     "code": "SUCCESS",
     "message": "All batch uploading started.",
-    "detail": [
+    "details": [
       {
         "successful_uploads": [
           {
@@ -520,7 +520,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload-from-u
   "data": {
     "code": "SUCCESS",
     "message": "All batch uploading started.",
-    "detail": [
+    "details": [
       {
         "successful_uploads": [
           {
@@ -611,7 +611,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload-from-u
 | Field | Meaning |
 |-------|---------|
 | `success` | `true` if every file was accepted; `false` if any failed |
-| `data.detail` / `error.details` | List of upload result blocks (success uses `data.detail`, partial uses `error.details`) |
+| `data.details` / `error.details` | List of upload result blocks (success uses `data.details`, partial uses `error.details`) |
 | `successful_uploads[].file_id` | The ID you use in later steps. **Save this.** |
 | `successful_uploads[].status` | Always `Uploading` at this point |
 | `failed_uploads[].url` | The URL that could not be used |
