@@ -41,6 +41,8 @@ The Accessibility On Demand API helps you turn ordinary PDF files into accessibl
 - **Authentication:** Bearer token (an API key you send with every request).
 - **Data format:** JSON (a simple text format for sending and receiving data).
 
+> 📄 **PDFs only.** This API only accepts **PDF files** — for both upload methods (direct upload and signed URL). Any non-PDF file is rejected.
+
 [⬆ Back to top](#top)
 
 ---
@@ -137,6 +139,8 @@ You never edit the language files themselves. See [Section 7](#7-how-to-call-the
 | 6 | POST   | `/report/`                     | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
 | 7 | GET    | `/report/{job_id}`             | Returns the report **status** and a **link to the generated score report PDF** for the file. |
 
+> 📄 **PDFs only** — both upload endpoints (1 and 2) accept **PDF files only**. Non-PDF files are rejected.
+
 > 🔗 **Don't have a signed URL yet?** See [How to get a signed URL](docs/getting-signed-urls.md) — step-by-step for Amazon S3 and Google Drive.
 
 [⬆ Back to top](#top)
@@ -188,7 +192,7 @@ Just wait the number of seconds shown in `retry-after-sec`, then try again.
 
 ## 7. How to call the APIs (pick your language)
 
-The flow is the same in every language. To make it easy, each language has its **own folder** in this repository with **6 ready-to-run files** — one per step. You don't edit those files at all: you fill in a single [config.json](config.json), and every language reads from it.
+The flow is the same in every language. To make it easy, each language has its **own folder** in this repository with **7 ready-to-run files** — one per step. You don't edit those files at all: you fill in a single [config.json](config.json), and every language reads from it.
 
 ```
 your-project/
@@ -215,7 +219,7 @@ your-project/
 
 ### The flow (same for every language)
 
-1. **Upload** your file(s) → get a `file_id` for each (status starts as `Uploading`). *(Two ways: drop PDFs into the **`uploads/`** folder for a direct upload, or use a signed URL — see [How to get a signed URL](docs/getting-signed-urls.md).)*
+1. **Upload** your file(s) → get a `file_id` for each (status starts as `Uploading`). *(Two ways: drop PDFs into the **`uploads/`** folder for a direct upload, or use a signed URL — see [How to get a signed URL](docs/getting-signed-urls.md). Either way, the file must be a **PDF**.)*
 2. **Check upload** → repeat until the status is `Uploaded`.
 3. **Create a job** with a `file_id` and a level (1 or 2) → get a `job_id`.
 4. **Check the job** → when `Completed`, get the tagged-PDF download link.
@@ -224,12 +228,12 @@ your-project/
 
 ### Which upload should I use? (Endpoint 1 vs Endpoint 2)
 
-You upload files in **one of two ways — pick whichever fits you.** They're alternatives; you don't need both.
+You upload files in **one of two ways — pick whichever fits you.** They're alternatives; you don't need both. **Either way, only PDF files are accepted.**
 
 | Your situation | Use | How |
 |----------------|-----|-----|
 | **I just have PDFs on my computer** and no cloud account | **Direct upload** (Endpoint 1) | Clone this repo, drop your PDFs into the **`uploads/`** folder, and run Step 1. It picks up every PDF automatically — nothing else to set up. |
-| **My files already live in S3 or Google Drive**, or I already have signed URLs | **Upload from signed URL** (Endpoint 2) | Put your signed URL(s) in `config.json` under `sign_urls`, then run Step 1. New to signed URLs? See [How to get a signed URL](docs/getting-signed-urls.md). |
+| **My files already live in S3 or Google Drive**, or I already have signed URLs | **Upload from signed URL** (Endpoint 2) | Put your signed URL(s) in `config.json` under `sign_urls`, then run Step 1. Each URL must point to a PDF. New to signed URLs? See [How to get a signed URL](docs/getting-signed-urls.md). |
 
 After this first step, **everything else is identical** — both paths give you a `file_id`, and Steps 2–6 work exactly the same no matter which upload you used.
 
@@ -367,13 +371,15 @@ Jump to an endpoint:
 
 Uploads one or more PDFs **directly from your computer** as `multipart/form-data`. Returns a `file_id` for each accepted file. This is the alternative to signed URLs (Endpoint 2) when you'd rather send the file itself.
 
+> 📄 **PDF only.** Only `.pdf` files are accepted. Any non-PDF file is rejected.
+
 > 📁 **Easiest way (with the ready-made code):** drop your PDFs into the repo's [uploads](uploads) folder and run Step 1 — it automatically picks up every PDF in that folder, so you don't type any file paths. Just copy/move your files into `uploads/` first. (See your language folder's README.)
 
 **Form fields**
 
 | Field | Required | Meaning |
 |-------|----------|---------|
-| `files` | yes | One or more PDF files. Repeat the field to send several (`-F "files=@a.pdf" -F "files=@b.pdf"`). |
+| `files` | yes | One or more **PDF** files (`.pdf` only — non-PDF files are rejected). Repeat the field to send several (`-F "files=@a.pdf" -F "files=@b.pdf"`). |
 | `description` | no | Optional text describing the batch |
 
 > ⏱️ **Rate limited** — see [Section 6](#6-rate-limits). Cooldown grows with the number of files you send.
@@ -464,7 +470,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
 | `successful_uploads[].filename` | The name of the file that was accepted |
 | `successful_uploads[].status` | Always `Uploading` at this point |
 | `failed_uploads[].filename` | The file that could not be accepted |
-| `failed_uploads[].detail` | Why it failed (e.g. malware detected, unsupported content) |
+| `failed_uploads[].detail` | Why it failed (e.g. not a PDF, malware detected, unsupported content) |
 | `request_id` | Unique ID for this request — quote it if contacting support |
 
 (This endpoint shares the same success/207 shape as Endpoint 2 — the only difference is each entry carries a **`filename`** instead of a **`url`**.)
@@ -478,6 +484,9 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
 `POST /files/upload-from-url/`
 
 Starts uploading one or more files from signed URLs. Returns a `file_id` for each accepted file.
+
+> 📄 **PDF only.** Each signed URL must point to a **PDF file** (`.pdf`). URLs that resolve to a non-PDF file are rejected.
+
 > 🔗 New to signed URLs? See [How to get a signed URL](docs/getting-signed-urls.md) for S3 and Google Drive.
 
 > ⏱️ **Rate limited** — see [Section 6](#6-rate-limits). Cooldown grows with the number of URLs you send.
@@ -600,7 +609,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload-from-u
 | `successful_uploads[].file_id` | The ID you use in later steps. **Save this.** |
 | `successful_uploads[].status` | Always `Uploading` at this point |
 | `failed_uploads[].url` | The URL that could not be used |
-| `failed_uploads[].detail` | Why it failed (e.g. unsupported source — only S3 / Google Drive allowed) |
+| `failed_uploads[].detail` | Why it failed (e.g. not a PDF, or unsupported source — only S3 / Google Drive allowed) |
 | `request_id` | Unique ID for this request — quote it if contacting support |
 
 [⬆ Back to top](#top)
@@ -1082,13 +1091,16 @@ When contacting support, include the `request_id` — it lets us find your exact
 ## 11. FAQ
 
 **Q: What are the two ways to upload a file?**
-> You can either **send the file directly** as form-data ([Endpoint 1](#endpoint-1--upload-files-directly-form-data), `POST /files/upload/`) — simplest if the PDF is on your computer — or **upload from a signed URL** ([Endpoint 2](#endpoint-2--upload-files-from-signed-urls), `POST /files/upload-from-url/`) if the file already lives in S3 or Google Drive. Both return the same kind of `file_id`, and every later step works the same regardless of which you used.
+> You can either **send the file directly** as form-data ([Endpoint 1](#endpoint-1--upload-files-directly-form-data), `POST /files/upload/`) — simplest if the PDF is on your computer — or **upload from a signed URL** ([Endpoint 2](#endpoint-2--upload-files-from-signed-urls), `POST /files/upload-from-url/`) if the file already lives in S3 or Google Drive. Both return the same kind of `file_id`, and every later step works the same regardless of which you used. **Either way, the file must be a PDF.**
+
+**Q: What file types are accepted?**
+> **PDF files only.** Both upload methods (direct upload and signed URL) accept `.pdf` files only — any non-PDF file is rejected.
 
 **Q: How do I upload my own PDFs from my computer?**
 > Drop them into the repo's [uploads](uploads) folder, then run Step 1. The ready-made code automatically picks up every PDF in that folder and uploads them for you — no file paths to type. (Your language folder's README has the exact command.)
 
 **Q: Where do I get a signed URL to upload?**
-> See the step-by-step guide: [How to get a signed URL](docs/getting-signed-urls.md). It covers Amazon S3 and Google Drive. (Or skip signed URLs entirely and just drop files into the [uploads](uploads) folder — see the questions above.)
+> See the step-by-step guide: [How to get a signed URL](docs/getting-signed-urls.md). It covers Amazon S3 and Google Drive. The URL must point to a PDF file. (Or skip signed URLs entirely and just drop files into the [uploads](uploads) folder — see the questions above.)
 
 **Q: I get a 401 error. Why?**
 > Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
