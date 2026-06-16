@@ -3,7 +3,7 @@
 > 📘 Part of the **AOD-API** docs. Back to the [main README](../readme.md) · or jump to your language folder: [Java](../java) · [.NET](../dotnet) · [Node.js](../node) · [Python (sync)](../python-sync) · [Python (async)](../python-async).
 
 
-The AOD API doesn't take a file upload directly. Instead, you give it a **signed URL** — a web link the API can use to download your PDF. Right now the API supports two sources: **Amazon S3** and **Google Drive**.
+You give the API a **signed URL** — a web link the API can use to download your PDF. Right now the API supports two sources: **Amazon S3** and **Google Drive**.
 
 This guide shows, step by step, how to:
 1. Put your PDF in S3 or Google Drive,
