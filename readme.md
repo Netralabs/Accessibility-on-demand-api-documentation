@@ -68,21 +68,41 @@ An **API Key** is like a password that proves you are allowed to use the API. Yo
 
 Follow these steps to generate a key:
 
-1. Go to **<https://app.accessibilityondemand.ai/login>**.
-2. Log in with your **Admin** or **Super Admin** account.
-3. Open the **User Management** section.
+1. Go to **<https://app.accessibilityondemand.ai/login>** and log in with your **Admin** or **Super Admin** account.
+
+   ![AOD login page with email and password fields](docs/images/api-key-1-login.png)
+
+2. On the dashboard, click the **profile icon** in the top-right corner to open the menu.
+
+   ![Dashboard with an arrow pointing to the profile icon in the top-right corner](docs/images/api-key-2-profile-icon.png)
+
+3. In the menu, under **Management**, click **User** to open User Management.
+
+   ![Profile menu open with the User option highlighted under Management](docs/images/api-key-3-user-menu.png)
+
 4. Choose who the key is for:
-   - **New user:** Add the user first, and allot them sufficient credits to use the API.
+   - **New user:** Click **Add User** to add them first, and allot them sufficient credits to use the API.
    - **Existing user:** Make sure they already have enough credits.
-5. On the user's account, click the **three dots (⋮)** and open **Detail**.
-6. Click **"Generate API Key"**.
-7. A new API key will appear on the screen, looking something like this:
+
+5. Find that user in the list and click the **three-dot (⋮) menu** at the end of their row.
+
+   ![User Management list with an arrow pointing to the three-dot menu beside a user](docs/images/api-key-4-three-dots.png)
+
+6. In the menu that opens, click **Generate API Key**.
+
+   ![The row menu open, showing the Generate API Key option](docs/images/api-key-5-generate.png)
+
+7. A confirmation appears with the new key. Click the **Copy** button and store the key somewhere safe.
+
+   ![Success message showing the generated API key and a Copy button](docs/images/api-key-6-copy.png)
+
+   The key looks something like this:
 
    ```
    aod-xxxxxxxxxxxxxxxxxxxx
    ```
 
-8. **Copy it immediately** (or take a screenshot). This is the token you'll use in the Authorization header.
+> ⚠️ **You may only see the key once.** For security, the key is shown a single time and the message disappears after a few seconds. Copy it immediately and store it securely — if you lose it, you'll need to generate a new one.
 
 > ⚠️ **Keep your API key private.** Share it only with the specific user it was created for. Never publish it or post it publicly (on GitHub, social media, screenshots, etc.) — anyone who has the key can use the API as that user and spend their credits.
 
