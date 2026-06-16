@@ -352,7 +352,7 @@ This section shows the **raw request and response** for each API, using `curl` (
 
 In every example, replace `aod-xxxxxxxxxxx` with your API key.
 
-> ℹ️ **About error messages:** where a `message` shows options separated by `/`, it means the API returns **one** of those messages depending on the situation — not all of them at once. Common errors that can occur on **any** endpoint (401, 422, 429, 500, 503, etc.) are listed once at the [end of this section](#common-errors-all-endpoints), so they aren't repeated for every endpoint.
+> ℹ️ **About error messages:** where a `message` shows options separated by `/`, it means the API returns **one** of those messages depending on the situation — not all of them at once. Common errors that can occur on **any** endpoint (401, 402, 422, 429, 500, 503, etc.) are listed once at the [end of this section](#common-errors-all-endpoints), so they aren't repeated for every endpoint.
 
 Jump to an endpoint:
 
@@ -717,6 +717,8 @@ Sends an uploaded file for tagging. Returns a `job_id`.
 
 > ⏱️ **Rate limited** — see [Section 6](#6-rate-limits). Cooldown depends on the number of pages in the file.
 
+> 💳 **Costs credits.** Processing consumes credits. If the account doesn't have enough, this endpoint returns **`402 Payment Required`** (`INSUFFICIENT_CREDITS`) — see [Common errors](#common-errors-all-endpoints). Top up the account's credits and try again.
+
 **Request**
 
 ```bash
@@ -754,6 +756,21 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/jobs/" \
   },
   "request_id": "....",
   "timestamp": "2026-05-29T09:00:00.000000+00:00"
+}
+```
+
+**Insufficient credits — `402 Payment Required`** (the account doesn't have enough credits)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INSUFFICIENT_CREDITS",
+    "message": "Insufficient credits to process this file.",
+    "details": []
+  },
+  "request_id": "c79dbd8d-9a27-444a-b5b7-313308f25117",
+  "timestamp": "2026-06-16T08:30:51.673289+00:00"
 }
 ```
 
@@ -857,6 +874,8 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/jobs/JOB_ID_HERE" \
 
 Requests an axes4 accessibility score report for a file. Returns a report `job_id`.
 
+> ℹ️ **Only for accessible (tagged) files.** A score report can be generated only for a file whose processing job **Completed** successfully. Files that are still processing, that failed, or that finished with warnings are not eligible — make the PDF accessible first (Endpoint 4).
+
 **Request**
 
 ```bash
@@ -875,6 +894,21 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/report/" \
   "success": true,
   "data": {
     "job_id": "...."
+  },
+  "request_id": "....",
+  "timestamp": "2026-05-29T11:00:00.000000+00:00"
+}
+```
+
+**Not accessible yet — `409 Conflict`** (the file hasn't been successfully tagged)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "CONFLICT",
+    "message": "A score report can only be generated for a successfully tagged (accessible) PDF. Please complete accessibility processing first — files that are still processing, failed, or finished with warnings cannot be scored.",
+    "details": []
   },
   "request_id": "....",
   "timestamp": "2026-05-29T11:00:00.000000+00:00"
@@ -999,6 +1033,25 @@ Possible `details[].message` values include: *Field required*, *Input should be 
 
 Possible `message` values include: *Invalid authorization header*, *Authorization header missing*, or *Missing or invalid API key*.
 
+**Insufficient credits — `402 Payment Required`** (the account doesn't have enough credits)
+
+This is returned by the **processing endpoint (`POST /jobs/`, Endpoint 4)** when the account doesn't have enough credits to process the file.
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INSUFFICIENT_CREDITS",
+    "message": "Insufficient credits to process this file.",
+    "details": []
+  },
+  "request_id": "c79dbd8d-9a27-444a-b5b7-313308f25117",
+  "timestamp": "2026-06-16T08:30:51.673289+00:00"
+}
+```
+
+Top up the account's credits (an **Admin** or **Super Admin** can allot more — see [Section 3](#3-how-to-get-your-api-key)), then run the step again.
+
 **Rate limit exceeded — `429 Too Many Requests`** (you sent requests too quickly)
 
 ```json
@@ -1068,10 +1121,11 @@ When something goes wrong, the API sends back a **status code** and a message. H
 | 207  | Partial success | Some files succeeded, some failed — check `failed_uploads` |
 | 400  | Bad request | Check your payload — a field is missing or wrong |
 | 401  | Unauthorized | Your API key is missing, wrong, or expired |
+| 402  | Payment required | Not enough credits to process — top up the account's credits and try again (Endpoint 4) |
 | 403  | Forbidden | Your key is valid but not allowed to do this |
 | 404  | Not found | The ID or endpoint doesn't exist — check spelling |
 | 405  | Method not allowed | Wrong method, or a required path value (like a file_id) is missing |
-| 409  | Conflict | A conflict, such as reprocessing a file that already has a job in progress |
+| 409  | Conflict | A conflict, such as reprocessing a file that already has a job in progress, or scoring a file that isn't accessible yet |
 | 422  | Validation error | Your request body failed validation — check the `details` |
 | 429  | Too many requests | You're calling too fast — wait the `retry-after-sec` seconds (see Section 6) |
 | 500  | Server error | Problem on our side — try again later |
@@ -1114,6 +1168,12 @@ When contacting support, include the `request_id` — it lets us find your exact
 **Q: I get a 401 error. Why?**
 > Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
 
+**Q: I got a 402 ("Insufficient credits"). Why?**
+> The account doesn't have enough credits to process the file. Credits are consumed when you start a processing job (Endpoint 4). An **Admin** or **Super Admin** can allot more credits to the user (see [Section 3](#3-how-to-get-your-api-key)); once topped up, run the step again.
+
+**Q: I asked for a report but got "make the PDF accessible first." Why?**
+> A score report can only be generated for a file that has been successfully made accessible — that is, its processing job (Endpoint 4) **Completed**. Files that are still processing, that failed, or that finished with warnings can't be scored. Finish processing the file successfully, then request the report.
+
 **Q: Which languages are supported?**
 > All four are available now, each in its own folder with the same 6 steps: Python — [`/python-sync`](python-sync) and [`/python-async`](python-async), Node.js — [`/node`](node), Java — [`/java`](java), and .NET — [`/dotnet`](dotnet). The API works the same in any language; see [Section 9](#9-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
@@ -1137,4 +1197,4 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ---
 
-*Last updated: 15-06-2026 · Maintained by aod-tech*
+*Last updated: 16-06-2026 · Maintained by aod-tech*
