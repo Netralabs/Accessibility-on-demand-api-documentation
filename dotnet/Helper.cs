@@ -256,11 +256,11 @@ namespace Aod
             return new JsonArray();
         }
 
-        // The 'detail' list lives in different places depending on the status:
-        //   200 -> body.data.detail   |   207 -> body.error.details
+        // The upload result blocks live in different places depending on the status:
+        //   200 -> body.data.details   |   207 -> body.error.details
         public static JsonArray ExtractDetailBlocks(JsonObject body)
         {
-            if (body["data"] is JsonObject data && data["detail"] is JsonArray d)
+            if (body["data"] is JsonObject data && data["details"] is JsonArray d)
                 return d;
             if (body["error"] is JsonObject err && err["details"] is JsonArray dd)
                 return dd;

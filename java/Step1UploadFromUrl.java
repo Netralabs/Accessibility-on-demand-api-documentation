@@ -345,8 +345,8 @@ class AOD {
     static com.google.gson.JsonArray extractDetailBlocks(com.google.gson.JsonObject body) {
         if (body.has("data") && body.get("data").isJsonObject()) {
             com.google.gson.JsonObject data = body.getAsJsonObject("data");
-            if (data.has("detail") && data.get("detail").isJsonArray()) {
-                return data.getAsJsonArray("detail");
+            if (data.has("details") && data.get("details").isJsonArray()) {
+                return data.getAsJsonArray("details");
             }
         }
         if (body.has("error") && body.get("error").isJsonObject()) {

@@ -32,13 +32,13 @@ const {
   saveValue, getValue, showResponse, logUrlError, logOther,
 } = require("./helper");
 
-// The 'detail' list lives in different places depending on the status:
-//   200 -> body.data.detail
+// The upload result blocks live in different places depending on the status:
+//   200 -> body.data.details
 //   207 -> body.error.details
 function extractDetailBlocks(body) {
   const data = body.data || {};
   const err = body.error || {};
-  return data.detail || err.details || [];
+  return data.details || err.details || [];
 }
 
 async function main() {
