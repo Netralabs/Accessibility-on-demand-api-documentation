@@ -120,8 +120,8 @@ def save_value(key, value):
     """Saves one value into data.json (keeps everything already stored)."""
     data = load_data()
     data[key] = value
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
     print(f"[saved] '{key}' was saved to data.json")
 
 
@@ -197,8 +197,8 @@ def log_error(ref_key, ref_value, status_code, message, raw):
 
         arr.append(entry)  # append (full history, keeps growing)
         all_errors[section] = arr
-        with open(ERRORS_FILE, "w") as f:
-            json.dump(all_errors, f, indent=2)
+        with open(ERRORS_FILE, "w", encoding="utf-8") as f:
+            json.dump(all_errors, f, indent=2, ensure_ascii=False)
         suffix = f"  {ref_key}: {ref_value}" if ref_value else ""
         print(f"[error logged] -> errors.json ({section}){suffix}")
     except OSError as e:
