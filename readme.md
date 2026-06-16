@@ -220,6 +220,8 @@ your-project/
 ### The flow (same for every language)
 
 1. **Upload** your file(s) → get a `file_id` for each (status starts as `Uploading`). *(Two ways: drop PDFs into the **`uploads/`** folder for a direct upload, or use a signed URL — see [How to get a signed URL](docs/getting-signed-urls.md). Either way, the file must be a **PDF**.)*
+
+   > 🧹 **Clean up after Step 1 runs.** Once you've run Step 1 and have your `file_id`s, the upload is done — there's no need to send those files again. **Remove the PDFs from the `uploads/` folder** (and **clear the `sign_urls` list in `config.json`**) so the next run doesn't re-upload the same files by mistake. You don't keep re-hitting the upload endpoint; Steps 2–6 use the `file_id`, not the original file or URL.
 2. **Check upload** → repeat until the status is `Uploaded`.
 3. **Create a job** with a `file_id` and a level (1 or 2) → get a `job_id`.
 4. **Check the job** → when `Completed`, get the tagged-PDF download link.
@@ -375,6 +377,8 @@ Uploads one or more PDFs **directly from your computer** as `multipart/form-data
 
 > 📁 **Easiest way (with the ready-made code):** drop your PDFs into the repo's [uploads](uploads) folder and run Step 1 — it automatically picks up every PDF in that folder, so you don't type any file paths. Just copy/move your files into `uploads/` first. (See your language folder's README.)
 
+> 🧹 **Remove files after upload.** Once Step 1 has run and you have your `file_id`s, **delete (or move) those PDFs out of the `uploads/` folder**. The upload is finished — keeping them there means the next run will upload the same files again by mistake. Steps 2–6 only need the `file_id`, not the original file.
+
 **Form fields**
 
 | Field | Required | Meaning |
@@ -486,6 +490,8 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
 Starts uploading one or more files from signed URLs. Returns a `file_id` for each accepted file.
 
 > 📄 **PDF only.** Each signed URL must point to a **PDF file** (`.pdf`). URLs that resolve to a non-PDF file are rejected.
+
+> 🧹 **Clear `sign_urls` after upload.** Once you've hit this endpoint and have your `file_id`s, the URLs have done their job — **remove them from the `sign_urls` list in `config.json`**. Leaving them there means the next run will re-upload the same files by mistake. Steps 2–6 only need the `file_id`.
 
 > 🔗 New to signed URLs? See [How to get a signed URL](docs/getting-signed-urls.md) for S3 and Google Drive.
 
@@ -1101,6 +1107,9 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 **Q: Where do I get a signed URL to upload?**
 > See the step-by-step guide: [How to get a signed URL](docs/getting-signed-urls.md). It covers Amazon S3 and Google Drive. The URL must point to a PDF file. (Or skip signed URLs entirely and just drop files into the [uploads](uploads) folder — see the questions above.)
+
+**Q: Do I need to remove files after uploading?**
+> Yes. Once Step 1 has run and you have your `file_id`s, the upload is complete. **Delete (or move) the PDFs out of the `uploads/` folder**, and **clear the `sign_urls` list in `config.json`**. Otherwise the next run will upload the same files again by mistake. Everything after Step 1 uses the `file_id` — not the original file or URL.
 
 **Q: I get a 401 error. Why?**
 > Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
