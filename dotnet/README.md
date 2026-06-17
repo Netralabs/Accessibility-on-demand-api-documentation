@@ -42,7 +42,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
 
    (New to .NET? A quick search for "install .NET SDK" will get you set up.)
 
-2. **Open [config.json](../config.json) and fill in your values** (it sits one level up from this `dotnet/` folder — it's the only file you edit; see the next section).
+2. **Open [config.json](../config.json) and set your `api_key`.** The other values (`sign_urls`, `process.file_id`, `report.file_id`) you fill in as you go — each step tells you what to set before running it.
 
 No `dotnet restore` of extra packages is needed — everything used is built into .NET.
 

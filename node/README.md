@@ -41,7 +41,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
 
    (New to Node? A quick search for "how to install Node.js" will get you set up in about 10 minutes.)
 
-2. **Open [config.json](../config.json) and fill in your values** (it sits one level up from this `node/` folder — it's the only file you edit; see below).
+2. **Open [config.json](../config.json) and set your `api_key`.** The other values (`sign_urls`, `process.file_id`, `report.file_id`) you fill in as you go — each step tells you what to set before running it.
 
 You're now ready to run the steps in order. No `npm install` is needed.
 

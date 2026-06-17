@@ -59,7 +59,7 @@ mkdir lib -Force; curl.exe -L -o lib/gson.jar https://repo1.maven.org/maven2/com
 
 > Prefer to download by hand? Inside the `java/` folder, create a new folder named `lib`, save [this jar](https://repo1.maven.org/maven2/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar) into it, and rename it to `gson.jar` (so the path is `java/lib/gson.jar`).
 
-**3. Open  [config.json](../config.json) and fill in your values** (it sits one level up from this `java/` folder — it's the only file you edit; see the next section).
+**3. Open [config.json](../config.json) and set your `api_key`.** The other values (`sign_urls`, `process.file_id`, `report.file_id`) you fill in as you go — each step tells you what to set before running it.
 
 You're now ready to run the steps in order.
 

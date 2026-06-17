@@ -40,7 +40,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
    pip install httpx
 ```
 
-3. **Open [config.json](../config.json) and fill in your values** (it sits one level up from this folder — it's the only file you edit; see below).
+3. **Open [config.json](../config.json) and set your `api_key`.** The other values (`sign_urls`, `process.file_id`, `report.file_id`) you fill in as you go — each step tells you what to set before running it.
 
 You're now ready to run the steps in order.
 
