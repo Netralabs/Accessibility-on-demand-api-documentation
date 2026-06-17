@@ -696,7 +696,7 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/files/status/aaa9502
   "success": false,
   "error": {
     "code": "NOT_FOUND",
-    "message": "File id 6a1950240561cd149157e05 is not a valid id",
+    "message": "File id aaa950240561cd149157e054 is not a valid id",
     "details": []
   },
   "request_id": "cc2200c3-c07a-4709-a107-5d0a4dd5886e",
