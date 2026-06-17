@@ -66,6 +66,8 @@ This guide focuses on **how to call the API**. Once your chosen language is inst
 
 An **API Key** is like a password that proves you are allowed to use the API. You send it with every request so the API knows the calls are coming from you.
 
+> ℹ️ **Note:** API keys are always generated for a **User**-role account. As a Customer (Admin / Super Admin), you create keys for the users under you and share the key with that user to use; if you want to use the API yourself, create your own User account and generate a key for it. If you are a User, your Customer generates your key and shares it with you.
+
 Follow these steps to generate a key:
 
 1. Go to **<https://app.accessibilityondemand.ai/login>** and log in with your **Admin** or **Super Admin** account.
@@ -81,7 +83,7 @@ Follow these steps to generate a key:
    ![Profile menu open with the User option highlighted under Management](docs/images/api-key-3-user-menu.png)
 
 4. Choose who the key is for:
-   - **New user:** Click **Add User** to add them first, and allot them sufficient credits to use the API.
+   - **New user:** Click **Add User** to create a **User**-role account first, and allot them sufficient credits to use the API.
    - **Existing user:** Make sure they already have enough credits.
 
 5. Find that user in the list and click the **three-dot (⋮) menu** at the end of their row.
