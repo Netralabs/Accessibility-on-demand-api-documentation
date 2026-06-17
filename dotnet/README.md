@@ -51,6 +51,7 @@ No `dotnet restore` of extra packages is needed — everything used is built int
 ```
 your-project/
 ├── config.json          ← the ONE file you edit (shared by all languages)
+├── uploads/             ← drop your PDFs here for a direct upload (Endpoint 1)
 ├── dotnet/
 │   ├── README.md         (this file)
 │   ├── aod.csproj

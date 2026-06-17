@@ -49,6 +49,7 @@ You're now ready to run the steps in order.
 ```
 your-project/
 ├── config.json          ← the ONE file you edit (shared by all languages)
+├── uploads/             ← drop your PDFs here for a direct upload (Endpoint 1)
 ├── python-sync/
 │   ├── README.md         (this file)
 │   ├── helper.py         (reads ../config.json, writes data.json + errors.json)

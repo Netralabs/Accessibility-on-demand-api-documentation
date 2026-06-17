@@ -68,6 +68,7 @@ You're now ready to run the steps in order.
 ```
 your-project/
 ├── config.json          ← the ONE file you edit (shared by all languages)
+├── uploads/             ← drop your PDFs here for a direct upload (Endpoint 1)
 ├── java/
 │   ├── README.md         (this file)
 │   ├── lib/gson.jar      (you download this)

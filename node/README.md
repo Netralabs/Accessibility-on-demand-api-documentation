@@ -50,6 +50,7 @@ You're now ready to run the steps in order. No `npm install` is needed.
 ```
 your-project/
 ├── config.json          ← the ONE file you edit (shared by all languages)
+├── uploads/             ← drop your PDFs here for a direct upload (Endpoint 1)
 ├── node/
 │   ├── README.md         (this file)
 │   ├── helper.js         (reads ../config.json, writes data.json + errors.json)
