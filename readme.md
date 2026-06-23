@@ -397,6 +397,8 @@ Uploads one or more PDFs **directly from your computer** as `multipart/form-data
 
 > 📄 **PDF only.** Only `.pdf` files are accepted. Any non-PDF file is rejected.
 
+> 📦 **Per request:** up to 50 PDFs, each ≤ 80 MB (PDF only). For more files, send multiple requests. Failed files come back in `failed_uploads` — resend just those.
+
 > 📁 **Easiest way (with the ready-made code):** drop your PDFs into the repo's [uploads](uploads) folder and run Step 1 — it automatically picks up every PDF in that folder, so you don't type any file paths. Just copy/move your files into `uploads/` first. (See your language folder's README.)
 
 > 🧹 **Remove files after upload.** Once Step 1 has run and you have your `file_id`s, **delete (or move) those PDFs out of the `uploads/` folder**. The upload is finished — keeping them there means the next run will upload the same files again by mistake. Steps 2–6 only need the `file_id`, not the original file.
@@ -512,6 +514,8 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
 Starts uploading one or more files from signed URLs. Returns a `file_id` for each accepted file.
 
 > 📄 **PDF only.** Each signed URL must point to a **PDF file** (`.pdf`). URLs that resolve to a non-PDF file are rejected.
+
+> 📦 **Per request:** up to 50 PDF urls, each ≤ 80 MB (PDF only). For more files urls, send multiple requests. Failed files come back in `failed_uploads` — resend just those.
 
 > 🧹 **Clear `sign_urls` after upload.** Once you've hit this endpoint and have your `file_id`s, the URLs have done their job — **remove them from the `sign_urls` list in `config.json`**. Leaving them there means the next run will re-upload the same files by mistake. Steps 2–6 only need the `file_id`.
 
@@ -1219,4 +1223,4 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ---
 
-*Last updated: 16-06-2026 · Maintained by aod-tech*
+*Last updated: 23-06-2026 · Maintained by aod-tech*
