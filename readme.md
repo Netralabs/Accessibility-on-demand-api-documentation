@@ -137,8 +137,8 @@ You don't need to set this up by hand — the ready-made files in each language 
 {
   "api_key": "aod-xxxxxxxxxxx",
   "description": "description about batch - optional",
-  "user_batch_id": "",
-  "batch_name": "",
+  "user_batch_id": "my_batch1",
+  "batch_name": "my_batch",
   "sign_urls": ["https://your-signed-url-1", "https://your-signed-url-2"],
   "process": { "file_id": "", "level": 1 },
   "report":  { "file_id": "" }
