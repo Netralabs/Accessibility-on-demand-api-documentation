@@ -1299,6 +1299,9 @@ When contacting support, include the `request_id` — it lets us find your exact
 **Q: My download link stopped working.**
 > Download links expire after a short time (`expires_in_seconds`).
 
+**Q: I edited the tagging in the UI review model — do I get an updated download link?**
+> Yes. After you review and update a file's tagging in the UI's review model, checking the job again ([Endpoint 5](#endpoint-5--check-job--get-tagged-pdf), `GET /jobs/{job_id}`) returns a `download_url` that reflects your latest changes. The expiry countdown, however, is **not reset** — the new link keeps the **same original expiry timer** (`expires_in_seconds` continues from the original link rather than starting over). So download the updated file promptly, just as you would the first one.
+
 **Q: I keep getting 429 (too many requests).**
 > You're calling too fast. See [Section 6 — Rate limits](#6-rate-limits). Wait the number of seconds shown in `retry-after-sec` and try again. When polling, every few seconds is plenty.
 
