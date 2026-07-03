@@ -137,11 +137,15 @@ You don't need to set this up by hand — the ready-made files in each language 
 {
   "api_key": "aod-xxxxxxxxxxx",
   "description": "description about batch - optional",
+  "user_batch_id": "",
+  "batch_name": "",
   "sign_urls": ["https://your-signed-url-1", "https://your-signed-url-2"],
   "process": { "file_id": "", "level": 1 },
   "report":  { "file_id": "" }
 }
 ```
+
+> 📦 **`user_batch_id` and `batch_name` are optional.** Fill them in only if you want your uploads grouped under a specific batch — for example, to add more files to a batch you created in an earlier run. Leave **both** blank to have a batch generated automatically. They must always be sent **together** and must refer to the same batch; see [Endpoint 1](#endpoint-1--upload-files-directly-form-data) for the full rules.
 
 You never edit the language files themselves. See [Section 7](#7-how-to-call-the-apis-pick-your-language) for what each `config.json` field is for and when to fill it in, and your language folder's own README for the exact path and commands.
 
@@ -153,15 +157,17 @@ You never edit the language files themselves. See [Section 7](#7-how-to-call-the
 
 | # | Method | Endpoint (add after Base URL) | What it does |
 |---|--------|-------------------------------|--------------|
-| 1 | POST   | `/files/upload/`               | Uploads one or more PDFs **directly** as `multipart/form-data` (`files` + optional `description`). Returns a **file_id** for each accepted file. |
-| 2 | POST   | `/files/upload-from-url/`      | Starts a file upload **from signed URLs**. You send **sign_urls** in the payload, and it returns the **file_ids** of the uploaded URLs. |
-| 3 | GET    | `/files/status/{file_id}`      | Returns the upload **status** (`Uploading` / `Uploaded`) for the given file_id. |
+| 1 | POST   | `/files/upload/`               | Uploads one or more PDFs **directly** as `multipart/form-data` (`files` + optional `description`, `user_batch_id`, `batch_name`). Returns a **file_id** for each accepted file, plus its **user_batch_id** / **batch_name**. |
+| 2 | POST   | `/files/upload-from-url/`      | Starts a file upload **from signed URLs**. You send **sign_urls** (plus optional `description`, `user_batch_id`, `batch_name`) in the payload, and it returns the **file_ids** of the uploaded URLs, plus the **user_batch_id** / **batch_name**. |
+| 3 | GET    | `/files/status/{file_id}`      | Returns the upload **status** (`Uploading` / `Uploaded`) for the given file_id, along with the file's **batch_name** / **user_batch_id**. |
 | 4 | POST   | `/jobs/`                       | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id** and a **level** (1 or 2). Returns a **job_id**. |
 | 5 | GET    | `/jobs/{job_id}`               | Returns the processing **status** and a **link to the tagged PDF**. |
 | 6 | POST   | `/report/`                     | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
 | 7 | GET    | `/report/{job_id}`             | Returns the report **status** and a **link to the generated score report PDF** for the file. |
 
 > 📄 **PDFs only** — both upload endpoints (1 and 2) accept **PDF files only**. Non-PDF files are rejected.
+
+> 📦 **Batches.** Every upload belongs to a *batch*. Send `user_batch_id` + `batch_name` on either upload endpoint (1 or 2) to control which batch your files land in — for example, to add more files to a batch you started earlier — or omit **both** to have one generated automatically. The two fields always travel together and must point to the same batch. Full rules and the conflict responses are in [Endpoint 1](#endpoint-1--upload-files-directly-form-data).
 
 > 🔗 **Don't have a signed URL yet?** See [How to get a signed URL](docs/getting-signed-urls.md) — step-by-step for Amazon S3 and Google Drive.
 
@@ -241,7 +247,7 @@ your-project/
 
 ### The flow (same for every language)
 
-1. **Upload** your file(s) → get a `file_id` for each (status starts as `Uploading`). *(Two ways: drop PDFs into the **`uploads/`** folder for a direct upload, or use a signed URL — see [How to get a signed URL](docs/getting-signed-urls.md). Either way, the file must be a **PDF**.)*
+1. **Upload** your file(s) → get a `file_id` for each (status starts as `Uploading`). *(Two ways: drop PDFs into the **`uploads/`** folder for a direct upload, or use a signed URL — see [How to get a signed URL](docs/getting-signed-urls.md). Either way, the file must be a **PDF**.)* Every upload also comes back with a `user_batch_id` and `batch_name` — either the ones you sent, or ones generated for you (see [Endpoint 1](#endpoint-1--upload-files-directly-form-data)).
 
    > 🧹 **Clean up after Step 1 runs.** Once you've run Step 1 and have your `file_id`s, the upload is done — there's no need to send those files again. **Remove the PDFs from the `uploads/` folder** (and **clear the `sign_urls` list in `config.json`**) so the next run doesn't re-upload the same files by mistake. You don't keep re-hitting the upload endpoint; Steps 2–6 use the `file_id`, not the original file or URL.
 2. **Check upload** → repeat until the status is `Uploaded`.
@@ -261,9 +267,11 @@ You upload files in **one of two ways — pick whichever fits you.** They're alt
 
 After this first step, **everything else is identical** — both paths give you a `file_id`, and Steps 2–6 work exactly the same no matter which upload you used.
 
+> 📦 **Uploading several files into one batch.** Whichever upload you use, you can group files that arrive across **multiple runs** into a single batch by sending the same `user_batch_id` + `batch_name` each time (fill them into `config.json`). Leave both blank and a fresh batch is generated for you. See [Endpoint 1](#endpoint-1--upload-files-directly-form-data) for the exact pairing rules.
+
 ### How the ready-made files work
 
-- **You edit one file:** [config.json](config.json) — it holds your `api_key`, `sign_urls`, the `process` file/level, and the `report` file. You fill it in **as you go** (URLs before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5). You never edit the language files themselves.
+- **You edit one file:** [config.json](config.json) — it holds your `api_key`, `sign_urls`, the optional `user_batch_id` / `batch_name`, the `process` file/level, and the `report` file. You fill it in **as you go** (URLs and any batch values before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5). You never edit the language files themselves.
 - Running a step **prints the result on screen** AND **saves the important values** (file_ids, job_ids, and their status) into a **`data.json`** file **inside that language folder**. Each language keeps its own `data.json`, so running, say, Node and Python side by side won't collide.
 - Anything that **isn't** a clean success — a 207 partial upload, a non-200 response, or a failed job/report — is kept out of `data.json` and written to a separate **`errors.json`** in the same folder (grouped into `url_errors` / `file_errors` / `job_errors` / `other`, append-only, each with a UTC timestamp).
 - The "check" files (steps 2, 4, 6) automatically **loop through everything saved**, skip anything already finished, and update the rest. They are safe to run again and again until everything is done.
@@ -272,7 +280,7 @@ Each language folder therefore has three JSON files in play:
 
 | File | Where | You… | Holds |
 |------|-------|------|-------|
-| `config.json` | repo **root** (shared) | **edit** this | your api_key, sign_urls, process/report file ids + level |
+| `config.json` | repo **root** (shared) | **edit** this | your api_key, sign_urls, optional batch fields, process/report file ids + level |
 | `data.json`   | inside the language folder | **view** (auto-written) | clean tracked items (file_uploads, job_process, report_process) |
 | `errors.json` | inside the language folder | **view** when something fails | grouped error history |
 
@@ -281,7 +289,7 @@ Here is roughly what `data.json` looks like after a few steps:
 ```json
 {
   "file_uploads": [
-    { "file_id": "aaa950240561cd149157e054", "status": "Uploaded" }
+    { "file_id": "aaa950240561cd149157e054", "batch_name": "my_batch", "user_batch_id": "my_batch1", "status": "Uploaded" }
   ],
   "job_process": [
     {
@@ -309,7 +317,7 @@ Here is roughly what `data.json` looks like after a few steps:
 
 This threads a single file all the way through, so you can see how one step feeds the next. Replace `aod-xxxxxxxxxxx` with your key. (Section 9 has the full request/response detail for each call.)
 
-**Step 1 — Upload a PDF (direct).** Returns a `file_id`.
+**Step 1 — Upload a PDF (direct).** Returns a `file_id` (and a `user_batch_id` / `batch_name`).
 
 ```bash
 curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
@@ -393,7 +401,7 @@ Jump to an endpoint:
 
 `POST /files/upload/`
 
-Uploads one or more PDFs **directly from your computer** as `multipart/form-data`. Returns a `file_id` for each accepted file. This is the alternative to signed URLs (Endpoint 2) when you'd rather send the file itself.
+Uploads one or more PDFs **directly from your computer** as `multipart/form-data`. Returns a `file_id` for each accepted file, plus the batch it belongs to (`user_batch_id` / `batch_name`). This is the alternative to signed URLs (Endpoint 2) when you'd rather send the file itself.
 
 > 📄 **PDF only.** Only `.pdf` files are accepted. Any non-PDF file is rejected.
 
@@ -409,6 +417,16 @@ Uploads one or more PDFs **directly from your computer** as `multipart/form-data
 |-------|----------|---------|
 | `files` | yes | One or more **PDF** files (`.pdf` only — non-PDF files are rejected). Repeat the field to send several (`-F "files=@a.pdf" -F "files=@b.pdf"`). |
 | `description` | no | Optional text describing the batch |
+| `user_batch_id` | no\* | Your ID for the batch. Sent **together** with `batch_name`. Omit **both** to auto-generate. \*See the batch note below. |
+| `batch_name` | no\* | Your name for the batch. Sent **together** with `user_batch_id`. Omit **both** to auto-generate. \*See the batch note below. |
+
+> 📦 **Grouping uploads into one batch — `user_batch_id` + `batch_name`.** Every upload belongs to a *batch*. These two fields let you decide which batch — useful when you upload files across **several calls** but want them tracked together. They always travel as a **pair**:
+> - **Omit both / leave both blank** → the API generates a `user_batch_id` and `batch_name` for you, creating a fresh batch for this upload. *(This is the default — you don't have to send anything.)*
+> - **Send both, reusing values from an earlier upload** → the new files are added to that **same** existing batch.
+> - **Send both, both new and unique** → a new batch is created with the values you chose.
+> - **Send a mismatched pair** — a `user_batch_id` that already exists but paired with a **different** `batch_name` (or a `batch_name` that already exists but with a different `user_batch_id`) → **`409 Conflict`** (see the two examples below). Fix it by sending the matching partner value, choosing a brand-new unique pair, or leaving both blank.
+>
+> **Rule of thumb:** send **both or neither**, and any given `user_batch_id` ↔ `batch_name` must always point to the same batch.
 
 > ⏱️ **Rate limited** — see [Section 6](#6-rate-limits). Cooldown grows with the number of files you send.
 
@@ -419,10 +437,14 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx" \
   -F "files=@/path/to/sample.pdf" \
   -F "files=@/path/to/another.pdf" \
+  -F "user_batch_id=13" \
+  -F "batch_name=13" \
   -F "description=description about batch - optional"
 ```
 
 > ℹ️ Don't set `Content-Type` yourself — `curl -F` (and your HTTP library) sets `multipart/form-data` with the correct boundary automatically.
+>
+> To let the batch be generated automatically, simply leave out the `user_batch_id` and `batch_name` fields.
 
 **Success — `200 OK`** (all files accepted)
 
@@ -438,6 +460,8 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
           {
             "success": true,
             "file_id": "aaa950240561cd149157e054",
+            "user_batch_id": "my_batch1",
+            "batch_name": "my_batch",
             "filename": "sample.PDF.pdf",
             "status": "Uploading"
           }
@@ -465,12 +489,16 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
           {
             "success": true,
             "file_id": "aaa950240561cd149157e054",
+            "user_batch_id": "my_batch1",
+            "batch_name": "my_batch",
             "filename": "sample.PDF.pdf",
             "status": "Uploading"
           },
           {
             "success": true,
             "file_id": "aaa950240561cd149157e055",
+            "user_batch_id": "my_batch1",
+            "batch_name": "my_batch",
             "filename": "Lorem Ipsum-1-1.pdf",
             "status": "Uploading"
           }
@@ -490,11 +518,43 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
 }
 ```
 
+**Batch conflict — `409 Conflict`** (the `user_batch_id` you sent already exists, paired with a different `batch_name`)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "CONFLICT",
+    "message": "user_batch_id \"1\" already exists. Provide the matching batch_name for this batch, or use a new unique batch_name and user_batch_id, or leave both fields blank to have them generated automatically.",
+    "details": []
+  },
+  "request_id": "441aa8f5-db5e-44cc-b871-e52e462f555c",
+  "timestamp": "2026-07-03T13:12:34.915152+00:00"
+}
+```
+
+**Batch conflict — `409 Conflict`** (the `batch_name` you sent already exists, paired with a different `user_batch_id`)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "CONFLICT",
+    "message": "Batch name \"1\" already exists. Provide the matching user_batch_id for this batch, or use a new unique batch_name and user_batch_id, or leave both fields blank to have them generated automatically.",
+    "details": []
+  },
+  "request_id": "0e090c4c-b3da-492a-816e-625a96b2960e",
+  "timestamp": "2026-07-03T13:13:10.538984+00:00"
+}
+```
+
 **Field explanations**
 
 | Field | Meaning |
 |-------|---------|
 | `successful_uploads[].file_id` | The ID you use in later steps. **Save this.** |
+| `successful_uploads[].user_batch_id` | The batch this file was placed in — the value you sent, or one generated for you |
+| `successful_uploads[].batch_name` | The batch's name — the value you sent, or one generated for you |
 | `successful_uploads[].filename` | The name of the file that was accepted |
 | `successful_uploads[].status` | Always `Uploading` at this point |
 | `failed_uploads[].filename` | The file that could not be accepted |
@@ -511,13 +571,15 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
 
 `POST /files/upload-from-url/`
 
-Starts uploading one or more files from signed URLs. Returns a `file_id` for each accepted file.
+Starts uploading one or more files from signed URLs. Returns a `file_id` for each accepted file, plus the batch it belongs to (`user_batch_id` / `batch_name`).
 
 > 📄 **PDF only.** Each signed URL must point to a **PDF file** (`.pdf`). URLs that resolve to a non-PDF file are rejected.
 
 > 📦 **Per request:** up to 50 PDF urls, each ≤ 80 MB (PDF only). For more files urls, send multiple requests. Failed files come back in `failed_uploads` — resend just those.
 
 > 🧹 **Clear `sign_urls` after upload.** Once you've hit this endpoint and have your `file_id`s, the URLs have done their job — **remove them from the `sign_urls` list in `config.json`**. Leaving them there means the next run will re-upload the same files by mistake. Steps 2–6 only need the `file_id`.
+
+> 📦 **Same batch fields as Endpoint 1.** You can also send `user_batch_id` + `batch_name` in the JSON body to control which batch these files join, or omit both to auto-generate. The pairing rules (and the two `409 Conflict` responses) are exactly the same — see [Endpoint 1](#endpoint-1--upload-files-directly-form-data).
 
 > 🔗 New to signed URLs? See [How to get a signed URL](docs/getting-signed-urls.md) for S3 and Google Drive.
 
@@ -534,9 +596,13 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload-from-u
       "https://your-signed-url-1",
       "https://your-signed-url-2"
     ],
+    "user_batch_id": "my_batch1",
+    "batch_name": "my_batch",
     "description": "description about batch - optional"
   }'
 ```
+
+> To let the batch be generated automatically, leave `user_batch_id` and `batch_name` out of the body (or set both to `""`).
 
 **Success — `200 OK`** (all files accepted)
 
@@ -552,6 +618,8 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload-from-u
           {
             "success": true,
             "file_id": "aaa950240561cd149157e054",
+            "user_batch_id": "my_batch1",
+            "batch_name": "my_batch",
             "url": "my url",
             "status": "Uploading"
           }
@@ -579,6 +647,8 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload-from-u
           {
             "success": true,
             "file_id": "aaa950240561cd149157e054",
+            "user_batch_id": "my_batch1",
+            "batch_name": "my_batch",
             "url": "url1",
             "status": "Uploading"
           }
@@ -632,6 +702,8 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload-from-u
 }
 ```
 
+> 📦 A **batch mismatch** (a `user_batch_id` / `batch_name` pair that doesn't match an existing batch) returns the same **`409 Conflict`** shown in [Endpoint 1](#endpoint-1--upload-files-directly-form-data).
+
 **Field explanations**
 
 | Field | Meaning |
@@ -639,6 +711,8 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload-from-u
 | `success` | `true` if every file was accepted; `false` if any failed |
 | `data.details` / `error.details` | List of upload result blocks (success uses `data.details`, partial uses `error.details`) |
 | `successful_uploads[].file_id` | The ID you use in later steps. **Save this.** |
+| `successful_uploads[].user_batch_id` | The batch this file was placed in — the value you sent, or one generated for you |
+| `successful_uploads[].batch_name` | The batch's name — the value you sent, or one generated for you |
 | `successful_uploads[].status` | Always `Uploading` at this point |
 | `failed_uploads[].url` | The URL that could not be used |
 | `failed_uploads[].detail` | Why it failed (e.g. not a PDF, or unsupported source — only S3 / Google Drive allowed) |
@@ -652,7 +726,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload-from-u
 
 `GET /files/status/{file_id}`
 
-Returns whether a file has finished uploading.
+Returns whether a file has finished uploading, along with the batch it belongs to.
 
 **Request**
 
@@ -668,6 +742,8 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/files/status/aaa9502
   "success": true,
   "data": {
     "file_id": "aaa950240561cd149157e054",
+    "batch_name": "my_batch",
+    "user_batch_id": "my_batch1",
     "uploading_status": "Uploading",
     "uploading_error": null
   },
@@ -683,13 +759,15 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/files/status/aaa9502
 {
   "success": true,
   "data": {
-    "file_id": "aaa950240561cd149157e054",
+    "file_id": "6a47b49de4786cbd342f8c68",
+    "batch_name": "my_batch",
+    "user_batch_id": "my_batch1",
     "uploading_status": "Uploaded",
     "uploading_error": null
   },
   "message": null,
-  "request_id": "e1bd07bf-e78c-4913-aedd-7e4ec9dd9187",
-  "timestamp": "2026-05-29T08:40:24.134330+00:00"
+  "request_id": "3e7c7d91-cd9e-4536-b6f8-69442a9ea3de",
+  "timestamp": "2026-07-03T13:10:36.572967+00:00"
 }
 ```
 
@@ -728,6 +806,8 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/files/status/aaa9502
 | Field | Meaning |
 |-------|---------|
 | `data.file_id` | The file being checked |
+| `data.batch_name` | The name of the batch this file belongs to |
+| `data.user_batch_id` | The ID of the batch this file belongs to |
 | `data.uploading_status` | `Uploading` while in progress, `Uploaded` when finished |
 | `data.uploading_error` | `null` if no error, otherwise the reason the upload failed |
 
@@ -1078,6 +1158,10 @@ This is returned by the **processing endpoint (`POST /jobs/`, Endpoint 4)** when
 
 Top up the account's credits (an **Admin** or **Super Admin** can allot more — see [Section 3](#3-how-to-get-your-api-key)), then run the step again.
 
+**Batch conflict — `409 Conflict`** (returned by the upload endpoints when a batch pairing doesn't match)
+
+Returned by **`POST /files/upload/`** and **`POST /files/upload-from-url/`** when the `user_batch_id` / `batch_name` you sent partially matches an existing batch — i.e. one of the two already exists but is paired with a different value for the other. Send the matching partner value, choose a brand-new unique pair, or leave both blank to auto-generate. Full details and both message variants are in [Endpoint 1](#endpoint-1--upload-files-directly-form-data).
+
 **Rate limit exceeded — `429 Too Many Requests`** (you sent requests too quickly)
 
 ```json
@@ -1151,7 +1235,7 @@ When something goes wrong, the API sends back a **status code** and a message. H
 | 403  | Forbidden | Your key is valid but not allowed to do this |
 | 404  | Not found | The ID or endpoint doesn't exist — check spelling |
 | 405  | Method not allowed | Wrong method, or a required path value (like a file_id) is missing |
-| 409  | Conflict | A conflict, such as reprocessing a file that already has a job in progress, or scoring a file that isn't accessible yet |
+| 409  | Conflict | A conflict, such as reprocessing a file that already has a job in progress, scoring a file that isn't accessible yet, or a batch pairing where `user_batch_id` / `batch_name` partly matches an existing batch (Endpoints 1 & 2) |
 | 422  | Validation error | Your request body failed validation — check the `details` |
 | 429  | Too many requests | You're calling too fast — wait the `retry-after-sec` seconds (see Section 6) |
 | 500  | Server error | Problem on our side — try again later |
@@ -1185,8 +1269,14 @@ When contacting support, include the `request_id` — it lets us find your exact
 **Q: How do I upload my own PDFs from my computer?**
 > Drop them into the repo's [uploads](uploads) folder, then run Step 1. The ready-made code automatically picks up every PDF in that folder and uploads them for you — no file paths to type. (Your language folder's README has the exact command.)
 
-**Q: Where do I get a signed URL to upload?**
-> See the step-by-step guide: [How to get a signed URL](docs/getting-signed-urls.md). It covers Amazon S3 and Google Drive. The URL must point to a PDF file. (Or skip signed URLs entirely and just drop files into the [uploads](uploads) folder — see the questions above.)
+**Q: What are `user_batch_id` and `batch_name`?**
+> They identify the **batch** an upload belongs to. Every upload lives in a batch, and these two fields let you name it yourself. They're **optional** and always sent **together**: leave both blank to have a batch generated automatically, or send both to choose your own. On either upload endpoint (1 or 2). Full rules are in [Endpoint 1](#endpoint-1--upload-files-directly-form-data).
+
+**Q: How do I upload several files into the same batch?**
+> Send the **same** `user_batch_id` and `batch_name` on each upload call. The first call creates the batch; later calls that reuse the same pair add their files to it. This works whether you upload directly (Endpoint 1) or from signed URLs (Endpoint 2), and even across separate runs — just keep the same values in `config.json`. If you leave both blank, each upload gets its own fresh, auto-generated batch instead.
+
+**Q: I got a 409 saying my `user_batch_id` or `batch_name` "already exists". Why?**
+> The two fields must always refer to the **same** batch. You sent a pair where one value already exists but is paired with a **different** partner — e.g. a `user_batch_id` that's already tied to another `batch_name` (or vice-versa). Fix it one of three ways: send the **matching** partner value so the pair lines up with the existing batch, pick a **brand-new unique** `user_batch_id` **and** `batch_name`, or **leave both blank** to have them generated automatically.
 
 **Q: Do I need to remove files after uploading?**
 > Yes. Once Step 1 has run and you have your `file_id`s, the upload is complete. **Delete (or move) the PDFs out of the `uploads/` folder**, and **clear the `sign_urls` list in `config.json`**. Otherwise the next run will upload the same files again by mistake. Everything after Step 1 uses the `file_id` — not the original file or URL.
@@ -1223,4 +1313,4 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ---
 
-*Last updated: 23-06-2026 · Maintained by aod-tech*
+*Last updated: 03-07-2026 · Maintained by aod-tech*

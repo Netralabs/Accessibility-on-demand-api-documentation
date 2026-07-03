@@ -1,20 +1,17 @@
 {
   "_comment": "This is the ONLY file you edit. Fill in the values below, then run the steps in order.",
-  
-  "api_key": "aod-xxxxxxxxxxx", 
-
+  "api_key": "aod-xxxxxxxxxxx",
   "description": "description about batch - optional",
-
   "sign_urls": [
     "https://your-signed-url-1",
     "https://your-signed-url-2"
   ],
-
+  "user_batch_id": "my_batch1",
+  "batch_name": "my_batch",
   "process": {
     "file_id": "",
     "level": 1
   },
-
   "report": {
     "file_id": ""
   }
