@@ -79,9 +79,13 @@ your-project/
     "https://your-signed-url-2"
   ],
 
+  "user_batch_id": "my_batch1",
+  "batch_name": "my_batch",
+
   "process": {
     "file_id": "",
-    "level": 1
+    "level": 1,
+    "requires_manual_review": false
   },
 
   "report": {
@@ -95,11 +99,14 @@ your-project/
 | `api_key`            | every step | Your key from Section 3 of the main README |
 | `description`        | Step 1 | Optional text describing the batch (both upload options) |
 | `sign_urls`        | Step 1 (Option B) | One or more signed URLs — only if you use `1_upload_from_url.py`. *(Need one? See [How to get a signed URL](../docs/getting-signed-urls.md).)* |
+| `user_batch_id`      | Step 1 | *Optional.* Your ID for the batch. Send **with** `batch_name` (both or neither) to place these files in a specific batch — or leave both blank to have one generated for you. See Endpoint 1 in the main README for the pairing rules. |
+| `batch_name`         | Step 1 | *Optional.* Your name for the batch. Always paired with `user_batch_id`. |
 | `process.file_id`    | Step 3 | An **uploaded** `file_id` (from Step 2) to process |
 | `process.level`      | Step 3 | `1` or `2` |
+| `process.requires_manual_review` | Step 3 | *Optional.* Set to `true` if you want to review and refine the tagging in the web UI before the tagged PDF becomes downloadable. Default `false` (fully automatic). |
 | `report.file_id`     | Step 5 | The `file_id` you want a score report for |
 
-You fill these in **as you go** — `sign_urls` before Step 1 (Option B; for Option A just drop PDFs in `uploads/`), `process.file_id` before Step 3, `report.file_id` before Step 5. The steps tell you what to set next.
+You fill these in **as you go** — `sign_urls` before Step 1 (Option B; for Option A just drop PDFs in `uploads/`), `process.file_id` (and optionally `process.requires_manual_review`) before Step 3, `report.file_id` before Step 5. The steps tell you what to set next.
 
 ---
 
@@ -196,7 +203,8 @@ Best if your PDFs are on your laptop and you don't have a cloud account.
 
 1. Drop your PDF file(s) into the **`uploads/`** folder at the repo root.
 2. (Optional) set `description` in [config.json](../config.json).
-3. Run:
+3. (Optional) set `user_batch_id` **and** `batch_name` in [config.json](../config.json) to place these files in a specific batch — set **both**, or leave **both** blank to have one generated for you.
+4. Run:
 
 ```bash
 python 1_upload.py
@@ -206,7 +214,7 @@ python 1_upload.py
 
 It automatically picks up **every PDF** in `uploads/` — no file paths to type.
 
-**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some files fail (status **207**, e.g. malware detected), those are logged to `errors.json` under `url_errors`; the successful ones are still saved.
+**Result:** each accepted file is saved to `data.json` with `status: "Uploading"` (and its `user_batch_id` / `batch_name`, so you can see which batch it landed in). If some files fail (status **207**, e.g. malware detected), those are logged to `errors.json` under `url_errors`; the successful ones are still saved.
 
 ### Option B — Upload from signed URLs → `1_upload_from_url.py`
 
@@ -214,13 +222,15 @@ Best if your files already live in S3 or Google Drive, or you already have signe
 
 **In [config.json](../config.json):** set `api_key` and add your `sign_urls` (and optionally `description`). *(Need a signed URL? See [How to get a signed URL](../docs/getting-signed-urls.md).)*
 
+*(Optional)* Also set `user_batch_id` **and** `batch_name` to place these files in a specific batch — set **both**, or leave **both** blank to have one generated for you.
+
 ```bash
 python 1_upload_from_url.py
 ```
 
 > 🧭 **Getting `can't open file '1_upload_from_url.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `1_upload_from_url.py` file when you type `ls`).
 
-**Result:** each accepted file is saved to `data.json` with `status: "Uploading"`. If some URLs fail (status **207**), the failures are written to `errors.json` under `url_errors` (the successful ones are still saved).
+**Result:** each accepted file is saved to `data.json` with `status: "Uploading"` (and its `user_batch_id` / `batch_name`, so you can see which batch it landed in). If some URLs fail (status **207**), the failures are written to `errors.json` under `url_errors` (the successful ones are still saved).
 
 > ⏱️ Both uploads are rate-limited. Sending more files/URLs means a longer cooldown before your next upload (see the main README, Section 6).
 
@@ -248,13 +258,15 @@ python 2_check_upload.py
 
 **In the root [config.json](../config.json):** set `process.file_id` to an uploaded `file_id`, and `process.level` to `1` or `2`.
 
+*(Optional)* set `process.requires_manual_review` to `true` if you'd like to review and refine the tagging in the web UI before the tagged PDF becomes downloadable. Leave it as `false` for fully-automatic tagging.
+
 ```bash
 python 3_create_job.py
 ```
 
 > 🧭 **Getting `can't open file '3_create_job.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `3_create_job.py` file when you type `ls`).
 
-**Result:** a `job_id`, saved to `data.json` under `job_process` with `status: "Queued"`.
+**Result:** a `job_id`, saved to `data.json` under `job_process` with `status: "Queued"`. If you enabled manual review, the entry is also flagged with `requires_manual_review: true` so you can see it later in `data.json`.
 
 > ⏱️ This endpoint is rate-limited based on the number of pages in the file (see the main README, Section 6).
 
@@ -273,6 +285,13 @@ python 4_check_job.py
 > 🧭 **Getting `can't open file '4_check_job.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `4_check_job.py` file when you type `ls`).
 
 **Result:** prints the status of each job. When a job is `Completed`, the script saves and prints the **tagged PDF `download_url`**. Jobs already `Completed` are skipped. Any job that comes back `Failed` (or whose response can't be read) is logged to `errors.json` under `job_errors`, not `data.json`.
+
+**Manual review pending?** If you started the job with `process.requires_manual_review: true` (Step 3), tagging can finish but the download link is held back until you complete the review in the web UI. In that case this script marks the job locally as **`AwaitingManualReview`** (and keeps polling it — it's not treated as "done"). You'll also get an email as soon as the file is ready to review. Then:
+
+1. Go to **<https://app.accessibilityondemand.ai/login>** and log in.
+2. Open the batch, select the file, and click **Review**.
+3. On the last page of the review, click the **Complete** button.
+4. Run `python 4_check_job.py` again — the `download_url` will now be included.
 
 > ⏳ The download link expires (see `expires_in_seconds`, e.g. 300 = 5 minutes). Download the PDF soon.
 
@@ -310,11 +329,14 @@ python 6_check_report.py
 
 ## Troubleshooting
 
-- **`can't open file '....py': [Errno 2] No such file or directory`** — you're running from the wrong folder. `cd python-async` first, then run the command (type `ls` — you should see the step files).
+- **`can't open file '....py': [Errno 2] No such file or directory`** — you're running from the wrong folder. `cd python-sync` first, then run the command (type `ls` — you should see the step files).
 - **Where did my failures go?** Anything that wasn't a clean success is in **`errors.json`** (this folder), grouped into `url_errors` / `file_errors` / `job_errors` / `other`, newest appended last. `data.json` only keeps clean items.
 - **`config.json was not found at ../config.json`** — run these scripts from inside this folder, with `config.json` sitting in the folder above it (the repo root).
 - **`Please set your real "api_key"`** — `api_key` in `config.json` is still the placeholder. Paste your real key.
 - **`No signed URLs found` / `No file_id given`** — the matching field in `config.json` is still blank or a placeholder. Fill it in.
+- **`Batch pair is incomplete in config.json`** — you set only one of `user_batch_id` / `batch_name`. They always travel together: set **both** to target a specific batch, or clear **both** to have one auto-generated.
+- **409 Conflict on upload** — the `user_batch_id` / `batch_name` pair you sent partially matches an existing batch (one value is already tied to a different partner). Use the matching partner value, pick a **new unique** pair, or clear both to auto-generate.
+- **A job is stuck at `AwaitingManualReview`** — that's not stuck: you asked for manual review (`process.requires_manual_review: true` in Step 3) and the API is waiting for you. Log in at <https://app.accessibilityondemand.ai/login>, open the batch, select the file, click **Review**, and click **Complete** on the last page. Then re-run `python 4_check_job.py`.
 - **`ModuleNotFoundError: No module named 'requests'`** — you skipped the install step. Run `pip install requests`.
 - **401 Unauthorized** — your API key is missing, wrong, or has extra spaces. Re-check `api_key` in `config.json`.
 - **429 Too Many Requests** — you're calling too fast. Wait the `retry-after-sec` seconds shown in the response and try again.
