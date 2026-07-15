@@ -71,6 +71,40 @@ def get_string_array(cfg, key):
     return out
 
 
+def get_batch_fields(cfg):
+    """
+    Reads the optional batch fields from config.json (top-level "user_batch_id"
+    and "batch_name"). The API rule is that they always travel as a PAIR:
+      - both set     -> the new files are placed in (or added to) that batch
+      - both blank   -> the API auto-generates a fresh batch for this upload
+      - only one set -> not allowed; would 409 on the server
+
+    Returns:
+      (user_batch_id, batch_name)  when both are set (both non-empty strings)
+      (None, None)                 when neither is set  (send nothing → auto-generate)
+
+    Exits with a clear error message when exactly one is set, so we catch that
+    locally instead of hitting the server with a bad pair.
+    """
+    uid = str(cfg.get("user_batch_id") or "").strip()
+    name = str(cfg.get("batch_name") or "").strip()
+
+    if uid and name:
+        return uid, name
+    if not uid and not name:
+        return None, None
+
+    which = "user_batch_id" if uid else "batch_name"
+    other = "batch_name" if uid else "user_batch_id"
+    print(
+        f'[X] Batch pair is incomplete in config.json.\n'
+        f'    You set "{which}" but left "{other}" blank.\n'
+        f'    These two fields must be sent TOGETHER — set both to target a specific batch,\n'
+        f'    or clear both to have the API generate one for you.'
+    )
+    sys.exit(1)
+
+
 def find_local_pdfs():
     """
     Returns a sorted list of full paths to every .pdf in the repo-root uploads/ folder.

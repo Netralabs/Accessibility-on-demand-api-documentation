@@ -9,7 +9,11 @@ Google Drive (or you already have signed URLs).
   • Need a signed URL? See ../docs/getting-signed-urls.md
 
 EDIT NOTHING HERE. All your values live in  ../config.json
-  (api_key, sign_urls, description).
+  - api_key
+  - sign_urls
+  - description (optional)
+  - user_batch_id + batch_name (optional pair; set BOTH to target a specific
+    batch, or leave BOTH blank to have the API generate one for you)
 
 How to run:  python 1_upload_from_url.py
 
@@ -18,9 +22,14 @@ About the responses you may see:
   - 207 = some files were accepted, some failed (e.g. a bad/unsupported URL).
           The script still saves the file_ids that succeeded, and logs the
           ones that failed to errors.json (under "url_errors").
+  - 409 = the user_batch_id / batch_name pair partially matches an existing
+          batch. Fix the pair in config.json — or clear both to auto-generate.
 
 What it saves to data.json:
-  "file_uploads": [ {"file_id": "....", "url": "....", "status": "Uploading"}, ... ]
+  "file_uploads": [
+    { "file_id": "....", "url": "....", "status": "Uploading",
+      "user_batch_id": "....", "batch_name": "...." },  ...
+  ]
 """
 
 import asyncio
@@ -28,6 +37,7 @@ import httpx
 from helper import (
     BASE_URL, load_config, api_key, get_string_array, build_headers,
     save_value, show_response, get_value, log_url_error, log_other,
+    get_batch_fields,
 )
 
 
@@ -43,6 +53,8 @@ async def main():
     key = api_key()
     description = cfg.get("description") or ""
     sign_urls = get_string_array(cfg, "sign_urls")
+    # Enforce the "both or neither" rule locally so we don't send a bad pair.
+    user_batch_id, batch_name = get_batch_fields(cfg)
 
     if not sign_urls:
         print('[X] No signed URLs found. Add at least one real URL to "sign_urls" in config.json.')
@@ -50,13 +62,38 @@ async def main():
         return
 
     endpoint = f"{BASE_URL}/files/upload-from-url/"
-    payload = {"sign_urls": sign_urls, "description": description}
 
-    print(f"Uploading {len(sign_urls)} file(s) from signed URLs...")
+    # Build the JSON body — only include fields the user actually set.
+    payload = {"sign_urls": sign_urls}
+    if description:
+        payload["description"] = description
+    if user_batch_id and batch_name:
+        payload["user_batch_id"] = user_batch_id
+        payload["batch_name"] = batch_name
+
+    if user_batch_id and batch_name:
+        print(f"Uploading {len(sign_urls)} file(s) from signed URLs into batch "
+              f"'{batch_name}' (user_batch_id: {user_batch_id}) ...")
+    else:
+        print(f"Uploading {len(sign_urls)} file(s) from signed URLs (batch will be auto-generated) ...")
+
     async with httpx.AsyncClient() as client:
         response = await client.post(endpoint, headers=build_headers(key), json=payload)
 
     show_response(response)
+
+    if response.status_code == 409:
+        # The batch pair partially matches an existing batch — user has to fix config.
+        print("\n[Conflict] The user_batch_id / batch_name pair doesn't match an existing batch.")
+        print("           See the response above for the exact reason.")
+        print("           Fix it in config.json: use the matching partner value, pick a fresh")
+        print("           unique pair, or clear BOTH fields to have them auto-generated.")
+        try:
+            raw = response.json()
+        except ValueError:
+            raw = None
+        log_other(409, "Batch pair conflict on upload-from-url", raw)
+        return
 
     # Treat 200 and 207 as "we got results worth reading".
     if response.status_code in (200, 207):
@@ -69,11 +106,17 @@ async def main():
             for item in block.get("successful_uploads", []):
                 fid = item.get("file_id")
                 if fid:
-                    file_uploads.append({
+                    saved = {
                         "file_id": fid,
                         "url": item.get("url"),
                         "status": item.get("status", "Uploading"),
-                    })
+                    }
+                    # The server echoes back the batch the file was placed in.
+                    if item.get("user_batch_id"):
+                        saved["user_batch_id"] = item.get("user_batch_id")
+                    if item.get("batch_name"):
+                        saved["batch_name"] = item.get("batch_name")
+                    file_uploads.append(saved)
             for item in block.get("failed_uploads", []):
                 failed.append(item)
 
@@ -81,7 +124,10 @@ async def main():
             save_value("file_uploads", file_uploads)
             print("\n[OK] Uploaded files (status will be 'Uploading' at first):")
             for f in file_uploads:
-                print(f"   - file_id: {f['file_id']}  |  status: {f['status']}")
+                line = f"   - file_id: {f['file_id']}  |  status: {f['status']}"
+                if f.get("batch_name"):
+                    line += f"  |  batch: {f['batch_name']}"
+                print(line)
             print("\nNext: run  python 2_check_upload.py")
         else:
             print("\n[!] No files were accepted. See the failures below.")

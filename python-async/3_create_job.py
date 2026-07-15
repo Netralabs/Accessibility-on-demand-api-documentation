@@ -4,7 +4,21 @@
 Sends an uploaded file for processing (tagging) and gets back a job_id.
 
 EDIT NOTHING HERE. Set these in  ../config.json  under "process":
-  "process": { "file_id": "<an uploaded file_id>", "level": 1 }   # level 1 or 2
+  "process": {
+    "file_id": "<an uploaded file_id>",
+    "level": 1,                          # 1 or 2
+    "requires_manual_review": false      # optional — see below
+  }
+
+Manual review (optional):
+  Set "requires_manual_review": true if you'd like to review and refine the
+  automated tagging in the web UI before the tagged PDF becomes downloadable.
+  When enabled, Step 4 will report the job as "AwaitingManualReview" until you:
+    1. Go to https://app.accessibilityondemand.ai/login (you'll also get an
+       email when the file is ready to review).
+    2. Open the batch, select the file, click Review.
+    3. On the last page of the review, click the Complete button.
+  After that, run Step 4 again and it will return the download_url.
 
 How to run:  python 3_create_job.py
 
@@ -26,14 +40,24 @@ async def main():
     if not isinstance(level, int):
         level = 1
 
+    # Optional flag. Only accept a real JSON boolean `true`; anything else
+    # (missing, false, "true" as a string, etc.) is treated as False so the
+    # default behaviour stays "fully automatic, downloadable right away".
+    requires_manual_review = process.get("requires_manual_review") is True
+
     if not file_id:
         print('[X] No file_id given. Set "process": {"file_id": ...} in config.json '
               "(use an uploaded file_id from Step 2).")
         return
 
-    payload = {"file_id": file_id, "level": level}
+    payload = {
+        "file_id": file_id,
+        "level": level,
+        "requires_manual_review": requires_manual_review,
+    }
 
-    print(f"Starting a job for file_id {file_id} at level {level} ...")
+    review_note = "  (with manual review)" if requires_manual_review else ""
+    print(f"Starting a job for file_id {file_id} at level {level}{review_note} ...")
     async with httpx.AsyncClient() as client:
         response = await client.post(f"{BASE_URL}/jobs/", headers=build_headers(key), json=payload)
 
@@ -55,9 +79,16 @@ async def main():
         if job_id:
             job_process = get_value("job_process", [])
             if not any(j.get("job_id") == job_id for j in job_process):
-                job_process.append({"file_id": file_id, "job_id": job_id, "status": "Queued"})
+                entry = {"file_id": file_id, "job_id": job_id, "status": "Queued"}
+                # Keep a small marker on the entry so data.json makes it clear
+                # this job was started with manual review enabled.
+                if requires_manual_review:
+                    entry["requires_manual_review"] = True
+                job_process.append(entry)
                 save_value("job_process", job_process)
             print("\n[OK] Got job_id:", job_id)
+            if requires_manual_review:
+                print("     (manual review enabled — Step 4 will prompt you to review in the UI once tagging finishes)")
             print("Next: run  python 4_check_job.py")
         else:
             print("\n[!] Could not find 'job_id' in the response. "

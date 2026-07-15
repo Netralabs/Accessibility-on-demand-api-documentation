@@ -10,7 +10,8 @@
   "batch_name": "my_batch",
   "process": {
     "file_id": "",
-    "level": 1
+    "level": 1,
+    "requires_manual_review": false
   },
   "report": {
     "file_id": ""
