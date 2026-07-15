@@ -140,12 +140,14 @@ You don't need to set this up by hand — the ready-made files in each language 
   "user_batch_id": "my_batch1",
   "batch_name": "my_batch",
   "sign_urls": ["https://your-signed-url-1", "https://your-signed-url-2"],
-  "process": { "file_id": "", "level": 1 },
+  "process": { "file_id": "", "level": 1, "requires_manual_review": false },
   "report":  { "file_id": "" }
 }
 ```
 
 > 📦 **`user_batch_id` and `batch_name` are optional.** Fill them in only if you want your uploads grouped under a specific batch — for example, to add more files to a batch you created in an earlier run. Leave **both** blank to have a batch generated automatically. They must always be sent **together** and must refer to the same batch; see [Endpoint 1](#endpoint-1--upload-files-directly-form-data) for the full rules.
+
+> 👤 **`requires_manual_review` is optional.** Set it to `true` under `process` if you want to manually review and refine the automated tagging in the web UI before the tagged PDF becomes downloadable. Default is `false`. See [Endpoint 4](#endpoint-4--start-a-processing-job) and [Endpoint 5](#endpoint-5--check-job--get-tagged-pdf).
 
 You never edit the language files themselves. See [Section 7](#7-how-to-call-the-apis-pick-your-language) for what each `config.json` field is for and when to fill it in, and your language folder's own README for the exact path and commands.
 
@@ -160,14 +162,16 @@ You never edit the language files themselves. See [Section 7](#7-how-to-call-the
 | 1 | POST   | `/files/upload/`               | Uploads one or more PDFs **directly** as `multipart/form-data` (`files` + optional `description`, `user_batch_id`, `batch_name`). Returns a **file_id** for each accepted file, plus its **user_batch_id** / **batch_name**. |
 | 2 | POST   | `/files/upload-from-url/`      | Starts a file upload **from signed URLs**. You send **sign_urls** (plus optional `description`, `user_batch_id`, `batch_name`) in the payload, and it returns the **file_ids** of the uploaded URLs, plus the **user_batch_id** / **batch_name**. |
 | 3 | GET    | `/files/status/{file_id}`      | Returns the upload **status** (`Uploading` / `Uploaded`) for the given file_id, along with the file's **batch_name** / **user_batch_id**. |
-| 4 | POST   | `/jobs/`                       | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id** and a **level** (1 or 2). Returns a **job_id**. |
-| 5 | GET    | `/jobs/{job_id}`               | Returns the processing **status** and a **link to the tagged PDF**. |
+| 4 | POST   | `/jobs/`                       | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id**, a **level** (1 or 2), and an optional **requires_manual_review** flag. Returns a **job_id**. |
+| 5 | GET    | `/jobs/{job_id}`               | Returns the processing **status** and a **link to the tagged PDF**. If the job was started with `requires_manual_review: true`, the link becomes available only after you complete the manual review in the web UI. |
 | 6 | POST   | `/report/`                     | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
 | 7 | GET    | `/report/{job_id}`             | Returns the report **status** and a **link to the generated score report PDF** for the file. |
 
 > 📄 **PDFs only** — both upload endpoints (1 and 2) accept **PDF files only**. Non-PDF files are rejected.
 
 > 📦 **Batches.** Every upload belongs to a *batch*. Send `user_batch_id` + `batch_name` on either upload endpoint (1 or 2) to control which batch your files land in — for example, to add more files to a batch you started earlier — or omit **both** to have one generated automatically. The two fields always travel together and must point to the same batch. Full rules and the conflict responses are in [Endpoint 1](#endpoint-1--upload-files-directly-form-data).
+
+> 👤 **Manual review.** By default, tagging is fully automatic. If you'd like to review and refine the tagging in the web UI before downloading, set `requires_manual_review: true` on the processing endpoint — see [Endpoint 4](#endpoint-4--start-a-processing-job).
 
 > 🔗 **Don't have a signed URL yet?** See [How to get a signed URL](docs/getting-signed-urls.md) — step-by-step for Amazon S3 and Google Drive.
 
@@ -251,8 +255,8 @@ your-project/
 
    > 🧹 **Clean up after Step 1 runs.** Once you've run Step 1 and have your `file_id`s, the upload is done — there's no need to send those files again. **Remove the PDFs from the `uploads/` folder** (and **clear the `sign_urls` list in `config.json`**) so the next run doesn't re-upload the same files by mistake. You don't keep re-hitting the upload endpoint; Steps 2–6 use the `file_id`, not the original file or URL.
 2. **Check upload** → repeat until the status is `Uploaded`.
-3. **Create a job** with a `file_id` and a level (1 or 2) → get a `job_id`.
-4. **Check the job** → when `Completed`, get the tagged-PDF download link.
+3. **Create a job** with a `file_id`, a level (1 or 2), and optionally `requires_manual_review: true` → get a `job_id`.
+4. **Check the job** → when `Completed`, get the tagged-PDF download link. *(If you passed `requires_manual_review: true`, first go to the web UI, do the manual review, click **Complete**, and then poll this endpoint again to get the download link.)*
 5. **Request a report** with a `file_id` → get a report `job_id`.
 6. **Check the report** → when `Completed`, get the score-report PDF download link.
 
@@ -271,7 +275,7 @@ After this first step, **everything else is identical** — both paths give you 
 
 ### How the ready-made files work
 
-- **You edit one file:** [config.json](config.json) — it holds your `api_key`, `sign_urls`, the optional `user_batch_id` / `batch_name`, the `process` file/level, and the `report` file. You fill it in **as you go** (URLs and any batch values before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5). You never edit the language files themselves.
+- **You edit one file:** [config.json](config.json) — it holds your `api_key`, `sign_urls`, the optional `user_batch_id` / `batch_name`, the `process` file/level/manual-review flag, and the `report` file. You fill it in **as you go** (URLs and any batch values before Step 1, `process.file_id` before Step 3, `report.file_id` before Step 5). You never edit the language files themselves.
 - Running a step **prints the result on screen** AND **saves the important values** (file_ids, job_ids, and their status) into a **`data.json`** file **inside that language folder**. Each language keeps its own `data.json`, so running, say, Node and Python side by side won't collide.
 - Anything that **isn't** a clean success — a 207 partial upload, a non-200 response, or a failed job/report — is kept out of `data.json` and written to a separate **`errors.json`** in the same folder (grouped into `url_errors` / `file_errors` / `job_errors` / `other`, append-only, each with a UTC timestamp).
 - The "check" files (steps 2, 4, 6) automatically **loop through everything saved**, skip anything already finished, and update the rest. They are safe to run again and again until everything is done.
@@ -280,7 +284,7 @@ Each language folder therefore has three JSON files in play:
 
 | File | Where | You… | Holds |
 |------|-------|------|-------|
-| `config.json` | repo **root** (shared) | **edit** this | your api_key, sign_urls, optional batch fields, process/report file ids + level |
+| `config.json` | repo **root** (shared) | **edit** this | your api_key, sign_urls, optional batch fields, process/report file ids + level + manual-review flag |
 | `data.json`   | inside the language folder | **view** (auto-written) | clean tracked items (file_uploads, job_process, report_process) |
 | `errors.json` | inside the language folder | **view** when something fails | grouped error history |
 
@@ -334,7 +338,7 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/files/status/aaa9502
 # → uploading_status: Uploaded
 ```
 
-**Step 3 — Start a processing job** with that `file_id`. Returns a `job_id`.
+**Step 3 — Start a processing job** with that `file_id`. Returns a `job_id`. *(Add `"requires_manual_review": true` in the body if you want to review the tagging in the web UI before downloading — see [Endpoint 4](#endpoint-4--start-a-processing-job).)*
 
 ```bash
 curl -X POST "https://api.accessibilityondemand.space/api/v1/jobs/" \
@@ -344,7 +348,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/jobs/" \
 # → job_id: job_123
 ```
 
-**Step 4 — Poll the job** until `Completed`, then download the tagged PDF from `download_url` (before it expires).
+**Step 4 — Poll the job** until `Completed`, then download the tagged PDF from `download_url` (before it expires). *(If you started the job with `requires_manual_review: true`, the response will first ask you to complete the manual review in the web UI — see [Endpoint 5](#endpoint-5--check-job--get-tagged-pdf). After clicking **Complete**, poll this endpoint again to get the `download_url`.)*
 
 ```bash
 curl -X GET "https://api.accessibilityondemand.space/api/v1/jobs/job_123" \
@@ -825,7 +829,17 @@ Sends an uploaded file for tagging. Returns a `job_id`.
 
 > 💳 **Costs credits.** Processing consumes credits. If the account doesn't have enough, this endpoint returns **`402 Payment Required`** (`INSUFFICIENT_CREDITS`) — see [Common errors](#common-errors-all-endpoints). Top up the account's credits and try again.
 
-**Request**
+> 👤 **Manual review (optional).** By default, tagging is fully automatic and the tagged PDF becomes downloadable as soon as processing completes. If you'd like to **review and refine the tagging in the web UI first**, set `requires_manual_review: true` in the request body. When the job finishes, the API will hold the download link until you complete the manual review — see [Endpoint 5](#endpoint-5--check-job--get-tagged-pdf) for the full flow (email notification, review in the UI, click **Complete**, then download).
+
+**Request body**
+
+| Field | Required | Meaning |
+|-------|----------|---------|
+| `file_id` | yes | A successfully uploaded file's ID |
+| `level` | yes | Processing level: `1` or `2` |
+| `requires_manual_review` | no | If `true`, the tagged PDF is held for manual review in the web UI. The download link becomes available only after you click **Complete** at the end of the review. Default: `false`. |
+
+**Request — automatic only (default)**
 
 ```bash
 curl -X POST "https://api.accessibilityondemand.space/api/v1/jobs/" \
@@ -834,6 +848,19 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/jobs/" \
   -d '{
     "file_id": "aaa950240561cd149157e054",
     "level": 1
+  }'
+```
+
+**Request — with manual review**
+
+```bash
+curl -X POST "https://api.accessibilityondemand.space/api/v1/jobs/" \
+  -H "Authorization: Bearer aod-xxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "file_id": "aaa950240561cd149157e054",
+    "level": 1,
+    "requires_manual_review": true
   }'
 ```
 
@@ -886,6 +913,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/jobs/" \
 |-------|---------|
 | `file_id` (request) | An uploaded file's ID |
 | `level` (request) | Processing level: `1` or `2` |
+| `requires_manual_review` (request, optional) | If `true`, the tagged PDF is held for manual review in the web UI — the download link isn't returned until you complete the review and click **Complete**. Default: `false`. See [Endpoint 5](#endpoint-5--check-job--get-tagged-pdf) for the full workflow. |
 | `data.job_id` | The job's ID — use it to check status in the next step |
 
 [⬆ Back to top](#top)
@@ -942,6 +970,37 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/jobs/JOB_ID_HERE" \
 }
 ```
 
+**`200 OK`** (manual review pending — the job was started with `requires_manual_review: true`)
+
+If you started the job with `requires_manual_review: true` on [Endpoint 4](#endpoint-4--start-a-processing-job), the automated tagging is done but the PDF is held for you to review in the web UI. Until you finish the review, this endpoint returns a `message` **instead of** a `download_url`:
+
+```json
+{
+    "success": true,
+    "data": {
+        "status": "Completed",
+        "details": {
+            "message": "Please complete the manual review in the system. After that, the download link will be available."
+        }
+    },
+    "message": null,
+    "request_id": "b77f2f2d-218e-4f0b-80da-e51cd9440d5f",
+    "timestamp": "2026-07-14T12:17:19.132589+00:00"
+}
+```
+
+> 📧 **You'll get an email automatically.** As soon as the automated tagging finishes, an email is sent to the account letting you know that your batch and file are ready to review. You don't need to keep polling this endpoint just to find out when to start the review — the email is your cue.
+
+**How to complete the manual review**
+
+1. Go to **<https://app.accessibilityondemand.ai/login>** and log in.
+2. Open the **batch** the file belongs to (the same `user_batch_id` / `batch_name` from the upload response).
+3. **Select the file** in that batch, then click **Review**.
+4. Work through the manual review — refining tags, structure, reading order, etc.
+5. On the **last page** of the review, click the **Complete** button.
+
+Once you click **Complete**, call `GET /jobs/{job_id}` again — the response will now include the `download_url` for the reviewed PDF (the same shape as the "fully tagged" example above), which you can download before it expires.
+
 **Error** (`success: false`)
 
 > ℹ️ **Note:** a failed job still returns HTTP `200`. The HTTP status only tells you the request was received — always check `data.status` (`Completed` / `Warning` / `Failed`) and `success` to know the actual outcome.
@@ -966,8 +1025,9 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/jobs/JOB_ID_HERE" \
 | Field | Meaning |
 |-------|---------|
 | `data.status` | e.g. `Processing`, `Completed`, `Warning`, `Failed` |
-| `data.details.download_url` | Link to download the tagged PDF (present on `Completed`, and on `Warning` where most pages succeeded) |
+| `data.details.download_url` | Link to download the tagged PDF (present on `Completed`, and on `Warning` where most pages succeeded). **Absent when a manual review is required and hasn't been completed yet** — see the "manual review pending" example above. |
 | `data.details.expires_in_seconds` | How long the link stays valid (e.g. 300 = 5 minutes, 0 = expired; longer values are possible) |
+| `data.details.message` | Present only when the job was started with `requires_manual_review: true` and the review is still pending — tells you to complete the review in the web UI |
 | `data.details.error` | On `Failed`, the reason the job failed; on `Warning`, which pages could not be processed |
 
 [⬆ Back to top](#top)
@@ -980,7 +1040,7 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/jobs/JOB_ID_HERE" \
 
 Requests an axes4 accessibility score report for a file. Returns a report `job_id`.
 
-> ℹ️ **Only for accessible (tagged) files.** A score report can be generated only for a file whose processing job **Completed** successfully. Files that are still processing, that failed, or that finished with warnings are not eligible — make the PDF accessible first (Endpoint 4).
+> ℹ️ **Only for accessible (tagged) files.** A score report can be generated only for a file whose processing job **Completed** successfully. Files that are still processing, that failed, or that finished with warnings are not eligible — make the PDF accessible first (Endpoint 4). If the job used `requires_manual_review: true`, you must also complete the manual review before requesting a score.
 
 **Request**
 
@@ -1281,6 +1341,19 @@ When contacting support, include the `request_id` — it lets us find your exact
 **Q: Do I need to remove files after uploading?**
 > Yes. Once Step 1 has run and you have your `file_id`s, the upload is complete. **Delete (or move) the PDFs out of the `uploads/` folder**, and **clear the `sign_urls` list in `config.json`**. Otherwise the next run will upload the same files again by mistake. Everything after Step 1 uses the `file_id` — not the original file or URL.
 
+**Q: How do I request a manual review of the automated tagging?**
+> When starting a processing job ([Endpoint 4](#endpoint-4--start-a-processing-job), `POST /jobs/`), include `"requires_manual_review": true` in the request body. Automated tagging still runs as usual, but the tagged PDF is held for you to review and refine in the web UI before it becomes downloadable. As soon as the automated tagging finishes, you'll receive an email letting you know your batch and file are ready to review. If you don't set the flag, the default is `false` — meaning tagging is fully automatic and the download link is returned as soon as the job completes.
+
+**Q: I passed `requires_manual_review: true`. Why does `GET /jobs/{job_id}` say to complete the review, with no download link?**
+> That's expected. When you enable manual review, the download link isn't returned until you've finished the review in the web UI. Do this:
+>
+> 1. Go to **<https://app.accessibilityondemand.ai/login>** and log in.
+> 2. Open the batch (the `user_batch_id` / `batch_name` you got at upload).
+> 3. Select the file, click **Review**, and work through the pages.
+> 4. On the last page, click the **Complete** button.
+>
+> After that, call `GET /jobs/{job_id}` again — the response will now include the `download_url`. See [Endpoint 5](#endpoint-5--check-job--get-tagged-pdf) for the full flow.
+
 **Q: I get a 401 error. Why?**
 > Your API key is wrong or not pasted correctly. Re-check your key (Section 4) and make sure there are no extra spaces and that it starts with `Bearer `.
 
@@ -1288,7 +1361,7 @@ When contacting support, include the `request_id` — it lets us find your exact
 > The account doesn't have enough credits to process the file. Credits are consumed when you start a processing job (Endpoint 4). An **Admin** or **Super Admin** can allot more credits to the user (see [Section 3](#3-how-to-get-your-api-key)); once topped up, run the step again.
 
 **Q: I asked for a report but got "make the PDF accessible first." Why?**
-> A score report can only be generated for a file that has been successfully made accessible — that is, its processing job (Endpoint 4) **Completed**. Files that are still processing, that failed, or that finished with warnings can't be scored. Finish processing the file successfully, then request the report.
+> A score report can only be generated for a file that has been successfully made accessible — that is, its processing job (Endpoint 4) **Completed**. Files that are still processing, that failed, or that finished with warnings can't be scored. Finish processing the file successfully, then request the report. If the job used `requires_manual_review: true`, remember to complete the manual review in the web UI first — until you click **Complete**, the file isn't considered fully tagged for scoring.
 
 **Q: Which languages are supported?**
 > All four are available now, each in its own folder with the same 6 steps: Python — [`/python-sync`](python-sync) and [`/python-async`](python-async), Node.js — [`/node`](node), Java — [`/java`](java), and .NET — [`/dotnet`](dotnet). The API works the same in any language; see [Section 9](#9-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
@@ -1316,4 +1389,4 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ---
 
-*Last updated: 03-07-2026 · Maintained by aod-tech*
+*Last updated: 15-07-2026 · Maintained by aod-tech*
