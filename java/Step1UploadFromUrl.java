@@ -9,14 +9,21 @@
  *   • Need a signed URL? See ../docs/getting-signed-urls.md
  *
  * EDIT NOTHING HERE. All your values live in  config.json
- *   (api_key, sign_urls, description).
+ *   - api_key
+ *   - sign_urls
+ *   - description (optional)
+ *   - user_batch_id + batch_name (optional pair; set BOTH to target a specific
+ *     batch, or leave BOTH blank to have the API generate one for you)
  *
  * How to run (Java 11+):
  *   Mac/Linux:  java -cp ".:lib/gson.jar" Step1UploadFromUrl.java
  *   Windows:    java -cp ".;lib\gson.jar" Step1UploadFromUrl.java
  *
  * What it saves to data.json:
- *   "file_uploads": [ { "file_id": "....", "url": "....", "status": "Uploading" }, ... ]
+ *   "file_uploads": [
+ *     { "file_id": "....", "url": "....", "status": "Uploading",
+ *       "user_batch_id": "....", "batch_name": "...." }, ...
+ *   ]
  */
 
 import com.google.gson.*;
@@ -29,6 +36,10 @@ public class Step1UploadFromUrl {
         String apiKey = AOD.apiKey();
         String description = AOD.getString(cfg, "description", "");
         java.util.List<String> signedUrls = AOD.getStringArray(cfg, "sign_urls");
+        // Enforce the "both or neither" rule locally so we don't send a bad pair.
+        String[] batch = AOD.getBatchFields(cfg);
+        String userBatchId = batch[0];
+        String batchName = batch[1];
 
         if (signedUrls.isEmpty()) {
             System.out.println("[X] No signed URLs found. Add at least one real URL to "
@@ -39,17 +50,39 @@ public class Step1UploadFromUrl {
 
         String endpoint = AOD.BASE_URL + "/files/upload-from-url/";
 
+        // Build the JSON body — only include fields the user actually set.
         JsonObject payload = new JsonObject();
         JsonArray urls = new JsonArray();
         for (String u : signedUrls) urls.add(u);
         payload.add("sign_urls", urls);
-        payload.addProperty("description", description);
+        if (!description.isEmpty()) payload.addProperty("description", description);
+        if (userBatchId != null && batchName != null) {
+            payload.addProperty("user_batch_id", userBatchId);
+            payload.addProperty("batch_name", batchName);
+        }
 
-        System.out.println("Uploading " + signedUrls.size() + " file(s)...");
+        if (userBatchId != null && batchName != null) {
+            System.out.println("Uploading " + signedUrls.size() + " file(s) from signed URLs into batch "
+                    + "'" + batchName + "' (user_batch_id: " + userBatchId + ") ...");
+        } else {
+            System.out.println("Uploading " + signedUrls.size() + " file(s) from signed URLs "
+                    + "(batch will be auto-generated) ...");
+        }
         java.net.http.HttpResponse<String> response = AOD.post(endpoint, apiKey, payload.toString());
         JsonObject body = AOD.showResponse(response);
 
         int code = response.statusCode();
+
+        if (code == 409) {
+            // The batch pair partially matches an existing batch — user has to fix config.
+            System.out.println("\n[Conflict] The user_batch_id / batch_name pair doesn't match an existing batch.");
+            System.out.println("           See the response above for the exact reason.");
+            System.out.println("           Fix it in config.json: use the matching partner value, pick a fresh");
+            System.out.println("           unique pair, or clear BOTH fields to have them auto-generated.");
+            AOD.logOther(409, "Batch pair conflict on upload-from-url", body != null ? body : null);
+            return;
+        }
+
         if ((code == 200 || code == 207) && body != null) {
             JsonArray fileUploads = AOD.getArray("file_uploads");
             java.util.List<JsonObject> failed = new java.util.ArrayList<>();
@@ -66,6 +99,13 @@ public class Step1UploadFromUrl {
                                     ? it.get("url").getAsString() : "");
                             entry.addProperty("status", it.has("status") && !it.get("status").isJsonNull()
                                     ? it.get("status").getAsString() : "Uploading");
+                            // The server echoes back the batch the file was placed in.
+                            if (it.has("user_batch_id") && !it.get("user_batch_id").isJsonNull()) {
+                                entry.addProperty("user_batch_id", it.get("user_batch_id").getAsString());
+                            }
+                            if (it.has("batch_name") && !it.get("batch_name").isJsonNull()) {
+                                entry.addProperty("batch_name", it.get("batch_name").getAsString());
+                            }
                             fileUploads.add(entry);
                         }
                     }
@@ -82,8 +122,14 @@ public class Step1UploadFromUrl {
                 System.out.println("\n[OK] Uploaded files (status will be 'Uploading' at first):");
                 for (JsonElement e : fileUploads) {
                     JsonObject f = e.getAsJsonObject();
-                    System.out.println("   - file_id: " + f.get("file_id").getAsString()
-                            + "  |  status: " + f.get("status").getAsString());
+                    StringBuilder line = new StringBuilder()
+                            .append("   - file_id: ").append(f.get("file_id").getAsString())
+                            .append("  |  status: ").append(f.get("status").getAsString());
+                    if (f.has("batch_name") && !f.get("batch_name").isJsonNull()
+                            && !f.get("batch_name").getAsString().isEmpty()) {
+                        line.append("  |  batch: ").append(f.get("batch_name").getAsString());
+                    }
+                    System.out.println(line.toString());
                 }
                 System.out.println("\nNext: run  Step2CheckUpload.java");
             } else {
@@ -199,6 +245,37 @@ class AOD {
         return out;
     }
 
+    /**
+     * Reads the optional batch fields from config.json (top-level "user_batch_id"
+     * and "batch_name"). The API rule is that they always travel as a PAIR:
+     *   - both set     -> the new files are placed in (or added to) that batch
+     *   - both blank   -> the API auto-generates a fresh batch for this upload
+     *   - only one set -> not allowed; would 409 on the server
+     *
+     * Returns a two-element String[]:
+     *   { userBatchId, batchName }  when both are set
+     *   { null, null }              when neither is set (send nothing -> auto-generate)
+     *
+     * Exits with a clear error message when exactly one is set, so we catch that
+     * locally instead of hitting the server with a bad pair.
+     */
+    static String[] getBatchFields(com.google.gson.JsonObject cfg) {
+        String uid = getString(cfg, "user_batch_id", "").trim();
+        String name = getString(cfg, "batch_name", "").trim();
+
+        if (!uid.isEmpty() && !name.isEmpty()) return new String[] { uid, name };
+        if (uid.isEmpty() && name.isEmpty()) return new String[] { null, null };
+
+        String which = !uid.isEmpty() ? "user_batch_id" : "batch_name";
+        String other = !uid.isEmpty() ? "batch_name" : "user_batch_id";
+        System.out.println("[X] Batch pair is incomplete in config.json.");
+        System.out.println("    You set \"" + which + "\" but left \"" + other + "\" blank.");
+        System.out.println("    These two fields must be sent TOGETHER — set both to target a specific batch,");
+        System.out.println("    or clear both to have the API generate one for you.");
+        System.exit(1);
+        return new String[] { null, null }; // unreachable
+    }
+
     // ---------- HTTP ----------
 
     static java.net.http.HttpResponse<String> post(String url, String apiKey, String jsonBody)
@@ -249,11 +326,13 @@ class AOD {
     /*
      * POST one or more local files as multipart/form-data.
      * java.net.http has no built-in multipart writer, so we build the body by hand:
-     * each file becomes a "files" part; an optional "description" text part is added.
+     * each file becomes a "files" part; each non-empty entry in textFields becomes
+     * a text form-field part (e.g. "description", "user_batch_id", "batch_name").
      * Do NOT set Content-Type yourself elsewhere — we set the boundary here.
      */
     static java.net.http.HttpResponse<String> postMultipart(
-            String url, String apiKey, java.util.List<java.nio.file.Path> files, String description)
+            String url, String apiKey, java.util.List<java.nio.file.Path> files,
+            java.util.Map<String, String> textFields)
             throws Exception {
         String boundary = "----aodBoundary" + System.currentTimeMillis();
         byte[] CRLF = "\r\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -273,15 +352,20 @@ class AOD {
             baos.write(CRLF);
         }
 
-        if (description != null && !description.isEmpty()) {
-            baos.write(("--" + boundary).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            baos.write(CRLF);
-            baos.write("Content-Disposition: form-data; name=\"description\""
-                    .getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            baos.write(CRLF);
-            baos.write(CRLF);
-            baos.write(description.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            baos.write(CRLF);
+        if (textFields != null) {
+            for (java.util.Map.Entry<String, String> field : textFields.entrySet()) {
+                String key = field.getKey();
+                String value = field.getValue();
+                if (key == null || key.isEmpty() || value == null || value.isEmpty()) continue;
+                baos.write(("--" + boundary).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                baos.write(CRLF);
+                baos.write(("Content-Disposition: form-data; name=\"" + key + "\"")
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                baos.write(CRLF);
+                baos.write(CRLF);
+                baos.write(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                baos.write(CRLF);
+            }
         }
 
         baos.write(("--" + boundary + "--").getBytes(java.nio.charset.StandardCharsets.UTF_8));

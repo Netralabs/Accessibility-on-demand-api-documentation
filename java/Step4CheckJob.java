@@ -6,6 +6,18 @@
  *   - When a job is Completed, the full "details" block (download_url +
  *     expires_in_seconds) is saved on that job.
  *
+ * Manual review case:
+ *   If you started the job with requires_manual_review=true (Step 3), the job
+ *   may come back with API status "Completed" BUT no download_url — the API is
+ *   holding the link until you complete the manual review in the web UI. This
+ *   step marks such jobs locally as "AwaitingManualReview" (not "Completed") so
+ *   polling keeps going. To finish them:
+ *     1. Go to https://app.accessibilityondemand.ai/login and log in
+ *        (you'll also receive an email when the file is ready to review).
+ *     2. Open the batch, select the file, click Review.
+ *     3. On the last page of the review, click the Complete button.
+ *     4. Run this file again — the download_url will now be included.
+ *
  * EDIT NOTHING HERE. Your api_key lives in  config.json
  *
  * How to run (Java 11+):
@@ -24,6 +36,24 @@ public class Step4CheckJob {
         return status != null && status.equalsIgnoreCase("completed");
     }
 
+    /**
+     * The API reports status="Completed" for two very different situations:
+     *   1) Fully done  -> details has a download_url
+     *   2) Waiting for manual review -> details has a "message" but NO download_url
+     * Detect case 2 so we can label it distinctly and keep polling.
+     */
+    static boolean isManualReviewPending(String apiStatus, JsonObject details) {
+        if (apiStatus == null || !apiStatus.equalsIgnoreCase("completed")) return false;
+        if (details == null) return false;
+        boolean hasDownload = details.has("download_url")
+                && !details.get("download_url").isJsonNull()
+                && !details.get("download_url").getAsString().isEmpty();
+        boolean hasMessage = details.has("message")
+                && !details.get("message").isJsonNull()
+                && !details.get("message").getAsString().isEmpty();
+        return !hasDownload && hasMessage;
+    }
+
     public static void main(String[] args) throws Exception {
         String apiKey = AOD.apiKey();
 
@@ -35,7 +65,7 @@ public class Step4CheckJob {
         }
 
         boolean changed = false;
-        int done = 0, pending = 0;
+        int done = 0, awaiting = 0, stillProcessing = 0;
 
         System.out.println("Checking " + jobProcess.size() + " job(s)...\n");
 
@@ -57,22 +87,27 @@ public class Step4CheckJob {
             } catch (Exception e) {
                 System.out.println("   - " + jobId + ": could not check (status code " + resp.statusCode() + ")");
                 AOD.logJobError(jobId, resp.statusCode(), "Could not read/parse job response", null);
-                pending++;
+                stillProcessing++;
                 continue;
             }
 
-            String status;
+            String apiStatus;
             JsonObject details = null;
             JsonObject error = null;
 
             if (body.has("success") && !body.get("success").getAsBoolean()) {
-                status = "Failed";
+                apiStatus = "Failed";
                 error = body.has("error") && body.get("error").isJsonObject() ? body.getAsJsonObject("error") : new JsonObject();
             } else {
                 JsonObject data = body.has("data") && body.get("data").isJsonObject() ? body.getAsJsonObject("data") : new JsonObject();
-                status = data.has("status") && !data.get("status").isJsonNull() ? data.get("status").getAsString() : "unknown";
+                apiStatus = data.has("status") && !data.get("status").isJsonNull() ? data.get("status").getAsString() : "unknown";
                 if (data.has("details") && data.get("details").isJsonObject()) details = data.getAsJsonObject("details");
             }
+
+            // Distinguish the "completed but manual review pending" case locally so it
+            // doesn't get bucketed with the fully-done jobs.
+            boolean manualReviewPending = isManualReviewPending(apiStatus, details);
+            String status = manualReviewPending ? "AwaitingManualReview" : apiStatus;
 
             System.out.println("   - " + jobId + ": " + status);
 
@@ -81,10 +116,21 @@ public class Step4CheckJob {
                 changed = true;
             }
 
-            if (status.equalsIgnoreCase("completed") && details != null) {
+            if (manualReviewPending) {
+                // Show a friendly, actionable note so the user knows exactly what to do.
+                // We do NOT save details here (there's no download_url yet).
+                System.out.println("     note: " + details.get("message").getAsString());
+                System.out.println("     -> log in at https://app.accessibilityondemand.ai/login,");
+                System.out.println("        open the batch, select the file, click Review,");
+                System.out.println("        then click Complete on the last page.");
+                System.out.println("        After that, run this file again to get the download_url.");
+            }
+
+            if (status.equalsIgnoreCase("completed") && details != null
+                    && details.has("download_url") && !details.get("download_url").isJsonNull()) {
                 entry.add("details", details);
                 changed = true;
-                System.out.println("     download_url: " + (details.has("download_url") ? details.get("download_url").getAsString() : ""));
+                System.out.println("     download_url: " + details.get("download_url").getAsString());
                 System.out.println("     expires_in_seconds: " + (details.has("expires_in_seconds") ? details.get("expires_in_seconds").getAsString() : ""));
             }
 
@@ -96,17 +142,45 @@ public class Step4CheckJob {
                 AOD.logJobError(jobId, resp.statusCode(), (code + " " + detail).trim(), error);
             }
 
-            if (isFinished(status)) done++; else pending++;
+            if (isFinished(status)) {
+                done++;
+            } else if (status.equalsIgnoreCase("AwaitingManualReview")) {
+                awaiting++;
+            } else {
+                stillProcessing++;
+            }
         }
 
         if (changed) AOD.saveValue("job_process", jobProcess);
 
-        System.out.println("\nSummary:");
-        System.out.println("   finished: " + done + "  |  still processing: " + pending);
+        // Collect the awaiting-review jobs so we can list them by id.
+        java.util.List<JsonObject> awaitingList = new java.util.ArrayList<>();
+        for (JsonElement el : jobProcess) {
+            JsonObject entry = el.getAsJsonObject();
+            String s = entry.has("status") ? entry.get("status").getAsString() : "";
+            if (s.equalsIgnoreCase("AwaitingManualReview")) awaitingList.add(entry);
+        }
 
-        if (pending > 0) {
-            System.out.println("Some jobs are still processing. Wait a moment and run this file again.");
-        } else {
+        System.out.println("\nSummary:");
+        System.out.println("   finished: " + done
+                + "  |  awaiting manual review: " + awaiting
+                + "  |  still processing: " + stillProcessing);
+
+        if (!awaitingList.isEmpty()) {
+            System.out.println("\nJobs ready for manual review:");
+            for (JsonObject j : awaitingList) {
+                System.out.println("   - job_id: " + (j.has("job_id") ? j.get("job_id").getAsString() : "")
+                        + "  |  file_id: " + (j.has("file_id") ? j.get("file_id").getAsString() : ""));
+            }
+            System.out.println("   Log in at https://app.accessibilityondemand.ai/login, complete the review,");
+            System.out.println("   then run this file again to get the download link.");
+        }
+
+        if (stillProcessing > 0) {
+            System.out.println("\nSome jobs are still processing. Wait a moment and run this file again.");
+        }
+
+        if (awaiting == 0 && stillProcessing == 0) {
             System.out.println("[OK] All jobs finished. To get a score report, put a file_id into config.json "
                     + "(\"report\": {\"file_id\": ...}) and run  Step5CreateReport.java");
         }
