@@ -9,6 +9,18 @@
  *   - Failed jobs (or unreadable responses) are logged to errors.json,
  *     not data.json.
  *
+ * Manual review case:
+ *   If you started the job with requires_manual_review=true (Step 3), the job
+ *   may come back with API status "Completed" BUT no download_url — the API is
+ *   holding the link until you complete the manual review in the web UI. This
+ *   script marks such jobs locally as "AwaitingManualReview" (not "Completed")
+ *   so polling keeps going. To finish them:
+ *     1. Go to https://app.accessibilityondemand.ai/login and log in
+ *        (you'll also receive an email when the file is ready to review).
+ *     2. Open the batch, select the file, click Review.
+ *     3. On the last page of the review, click the Complete button.
+ *     4. Run this file again — the download_url will now be included.
+ *
  * EDIT NOTHING HERE. Your api_key lives in  ../config.json
  *
  * How to run:  node 4_check_job.js
@@ -19,7 +31,9 @@
 
 const { BASE_URL, apiKey, buildHeaders, getValue, saveValue, logJobError } = require("./helper");
 
-// Statuses that mean "done, no need to check again".
+// Statuses that mean "done, no need to check again". "awaitingmanualreview" is
+// deliberately NOT in this set — we want to keep polling until the user finishes
+// the review in the UI and the API starts returning a download_url.
 const FINISHED = new Set(["completed"]);
 
 // Reads the GET /jobs/{job_id} response.
@@ -30,6 +44,20 @@ function readJob(body) {
   }
   const data = body.data || {};
   return [data.status, data.details, null];
+}
+
+/*
+ * The API reports status="Completed" for two very different situations:
+ *   1) Fully done  -> details has a download_url
+ *   2) Waiting for manual review -> details has a "message" but NO download_url
+ * Detect case 2 so we can label it distinctly and keep polling.
+ */
+function isManualReviewPending(apiStatus, details) {
+  if (!apiStatus || String(apiStatus).toLowerCase() !== "completed") return false;
+  if (!details || typeof details !== "object") return false;
+  const hasDownload = typeof details.download_url === "string" && details.download_url.length > 0;
+  const hasMessage = typeof details.message === "string" && details.message.length > 0;
+  return !hasDownload && hasMessage;
 }
 
 async function checkOne(entry, headers) {
@@ -52,8 +80,14 @@ async function checkOne(entry, headers) {
     return false;
   }
 
-  let [status, details, error] = readJob(body);
-  status = status || "unknown";
+  let [apiStatus, details, error] = readJob(body);
+  apiStatus = apiStatus || "unknown";
+
+  // Distinguish the "completed but manual review pending" case locally so it
+  // doesn't get bucketed with the fully-done jobs.
+  const manualReviewPending = isManualReviewPending(apiStatus, details);
+  const status = manualReviewPending ? "AwaitingManualReview" : apiStatus;
+
   console.log(`   - ${jobId}: ${status}`);
 
   let changed = false;
@@ -63,7 +97,17 @@ async function checkOne(entry, headers) {
     changed = true;
   }
 
-  if (String(status).toLowerCase() === "completed" && details) {
+  if (manualReviewPending) {
+    // Show a friendly, actionable note so the user knows exactly what to do.
+    // We do NOT save details here (there's no download_url yet).
+    console.log(`     note: ${details.message}`);
+    console.log("     -> log in at https://app.accessibilityondemand.ai/login,");
+    console.log("        open the batch, select the file, click Review,");
+    console.log("        then click Complete on the last page.");
+    console.log("        After that, run this file again to get the download_url.");
+  }
+
+  if (String(status).toLowerCase() === "completed" && details && details.download_url) {
     entry.details = details;
     changed = true;
     console.log(`     download_url: ${details.download_url}`);
@@ -112,16 +156,34 @@ async function main() {
   const done = jobProcess.filter((j) =>
     FINISHED.has(String(j.status || "").toLowerCase())
   );
-  const stillPending = jobProcess.filter(
-    (j) => !FINISHED.has(String(j.status || "").toLowerCase())
+  const awaiting = jobProcess.filter(
+    (j) => String(j.status || "").toLowerCase() === "awaitingmanualreview"
   );
+  const stillProcessing = jobProcess.filter((j) => {
+    const s = String(j.status || "").toLowerCase();
+    return !FINISHED.has(s) && s !== "awaitingmanualreview";
+  });
 
   console.log("\nSummary:");
-  console.log(`   finished: ${done.length}  |  still processing: ${stillPending.length}`);
+  console.log(
+    `   finished: ${done.length}  |  awaiting manual review: ${awaiting.length}` +
+    `  |  still processing: ${stillProcessing.length}`
+  );
 
-  if (stillPending.length > 0) {
-    console.log("Some jobs are still processing. Wait a moment and run this file again.");
-  } else {
+  if (awaiting.length > 0) {
+    console.log("\nJobs ready for manual review:");
+    for (const j of awaiting) {
+      console.log(`   - job_id: ${j.job_id}  |  file_id: ${j.file_id}`);
+    }
+    console.log("   Log in at https://app.accessibilityondemand.ai/login, complete the review,");
+    console.log("   then run  node 4_check_job.js  again to get the download link.");
+  }
+
+  if (stillProcessing.length > 0) {
+    console.log("\nSome jobs are still processing. Wait a moment and run this file again.");
+  }
+
+  if (awaiting.length === 0 && stillProcessing.length === 0) {
     console.log("[OK] All jobs finished. To get a score report, put a file_id into config.json " +
       '("report": {"file_id": ...}) and run  node 5_create_report.js');
   }

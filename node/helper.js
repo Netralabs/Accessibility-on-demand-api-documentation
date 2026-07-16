@@ -65,6 +65,36 @@ function getStringArray(cfg, key) {
     .filter((v) => v && !v.startsWith("https://your-signed-url"));
 }
 
+/*
+ * Read the optional batch fields from config.json (top-level "user_batch_id"
+ * and "batch_name"). The API rule is that they always travel as a PAIR:
+ *   - both set     -> the new files are placed in (or added to) that batch
+ *   - both blank   -> the API auto-generates a fresh batch for this upload
+ *   - only one set -> not allowed; would 409 on the server
+ *
+ * Returns { userBatchId, batchName }:
+ *   both strings          -> both are set; send both
+ *   both null             -> neither is set; send nothing (API auto-generates)
+ *
+ * Exits with a clear error message when exactly one is set, so we catch that
+ * locally instead of hitting the server with a bad pair.
+ */
+function getBatchFields(cfg) {
+  const uid = (typeof cfg.user_batch_id === "string" ? cfg.user_batch_id : "").trim();
+  const name = (typeof cfg.batch_name === "string" ? cfg.batch_name : "").trim();
+
+  if (uid && name) return { userBatchId: uid, batchName: name };
+  if (!uid && !name) return { userBatchId: null, batchName: null };
+
+  const which = uid ? "user_batch_id" : "batch_name";
+  const other = uid ? "batch_name" : "user_batch_id";
+  console.log("[X] Batch pair is incomplete in config.json.");
+  console.log(`    You set "${which}" but left "${other}" blank.`);
+  console.log("    These two fields must be sent TOGETHER — set both to target a specific batch,");
+  console.log("    or clear both to have the API generate one for you.");
+  process.exit(1);
+}
+
 function buildHeaders(key) {
   return {
     Authorization: `Bearer ${key}`,
@@ -201,6 +231,7 @@ module.exports = {
   loadConfig,
   apiKey,
   getStringArray,
+  getBatchFields,
   buildHeaders,
   buildHeadersAuthOnly,
   findLocalPdfs,

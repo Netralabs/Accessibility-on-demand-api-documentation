@@ -11,25 +11,34 @@
  * HOW TO USE:
  *   1. Drop your PDF file(s) into the  uploads/  folder at the repo root.
  *   2. (Optional) set "description" in ../config.json.
- *   3. Run:  node 1_upload.js
+ *   3. (Optional) set "user_batch_id" + "batch_name" in ../config.json to group
+ *      these files into a specific batch — set BOTH, or leave BOTH blank to have
+ *      the API generate a fresh batch for you. See the README for the pairing rules.
+ *   4. Run:  node 1_upload.js
  *
- * EDIT NOTHING HERE. Your api_key (and optional description) live in ../config.json.
+ * EDIT NOTHING HERE. All values live in ../config.json.
  *
  * About the responses you may see:
  *   - 200 = all files accepted for uploading.
  *   - 207 = some files were accepted, some failed (e.g. malware detected).
  *           The script still saves the file_ids that succeeded, and logs the
  *           ones that failed to errors.json (under "url_errors").
+ *   - 409 = the user_batch_id / batch_name pair partially matches an existing
+ *           batch (e.g. one exists paired with a different value for the other).
+ *           Fix the pair in config.json — or clear both to auto-generate.
  *
  * What it saves to data.json:
- *   "file_uploads": [ { "file_id": "....", "filename": "....", "status": "Uploading" }, ... ]
+ *   "file_uploads": [
+ *     { "file_id": "....", "filename": "....", "status": "Uploading",
+ *       "user_batch_id": "....", "batch_name": "...." }, ...
+ *   ]
  */
 
 const fs = require("fs");
 const path = require("path");
 const {
   BASE_URL, UPLOADS_DIR, loadConfig, apiKey, findLocalPdfs, buildHeadersAuthOnly,
-  saveValue, getValue, showResponse, logUrlError, logOther,
+  saveValue, getValue, showResponse, logUrlError, logOther, getBatchFields,
 } = require("./helper");
 
 // The upload result blocks live in different places depending on the status:
@@ -45,6 +54,8 @@ async function main() {
   const cfg = loadConfig();
   const key = apiKey();
   const description = cfg.description || "";
+  // Enforce the "both or neither" rule locally so we don't send a bad pair.
+  const { userBatchId, batchName } = getBatchFields(cfg);
 
   const pdfPaths = findLocalPdfs();
 
@@ -60,7 +71,15 @@ async function main() {
 
   const ENDPOINT = `${BASE_URL}/files/upload/`;
 
-  console.log(`Uploading ${pdfPaths.length} file(s) from uploads/ ...`);
+  // Friendly one-liner so the user can see which batch the files are heading to.
+  if (userBatchId && batchName) {
+    console.log(
+      `Uploading ${pdfPaths.length} file(s) into batch ` +
+      `'${batchName}' (user_batch_id: ${userBatchId}) ...`
+    );
+  } else {
+    console.log(`Uploading ${pdfPaths.length} file(s) (batch will be auto-generated) ...`);
+  }
   for (const p of pdfPaths) {
     console.log("   - " + path.basename(p));
   }
@@ -73,8 +92,13 @@ async function main() {
     const blob = new Blob([bytes], { type: "application/pdf" });
     form.append("files", blob, path.basename(p));
   }
+  // Non-file form fields — only include what the user actually set.
   if (description) {
     form.append("description", description);
+  }
+  if (userBatchId && batchName) {
+    form.append("user_batch_id", userBatchId);
+    form.append("batch_name", batchName);
   }
 
   const response = await fetch(ENDPOINT, {
@@ -85,6 +109,16 @@ async function main() {
 
   const body = await showResponse(response);
 
+  if (response.status === 409) {
+    // The batch pair partially matches an existing batch — user has to fix config.
+    console.log("\n[Conflict] The user_batch_id / batch_name pair doesn't match an existing batch.");
+    console.log("           See the response above for the exact reason.");
+    console.log("           Fix it in config.json: use the matching partner value, pick a fresh");
+    console.log("           unique pair, or clear BOTH fields to have them auto-generated.");
+    logOther(409, "Batch pair conflict on direct upload", body);
+    return;
+  }
+
   // Treat 200 and 207 as "we got results worth reading".
   if ((response.status === 200 || response.status === 207) && body) {
     const fileUploads = getValue("file_uploads", []);
@@ -93,11 +127,16 @@ async function main() {
     for (const block of extractDetailBlocks(body)) {
       for (const item of block.successful_uploads || []) {
         if (item.file_id) {
-          fileUploads.push({
+          const saved = {
             file_id: item.file_id,
             filename: item.filename,
             status: item.status || "Uploading",
-          });
+          };
+          // The server echoes back the batch the file was placed in.
+          // Save it so the user can see it in data.json without checking config.
+          if (item.user_batch_id) saved.user_batch_id = item.user_batch_id;
+          if (item.batch_name) saved.batch_name = item.batch_name;
+          fileUploads.push(saved);
         }
       }
       for (const item of block.failed_uploads || []) {
@@ -109,7 +148,9 @@ async function main() {
       saveValue("file_uploads", fileUploads);
       console.log("\n[OK] Uploaded files (status will be 'Uploading' at first):");
       for (const f of fileUploads) {
-        console.log(`   - file_id: ${f.file_id}  |  ${f.filename}  |  status: ${f.status}`);
+        let line = `   - file_id: ${f.file_id}  |  ${f.filename}  |  status: ${f.status}`;
+        if (f.batch_name) line += `  |  batch: ${f.batch_name}`;
+        console.log(line);
       }
       console.log("\nNext: run  node 2_check_upload.js");
     } else {
