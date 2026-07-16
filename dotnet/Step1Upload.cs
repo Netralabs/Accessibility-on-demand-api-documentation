@@ -13,12 +13,18 @@
  * HOW TO USE:
  *   1. Drop your PDF file(s) into the  uploads/  folder at the repo root.
  *   2. (Optional) set "description" in ../config.json.
- *   3. Run:  dotnet run -- step1
+ *   3. (Optional) set "user_batch_id" + "batch_name" in ../config.json to group
+ *      these files into a specific batch — set BOTH, or leave BOTH blank to have
+ *      the API generate a fresh batch for you. See the README for the pairing rules.
+ *   4. Run:  dotnet run -- step1
  *
- * EDIT NOTHING HERE. Your api_key (and optional description) live in ../config.json.
+ * EDIT NOTHING HERE. All values live in ../config.json.
  *
  * What it saves to data.json:
- *   "file_uploads": [ { "file_id": "....", "filename": "....", "status": "Uploading" }, ... ]
+ *   "file_uploads": [
+ *     { "file_id": "....", "filename": "....", "status": "Uploading",
+ *       "user_batch_id": "....", "batch_name": "...." }, ...
+ *   ]
  */
 
 using System;
@@ -37,6 +43,8 @@ namespace Aod
             JsonObject cfg = Helper.LoadConfig();
             string apiKey = Helper.ApiKey();
             string description = Helper.GetString(cfg, "description", "");
+            // Enforce the "both or neither" rule locally so we don't send a bad pair.
+            var (userBatchId, batchName) = Helper.GetBatchFields(cfg);
 
             List<string> pdfPaths = Helper.FindLocalPdfs();
 
@@ -53,14 +61,40 @@ namespace Aod
 
             string endpoint = Helper.BaseUrl + "/files/upload/";
 
-            Console.WriteLine($"Uploading {pdfPaths.Count} file(s) from uploads/ ...");
+            // Friendly one-liner so the user can see which batch the files are heading to.
+            if (userBatchId != null && batchName != null)
+                Console.WriteLine($"Uploading {pdfPaths.Count} file(s) into batch "
+                    + $"'{batchName}' (user_batch_id: {userBatchId}) ...");
+            else
+                Console.WriteLine($"Uploading {pdfPaths.Count} file(s) (batch will be auto-generated) ...");
             foreach (var p in pdfPaths)
                 Console.WriteLine("   - " + Path.GetFileName(p));
 
-            var response = await Helper.PostMultipartAsync(endpoint, apiKey, pdfPaths, description);
+            // Non-file form fields — only include what the user actually set.
+            var textFields = new Dictionary<string, string>();
+            if (!string.IsNullOrEmpty(description)) textFields["description"] = description;
+            if (userBatchId != null && batchName != null)
+            {
+                textFields["user_batch_id"] = userBatchId;
+                textFields["batch_name"] = batchName;
+            }
+
+            var response = await Helper.PostMultipartAsync(endpoint, apiKey, pdfPaths, textFields);
             var body = await Helper.ShowResponseAsync(response);
 
             int code = (int)response.StatusCode;
+
+            if (code == 409)
+            {
+                // The batch pair partially matches an existing batch — user has to fix config.
+                Console.WriteLine("\n[Conflict] The user_batch_id / batch_name pair doesn't match an existing batch.");
+                Console.WriteLine("           See the response above for the exact reason.");
+                Console.WriteLine("           Fix it in config.json: use the matching partner value, pick a fresh");
+                Console.WriteLine("           unique pair, or clear BOTH fields to have them auto-generated.");
+                Helper.LogOther(409, "Batch pair conflict on direct upload", body);
+                return;
+            }
+
             if ((code == 200 || code == 207) && body != null)
             {
                 JsonArray fileUploads = Helper.GetArray("file_uploads");
@@ -77,12 +111,16 @@ namespace Aod
                             var it = itEl.AsObject();
                             if (it["file_id"] != null)
                             {
-                                fileUploads.Add(new JsonObject
+                                var saved = new JsonObject
                                 {
                                     ["file_id"] = Helper.Str(it["file_id"]),
                                     ["filename"] = Helper.Str(it["filename"]),
                                     ["status"] = it["status"] != null ? Helper.Str(it["status"]) : "Uploading",
-                                });
+                                };
+                                // The server echoes back the batch the file was placed in.
+                                if (it["user_batch_id"] != null) saved["user_batch_id"] = Helper.Str(it["user_batch_id"]);
+                                if (it["batch_name"] != null) saved["batch_name"] = Helper.Str(it["batch_name"]);
+                                fileUploads.Add(saved);
                             }
                         }
                     }
@@ -99,7 +137,9 @@ namespace Aod
                     foreach (var e in fileUploads)
                     {
                         var f = e.AsObject();
-                        Console.WriteLine($"   - file_id: {Helper.Str(f["file_id"])}  |  {Helper.Str(f["filename"])}  |  status: {Helper.Str(f["status"])}");
+                        string line = $"   - file_id: {Helper.Str(f["file_id"])}  |  {Helper.Str(f["filename"])}  |  status: {Helper.Str(f["status"])}";
+                        if (f["batch_name"] != null) line += $"  |  batch: {Helper.Str(f["batch_name"])}";
+                        Console.WriteLine(line);
                     }
                     Console.WriteLine("\nNext: run  dotnet run -- step2");
                 }

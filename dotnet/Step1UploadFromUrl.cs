@@ -11,10 +11,17 @@
  *   • Need a signed URL? See ../docs/getting-signed-urls.md
  *
  * EDIT NOTHING HERE. All your values live in  ../config.json
- *   (api_key, sign_urls, description).
+ *   - api_key
+ *   - sign_urls
+ *   - description (optional)
+ *   - user_batch_id + batch_name (optional pair; set BOTH to target a specific
+ *     batch, or leave BOTH blank to have the API generate one for you)
  *
  * What it saves to data.json:
- *   "file_uploads": [ { "file_id": "....", "url": "....", "status": "Uploading" }, ... ]
+ *   "file_uploads": [
+ *     { "file_id": "....", "url": "....", "status": "Uploading",
+ *       "user_batch_id": "....", "batch_name": "...." }, ...
+ *   ]
  */
 
 using System;
@@ -33,6 +40,8 @@ namespace Aod
             string apiKey = Helper.ApiKey();
             string description = Helper.GetString(cfg, "description", "");
             List<string> signedUrls = Helper.GetStringArray(cfg, "sign_urls");
+            // Enforce the "both or neither" rule locally so we don't send a bad pair.
+            var (userBatchId, batchName) = Helper.GetBatchFields(cfg);
 
             if (signedUrls.Count == 0)
             {
@@ -47,17 +56,38 @@ namespace Aod
             var urls = new JsonArray();
             foreach (var u in signedUrls) urls.Add(u);
 
-            var payload = new JsonObject
+            // Build the JSON body — only include fields the user actually set.
+            var payload = new JsonObject { ["sign_urls"] = urls };
+            if (!string.IsNullOrEmpty(description)) payload["description"] = description;
+            if (userBatchId != null && batchName != null)
             {
-                ["sign_urls"] = urls,
-                ["description"] = description,
-            };
+                payload["user_batch_id"] = userBatchId;
+                payload["batch_name"] = batchName;
+            }
 
-            Console.WriteLine($"Uploading {signedUrls.Count} file(s) from signed URLs...");
+            if (userBatchId != null && batchName != null)
+                Console.WriteLine($"Uploading {signedUrls.Count} file(s) from signed URLs into batch "
+                    + $"'{batchName}' (user_batch_id: {userBatchId}) ...");
+            else
+                Console.WriteLine($"Uploading {signedUrls.Count} file(s) from signed URLs "
+                    + "(batch will be auto-generated) ...");
+
             var response = await Helper.PostAsync(endpoint, apiKey, payload.ToJsonString());
             var body = await Helper.ShowResponseAsync(response);
 
             int code = (int)response.StatusCode;
+
+            if (code == 409)
+            {
+                // The batch pair partially matches an existing batch — user has to fix config.
+                Console.WriteLine("\n[Conflict] The user_batch_id / batch_name pair doesn't match an existing batch.");
+                Console.WriteLine("           See the response above for the exact reason.");
+                Console.WriteLine("           Fix it in config.json: use the matching partner value, pick a fresh");
+                Console.WriteLine("           unique pair, or clear BOTH fields to have them auto-generated.");
+                Helper.LogOther(409, "Batch pair conflict on upload-from-url", body);
+                return;
+            }
+
             if ((code == 200 || code == 207) && body != null)
             {
                 JsonArray fileUploads = Helper.GetArray("file_uploads");
@@ -74,12 +104,16 @@ namespace Aod
                             var it = itEl.AsObject();
                             if (it["file_id"] != null)
                             {
-                                fileUploads.Add(new JsonObject
+                                var saved = new JsonObject
                                 {
                                     ["file_id"] = Helper.Str(it["file_id"]),
                                     ["url"] = Helper.Str(it["url"]),
                                     ["status"] = it["status"] != null ? Helper.Str(it["status"]) : "Uploading",
-                                });
+                                };
+                                // The server echoes back the batch the file was placed in.
+                                if (it["user_batch_id"] != null) saved["user_batch_id"] = Helper.Str(it["user_batch_id"]);
+                                if (it["batch_name"] != null) saved["batch_name"] = Helper.Str(it["batch_name"]);
+                                fileUploads.Add(saved);
                             }
                         }
                     }
@@ -96,7 +130,9 @@ namespace Aod
                     foreach (var e in fileUploads)
                     {
                         var f = e.AsObject();
-                        Console.WriteLine($"   - file_id: {Helper.Str(f["file_id"])}  |  status: {Helper.Str(f["status"])}");
+                        string line = $"   - file_id: {Helper.Str(f["file_id"])}  |  status: {Helper.Str(f["status"])}";
+                        if (f["batch_name"] != null) line += $"  |  batch: {Helper.Str(f["batch_name"])}";
+                        Console.WriteLine(line);
                     }
                     Console.WriteLine("\nNext: run  dotnet run -- step2");
                 }
