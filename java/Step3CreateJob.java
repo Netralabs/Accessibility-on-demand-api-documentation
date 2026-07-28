@@ -4,7 +4,21 @@
  * Sends an uploaded file for processing (tagging) and gets back a job_id.
  *
  * EDIT NOTHING HERE. Set these in  config.json  under "process":
- *   "process": { "file_id": "<an uploaded file_id>", "level": 1 }   // level 1 or 2
+ *   "process": {
+ *     "file_id": "<an uploaded file_id>",
+ *     "level": 1,                          // 1 or 2
+ *     "requires_manual_review": false      // optional — see below
+ *   }
+ *
+ * Manual review (optional):
+ *   Set "requires_manual_review": true if you'd like to review and refine the
+ *   automated tagging in the web UI before the tagged PDF becomes downloadable.
+ *   When enabled, Step 4 will report the job as "AwaitingManualReview" until you:
+ *     1. Go to https://app.accessibilityondemand.ai/login (you'll also get an
+ *        email when the file is ready to review).
+ *     2. Open the batch, select the file, click Review.
+ *     3. On the last page of the review, click the Complete button.
+ *   After that, run Step 4 again and it will return the download_url.
  *
  * How to run (Java 11+):
  *   Mac/Linux:  java -cp ".:lib/gson.jar" Step3CreateJob.java
@@ -25,6 +39,16 @@ public class Step3CreateJob {
         String fileId = AOD.getString(process, "file_id", "").trim();
         int level = AOD.getInt(process, "level", 1);
 
+        // Optional. Only accept a real JSON boolean `true`; anything else
+        // (missing, false, "true" as a string, etc.) is treated as false so the
+        // default behaviour stays "fully automatic, downloadable right away".
+        boolean requiresManualReview =
+                process.has("requires_manual_review")
+                && !process.get("requires_manual_review").isJsonNull()
+                && process.get("requires_manual_review").isJsonPrimitive()
+                && process.get("requires_manual_review").getAsJsonPrimitive().isBoolean()
+                && process.get("requires_manual_review").getAsBoolean();
+
         if (fileId.isEmpty()) {
             System.out.println("[X] No file_id given. Set \"process\": {\"file_id\": ...} in config.json "
                     + "(use an uploaded file_id from Step 2).");
@@ -34,8 +58,10 @@ public class Step3CreateJob {
         JsonObject payload = new JsonObject();
         payload.addProperty("file_id", fileId);
         payload.addProperty("level", level);
+        payload.addProperty("requires_manual_review", requiresManualReview);
 
-        System.out.println("Starting a job for file_id " + fileId + " at level " + level + " ...");
+        String reviewNote = requiresManualReview ? "  (with manual review)" : "";
+        System.out.println("Starting a job for file_id " + fileId + " at level " + level + reviewNote + " ...");
         java.net.http.HttpResponse<String> response = AOD.post(AOD.BASE_URL + "/jobs/", apiKey, payload.toString());
         JsonObject body = AOD.showResponse(response);
 
@@ -63,10 +89,17 @@ public class Step3CreateJob {
                     entry.addProperty("file_id", fileId);
                     entry.addProperty("job_id", jobId);
                     entry.addProperty("status", "Queued");
+                    // Keep a small marker on the entry so data.json makes it clear
+                    // this job was started with manual review enabled.
+                    if (requiresManualReview) entry.addProperty("requires_manual_review", true);
                     jobProcess.add(entry);
                     AOD.saveValue("job_process", jobProcess);
                 }
                 System.out.println("\n[OK] Got job_id: " + jobId);
+                if (requiresManualReview) {
+                    System.out.println("     (manual review enabled — Step 4 will prompt you to review "
+                            + "in the UI once tagging finishes)");
+                }
                 System.out.println("Next: run  Step4CheckJob.java");
             } else {
                 System.out.println("\n[!] Could not find 'job_id' in the response. "

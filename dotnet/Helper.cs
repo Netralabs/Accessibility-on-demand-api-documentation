@@ -106,6 +106,17 @@ namespace Aod
             return def;
         }
 
+        // Read a bool value from a JsonObject, or the default if missing/null.
+        // Strict: only a real JSON boolean counts; a string "true" does NOT.
+        public static bool GetBool(JsonObject obj, string key, bool def)
+        {
+            if (obj != null && obj[key] != null)
+            {
+                try { return obj[key].GetValue<bool>(); } catch { }
+            }
+            return def;
+        }
+
         // Read a nested object (e.g. "process", "report") from config, or empty object.
         public static JsonObject GetObject(JsonObject obj, string key)
         {
@@ -132,6 +143,38 @@ namespace Aod
                 }
             }
             return outList;
+        }
+
+        /*
+         * Reads the optional batch fields from config.json (top-level "user_batch_id"
+         * and "batch_name"). The API rule is that they always travel as a PAIR:
+         *   - both set     -> the new files are placed in (or added to) that batch
+         *   - both blank   -> the API auto-generates a fresh batch for this upload
+         *   - only one set -> not allowed; would 409 on the server
+         *
+         * Returns a tuple (userBatchId, batchName):
+         *   (uid, name)   when both are set (both non-empty strings)
+         *   (null, null)  when neither is set (send nothing -> auto-generate)
+         *
+         * Exits with a clear error message when exactly one is set, so we catch that
+         * locally instead of hitting the server with a bad pair.
+         */
+        public static (string userBatchId, string batchName) GetBatchFields(JsonObject cfg)
+        {
+            string uid = GetString(cfg, "user_batch_id", "").Trim();
+            string name = GetString(cfg, "batch_name", "").Trim();
+
+            if (!string.IsNullOrEmpty(uid) && !string.IsNullOrEmpty(name)) return (uid, name);
+            if (string.IsNullOrEmpty(uid) && string.IsNullOrEmpty(name)) return (null, null);
+
+            string which = !string.IsNullOrEmpty(uid) ? "user_batch_id" : "batch_name";
+            string other = !string.IsNullOrEmpty(uid) ? "batch_name" : "user_batch_id";
+            Console.WriteLine("[X] Batch pair is incomplete in config.json.");
+            Console.WriteLine($"    You set \"{which}\" but left \"{other}\" blank.");
+            Console.WriteLine("    These two fields must be sent TOGETHER — set both to target a specific batch,");
+            Console.WriteLine("    or clear both to have the API generate one for you.");
+            Environment.Exit(1);
+            return (null, null); // unreachable
         }
 
         // Returns a sorted list of full paths to every .pdf in the repo-root uploads/ folder.
@@ -161,10 +204,12 @@ namespace Aod
         }
 
         // POST one or more local files as multipart/form-data.
-        // The 'files' field is repeated once per file; 'description' is optional.
-        // Do NOT set Content-Type yourself — MultipartFormDataContent sets the boundary.
+        // The 'files' field is repeated once per file; each non-empty entry in
+        // textFields becomes a text form-field part (e.g. "description",
+        // "user_batch_id", "batch_name"). Do NOT set Content-Type yourself —
+        // MultipartFormDataContent sets the boundary.
         public static async Task<HttpResponseMessage> PostMultipartAsync(
-            string url, string apiKey, List<string> filePaths, string description)
+            string url, string apiKey, List<string> filePaths, Dictionary<string, string> textFields)
         {
             var req = new HttpRequestMessage(HttpMethod.Post, url);
             req.Headers.TryAddWithoutValidation("Authorization", "Bearer " + apiKey);
@@ -179,8 +224,14 @@ namespace Aod
                 // field name "files" (repeated), with the file's name
                 form.Add(fileContent, "files", Path.GetFileName(path));
             }
-            if (!string.IsNullOrEmpty(description))
-                form.Add(new StringContent(description), "description");
+            if (textFields != null)
+            {
+                foreach (var kv in textFields)
+                {
+                    if (string.IsNullOrEmpty(kv.Key) || string.IsNullOrEmpty(kv.Value)) continue;
+                    form.Add(new StringContent(kv.Value), kv.Key);
+                }
+            }
 
             req.Content = form;
             return await Client.SendAsync(req);
