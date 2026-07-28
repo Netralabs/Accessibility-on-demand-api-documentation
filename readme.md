@@ -409,7 +409,7 @@ Uploads one or more PDFs **directly from your computer** as `multipart/form-data
 
 > 📄 **PDF only.** Only `.pdf` files are accepted. Any non-PDF file is rejected.
 
-> 📦 **Per request:** up to 50 PDFs, each ≤ 80 MB (PDF only). For more files, send multiple requests. Failed files come back in `failed_uploads` — resend just those.
+> 📦 **Per request:** the **combined size of all files** in one request must be **≤ 1 GB** (PDF only). There's **no per-file size cap and no cap on the *number* of files** — a single file can be up to the full 1 GB, or you can send many smaller ones, as long as their total stays under 1 GB. Go over and the **whole request** is rejected with **`413 Payload Too Large`** (`PAYLOAD_TOO_LARGE`, see [Common errors](#common-errors-all-endpoints)) — split the files across more requests. Individually failed files come back in `failed_uploads` — resend just those.
 
 > 📁 **Easiest way (with the ready-made code):** drop your PDFs into the repo's [uploads](uploads) folder and run Step 1 — it automatically picks up every PDF in that folder, so you don't type any file paths. Just copy/move your files into `uploads/` first. (See your language folder's README.)
 
@@ -552,6 +552,23 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload/" \
 }
 ```
 
+**Payload too large — `413 Payload Too Large`** (the combined size of the files in this request is over 1 GB)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "PAYLOAD_TOO_LARGE",
+    "message": "Combined batch size exceeds uploading limit 1.0 GB",
+    "details": []
+  },
+  "request_id": "038c4c57-9cd1-4bf5-bfd0-13ff94ab867e",
+  "timestamp": "2026-07-28T05:15:20.614786+00:00"
+}
+```
+
+The limit is on **combined size**, not file count — the **entire** request is rejected and **no files are uploaded**. Send fewer (or smaller) files so the total stays under 1 GB, then try again. There's no limit on how many separate requests you make.
+
 **Field explanations**
 
 | Field | Meaning |
@@ -579,7 +596,7 @@ Starts uploading one or more files from signed URLs. Returns a `file_id` for eac
 
 > 📄 **PDF only.** Each signed URL must point to a **PDF file** (`.pdf`). URLs that resolve to a non-PDF file are rejected.
 
-> 📦 **Per request:** up to 50 PDF urls, each ≤ 80 MB (PDF only). For more files urls, send multiple requests. Failed files come back in `failed_uploads` — resend just those.
+> 📦 **Per request:** the **combined size of all files** behind the URLs in one request must be **≤ 1 GB** (PDF only). There's **no per-file size cap and no cap on the *number* of URLs** — a single file can be up to the full 1 GB, or you can send many smaller ones, as long as their total stays under 1 GB. Go over and the **whole request** is rejected with **`413 Payload Too Large`** (`PAYLOAD_TOO_LARGE`, see [Common errors](#common-errors-all-endpoints)) — split the URLs across more requests. Individually failed URLs come back in `failed_uploads` — resend just those.
 
 > 🧹 **Clear `sign_urls` after upload.** Once you've hit this endpoint and have your `file_id`s, the URLs have done their job — **remove them from the `sign_urls` list in `config.json`**. Leaving them there means the next run will re-upload the same files by mistake. Steps 2–6 only need the `file_id`.
 
@@ -1222,6 +1239,25 @@ Top up the account's credits (an **Admin** or **Super Admin** can allot more —
 
 Returned by **`POST /files/upload/`** and **`POST /files/upload-from-url/`** when the `user_batch_id` / `batch_name` you sent partially matches an existing batch — i.e. one of the two already exists but is paired with a different value for the other. Send the matching partner value, choose a brand-new unique pair, or leave both blank to auto-generate. Full details and both message variants are in [Endpoint 1](#endpoint-1--upload-files-directly-form-data).
 
+**Payload too large — `413 Payload Too Large`** (returned by the upload endpoints when the combined file size is over 1 GB)
+
+Returned by **`POST /files/upload/`** and **`POST /files/upload-from-url/`** when the **combined size of all files** in a single request exceeds the **1 GB** upload limit. The cap is on total **size**, not on the *number* of files — and the whole request is rejected, so nothing is uploaded.
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "PAYLOAD_TOO_LARGE",
+    "message": "Combined batch size exceeds uploading limit 1.0 GB",
+    "details": []
+  },
+  "request_id": "038c4c57-9cd1-4bf5-bfd0-13ff94ab867e",
+  "timestamp": "2026-07-28T05:15:20.614786+00:00"
+}
+```
+
+Send fewer or smaller files so the total stays under 1 GB, then try again.
+
 **Rate limit exceeded — `429 Too Many Requests`** (you sent requests too quickly)
 
 ```json
@@ -1296,6 +1332,7 @@ When something goes wrong, the API sends back a **status code** and a message. H
 | 404  | Not found | The ID or endpoint doesn't exist — check spelling |
 | 405  | Method not allowed | Wrong method, or a required path value (like a file_id) is missing |
 | 409  | Conflict | A conflict, such as reprocessing a file that already has a job in progress, scoring a file that isn't accessible yet, or a batch pairing where `user_batch_id` / `batch_name` partly matches an existing batch (Endpoints 1 & 2) |
+| 413  | Payload too large | The **combined size** of the files in one upload request is over **1 GB** — send fewer or smaller files per request (Endpoints 1 & 2) |
 | 422  | Validation error | Your request body failed validation — check the `details` |
 | 429  | Too many requests | You're calling too fast — wait the `retry-after-sec` seconds (see Section 6) |
 | 500  | Server error | Problem on our side — try again later |
@@ -1334,6 +1371,9 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 **Q: How do I upload several files into the same batch?**
 > Send the **same** `user_batch_id` and `batch_name` on each upload call. The first call creates the batch; later calls that reuse the same pair add their files to it. This works whether you upload directly (Endpoint 1) or from signed URLs (Endpoint 2), and even across separate runs — just keep the same values in `config.json`. If you leave both blank, each upload gets its own fresh, auto-generated batch instead.
+
+**Q: Is there a limit on how many files I can upload in one request?**
+> There's **no per-file size cap and no limit on the number** of files (or URLs) — the only rule is that the **combined size** of everything in a single request must stay **≤ 1 GB**. So a single file can be up to the full 1 GB, or you can send many smaller ones, as long as the total is under 1 GB. Go over the 1 GB total and the whole request is rejected with **`413 Payload Too Large`** (`PAYLOAD_TOO_LARGE`), and nothing is uploaded — just split the files across more requests. There's no limit on how many separate requests you make, aside from the normal per-call cooldown in [Section 6 — Rate limits](#6-rate-limits).
 
 **Q: I got a 409 saying my `user_batch_id` or `batch_name` "already exists". Why?**
 > The two fields must always refer to the **same** batch. You sent a pair where one value already exists but is paired with a **different** partner — e.g. a `user_batch_id` that's already tied to another `batch_name` (or vice-versa). Fix it one of three ways: send the **matching** partner value so the pair lines up with the existing batch, pick a **brand-new unique** `user_batch_id` **and** `batch_name`, or **leave both blank** to have them generated automatically.
@@ -1389,4 +1429,4 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ---
 
-*Last updated: 15-07-2026 · Maintained by aod-tech*
+*Last updated: 28-07-2026 · Maintained by aod-tech*
