@@ -44,6 +44,44 @@ namespace Aod
         public static readonly string UploadsDir =
             Path.Combine(Directory.GetCurrentDirectory(), "..", "uploads");
 
+        // Uploads are limited by the COMBINED size of the files in one request — NOT by
+        // how many files you send. The server rejects a request whose combined file size
+        // is over this limit with 413 PAYLOAD_TOO_LARGE. We mirror the same limit here so
+        // the direct-upload step can warn early and skip a wasted upload. The server is
+        // always the source of truth for the exact limit.
+        public const long MaxUploadBytes = 1L * 1024 * 1024 * 1024; // 1 GB per request
+
+        // Total size in bytes of the given files (any missing/unreadable file counts as 0).
+        public static long SumFileSizes(IEnumerable<string> paths)
+        {
+            long total = 0;
+            foreach (var p in paths)
+            {
+                try { total += new FileInfo(p).Length; }
+                catch { /* ignore missing/unreadable files */ }
+            }
+            return total;
+        }
+
+        // Format a byte count as a short human-readable string, e.g. "1.20 GB".
+        public static string HumanSize(long numBytes)
+        {
+            double value = numBytes;
+            string[] units = { "B", "KB", "MB", "GB", "TB" };
+            for (int i = 0; i < units.Length; i++)
+            {
+                if (Math.Abs(value) < 1024.0 || i == units.Length - 1)
+                {
+                    var c = System.Globalization.CultureInfo.InvariantCulture;
+                    return i == 0
+                        ? ((long)value).ToString(c) + " " + units[i]
+                        : value.ToString("0.00", c) + " " + units[i];
+                }
+                value /= 1024.0;
+            }
+            return numBytes + " B"; // unreachable
+        }
+
         private static readonly HttpClient Client = new HttpClient();
 
         private static readonly JsonSerializerOptions Pretty =

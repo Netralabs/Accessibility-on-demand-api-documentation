@@ -7,6 +7,10 @@
  *
  *   Run:  dotnet run -- step1
  *
+ *   • Per request the COMBINED size of the files must be <= 1 GB (there is no
+ *     limit on the NUMBER of files). This step adds up the sizes first and
+ *     stops early if they go over 1 GB, so you don't waste a large upload.
+ *
  *   • Files already in S3 / Google Drive (or you have signed URLs)?
  *     Use  dotnet run -- step1url  instead.
  *
@@ -59,6 +63,28 @@ namespace Aod
                 return;
             }
 
+            // Enforce the combined-size limit locally so we don't waste a large upload
+            // that the server would reject with 413. There is NO limit on the number of
+            // files — only on their combined size (<= 1 GB per request).
+            long totalBytes = Helper.SumFileSizes(pdfPaths);
+            if (totalBytes > Helper.MaxUploadBytes)
+            {
+                Console.WriteLine($"[X] The {pdfPaths.Count} file(s) in uploads/ add up to "
+                    + $"{Helper.HumanSize(totalBytes)}, which is over the "
+                    + $"{Helper.HumanSize(Helper.MaxUploadBytes)} per-request limit.");
+                Console.WriteLine("    There is no limit on HOW MANY files you send — only on their combined size.");
+                Console.WriteLine("    Move some PDFs out of the uploads/ folder (or split them across separate");
+                Console.WriteLine("    runs) so each run stays under 1 GB, then run this again.");
+                var info = new JsonObject
+                {
+                    ["combined_bytes"] = totalBytes,
+                    ["limit_bytes"] = Helper.MaxUploadBytes,
+                    ["file_count"] = pdfPaths.Count,
+                };
+                Helper.LogOther(413, "Combined upload size over 1 GB (blocked locally before sending)", info);
+                return;
+            }
+
             string endpoint = Helper.BaseUrl + "/files/upload/";
 
             // Friendly one-liner so the user can see which batch the files are heading to.
@@ -67,6 +93,8 @@ namespace Aod
                     + $"'{batchName}' (user_batch_id: {userBatchId}) ...");
             else
                 Console.WriteLine($"Uploading {pdfPaths.Count} file(s) (batch will be auto-generated) ...");
+            Console.WriteLine($"Combined size: {Helper.HumanSize(totalBytes)}  "
+                + $"(limit {Helper.HumanSize(Helper.MaxUploadBytes)} per request)");
             foreach (var p in pdfPaths)
                 Console.WriteLine("   - " + Path.GetFileName(p));
 
@@ -92,6 +120,18 @@ namespace Aod
                 Console.WriteLine("           Fix it in config.json: use the matching partner value, pick a fresh");
                 Console.WriteLine("           unique pair, or clear BOTH fields to have them auto-generated.");
                 Helper.LogOther(409, "Batch pair conflict on direct upload", body);
+                return;
+            }
+
+            if (code == 413)
+            {
+                // The combined size of the files we sent is over the 1 GB limit. The
+                // server rejected the whole request, so nothing was uploaded.
+                Console.WriteLine("\n[Payload too large] The combined size of the files you sent is over the");
+                Console.WriteLine("                    1 GB per-request limit, so nothing was uploaded.");
+                Console.WriteLine("                    Send fewer or smaller files per request (there's no limit");
+                Console.WriteLine("                    on the number of files, only their combined size), then retry.");
+                Helper.LogOther(413, "Combined batch size exceeds 1 GB upload limit", body);
                 return;
             }
 

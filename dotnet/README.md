@@ -265,6 +265,8 @@ dotnet run -- step1url
 **Result:** each accepted file is saved to `data.json` with `status: "Uploading"` (and its `user_batch_id` / `batch_name`, so you can see which batch it landed in). If some URLs fail (status **207**), the failures are written to `errors.json` under `url_errors` (the successful ones are still saved).
 
 > ⏱️ Both uploads are rate-limited. Sending more files/URLs means a longer cooldown before your next upload (see the main README, Section 6).
+>
+> 📦 One request can carry up to **1 GB total** — the combined size of all the files/URLs in it. There's **no limit on how many** you send (and no per-file cap: a single file can be up to the full 1 GB), only on the combined size. Go over 1 GB and the request is rejected (**`413`**) and nothing uploads — split it across more runs.
 
 **Next:** run Step 2.
 
@@ -357,6 +359,7 @@ dotnet run -- step6
 - **`No signed URLs found` / `No file_id given`** — the matching field in `config.json` is still blank or a placeholder. Fill it in.
 - **`Batch pair is incomplete in config.json`** — you set only one of `user_batch_id` / `batch_name`. They always travel together: set **both** to target a specific batch, or clear **both** to have one auto-generated.
 - **409 Conflict on upload** — the `user_batch_id` / `batch_name` pair you sent partially matches an existing batch (one value is already tied to a different partner). Use the matching partner value, pick a **new unique** pair, or clear both to auto-generate.
+- **413 Payload Too Large** — the **combined size** of the files in one upload request is over the **1 GB** limit. There's no cap on **how many** files you send, only on their total size (and no per-file cap — a single file can be up to 1 GB). Move some PDFs out of `uploads/` (or send fewer URLs) so each request stays under 1 GB, then run it again.
 - **A job is stuck at `AwaitingManualReview`** — that's not stuck: you asked for manual review (`process.requires_manual_review: true` in Step 3) and the API is waiting for you. Log in at <https://app.accessibilityondemand.ai/login>, open the batch, select the file, click **Review**, and click **Complete** on the last page. Then re-run `dotnet run -- step4`.
 - **`Couldn't find a project to run`** — run the commands from inside this `dotnet` folder (where `aod.csproj` is).
 - **401 Unauthorized** — your API key is missing, wrong, or has extra spaces. Re-check `api_key` in `config.json`.
