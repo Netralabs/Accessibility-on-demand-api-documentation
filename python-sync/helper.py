@@ -29,6 +29,33 @@ ERRORS_FILE = os.path.join(os.path.dirname(__file__), "errors.json")
 # uploads/ folder (repo root) — where users drop PDFs for direct upload (Step 1).
 UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 
+# Uploads are limited by the COMBINED size of the files in one request — NOT by
+# how many files you send. The server rejects a request whose combined file size
+# is over this limit with 413 PAYLOAD_TOO_LARGE. We mirror the same limit here so
+# the direct-upload script can warn early and skip a wasted upload. The server is
+# always the source of truth for the exact limit.
+MAX_UPLOAD_BYTES = 1 * 1024 ** 3  # 1 GB per request
+
+
+def human_size(num_bytes):
+    """Format a byte count as a short human-readable string, e.g. '1.20 GB'."""
+    value = float(num_bytes)
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if abs(value) < 1024.0 or unit == "TB":
+            return f"{int(value)} {unit}" if unit == "B" else f"{value:.2f} {unit}"
+        value /= 1024.0
+
+
+def sum_file_sizes(paths):
+    """Total size in bytes of the given files (any missing file counts as 0)."""
+    total = 0
+    for p in paths:
+        try:
+            total += os.path.getsize(p)
+        except OSError:
+            pass
+    return total
+
 
 # ---------- config.json (the one file you edit) ----------
 

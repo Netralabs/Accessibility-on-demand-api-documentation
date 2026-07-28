@@ -5,6 +5,10 @@ Uploads every PDF in the repo-root  uploads/  folder directly to the API
 (multipart/form-data) and gets back a file_id for each accepted file.
 Use this if your PDFs are on your computer and you don't have a cloud account.
 
+  • Per request the COMBINED size of the files must be <= 1 GB (there is no
+    limit on the NUMBER of files). This script adds up the sizes first and
+    stops early if they go over 1 GB, so you don't waste a large upload.
+
   • Files already in S3 / Google Drive (or you have signed URLs)?
     Use  1_upload_from_url.py  instead.
 
@@ -26,6 +30,11 @@ About the responses you may see:
   - 409 = the user_batch_id / batch_name pair partially matches an existing
           batch (e.g. one exists paired with a different value for the other).
           Fix the pair in config.json — or clear both to auto-generate.
+  - 413 = the COMBINED size of the files in this request is over the 1 GB
+          per-request limit. Nothing is uploaded. Move some PDFs out of the
+          uploads/ folder (or split them across runs) and try again. The limit
+          is on total size, not on how many files you send. This script also
+          checks the size locally and stops before sending if it's over 1 GB.
 
 What it saves to data.json:
   "file_uploads": [
@@ -39,7 +48,7 @@ import requests
 from helper import (
     BASE_URL, load_config, api_key, find_local_pdfs, build_headers_auth_only,
     save_value, show_response, get_value, log_url_error, log_other,
-    get_batch_fields, UPLOADS_DIR,
+    get_batch_fields, UPLOADS_DIR, MAX_UPLOAD_BYTES, human_size, sum_file_sizes,
 )
 
 
@@ -67,6 +76,23 @@ if not pdf_paths:
     print("    Use signed URLs instead:  python 1_upload_from_url.py")
     raise SystemExit
 
+# Enforce the combined-size limit locally so we don't waste a large upload
+# that the server would reject with 413. There is NO limit on the number of
+# files — only on their combined size (<= 1 GB per request).
+total_bytes = sum_file_sizes(pdf_paths)
+if total_bytes > MAX_UPLOAD_BYTES:
+    print(f"[X] The {len(pdf_paths)} file(s) in uploads/ add up to "
+          f"{human_size(total_bytes)}, which is over the "
+          f"{human_size(MAX_UPLOAD_BYTES)} per-request limit.")
+    print("    There is no limit on HOW MANY files you send — only on their combined size.")
+    print("    Move some PDFs out of the uploads/ folder (or split them across separate")
+    print("    runs) so each run stays under 1 GB, then run this again.")
+    log_other(413, "Combined upload size over 1 GB (blocked locally before sending)",
+              {"combined_bytes": total_bytes,
+               "limit_bytes": MAX_UPLOAD_BYTES,
+               "file_count": len(pdf_paths)})
+    raise SystemExit
+
 ENDPOINT = f"{BASE_URL}/files/upload/"
 
 # Friendly one-liner so the user can see which batch the files are heading to.
@@ -75,6 +101,8 @@ if USER_BATCH_ID and BATCH_NAME:
           f"'{BATCH_NAME}' (user_batch_id: {USER_BATCH_ID}) ...")
 else:
     print(f"Uploading {len(pdf_paths)} file(s) (batch will be auto-generated) ...")
+print(f"Combined size: {human_size(total_bytes)}  "
+      f"(limit {human_size(MAX_UPLOAD_BYTES)} per request)")
 for p in pdf_paths:
     print(f"   - {os.path.basename(p)}")
 
@@ -122,6 +150,20 @@ if response.status_code == 409:
     except ValueError:
         raw = None
     log_other(409, "Batch pair conflict on direct upload", raw)
+    raise SystemExit
+
+if response.status_code == 413:
+    # The combined size of the files we sent is over the 1 GB limit. The
+    # server rejected the whole request, so nothing was uploaded.
+    print("\n[Payload too large] The combined size of the files you sent is over the")
+    print("                    1 GB per-request limit, so nothing was uploaded.")
+    print("                    Send fewer or smaller files per request (there's no limit")
+    print("                    on the number of files, only their combined size), then retry.")
+    try:
+        raw = response.json()
+    except ValueError:
+        raw = None
+    log_other(413, "Combined batch size exceeds 1 GB upload limit", raw)
     raise SystemExit
 
 # Treat 200 and 207 as "we got results worth reading".
