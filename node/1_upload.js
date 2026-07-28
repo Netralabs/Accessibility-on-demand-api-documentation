@@ -5,6 +5,10 @@
  * (multipart/form-data) and gets back a file_id for each accepted file.
  * Use this if your PDFs are on your computer and you don't have a cloud account.
  *
+ *   • Per request the COMBINED size of the files must be <= 1 GB (there is no
+ *     limit on the NUMBER of files). This script adds up the sizes first and
+ *     stops early if they go over 1 GB, so you don't waste a large upload.
+ *
  *   • Files already in S3 / Google Drive (or you have signed URLs)?
  *     Use  1_upload_from_url.js  instead.
  *
@@ -26,6 +30,11 @@
  *   - 409 = the user_batch_id / batch_name pair partially matches an existing
  *           batch (e.g. one exists paired with a different value for the other).
  *           Fix the pair in config.json — or clear both to auto-generate.
+ *   - 413 = the COMBINED size of the files in this request is over the 1 GB
+ *           per-request limit. Nothing is uploaded. Move some PDFs out of the
+ *           uploads/ folder (or split them across runs) and try again. The limit
+ *           is on total size, not on how many files you send. This script also
+ *           checks the size locally and stops before sending if it's over 1 GB.
  *
  * What it saves to data.json:
  *   "file_uploads": [
@@ -39,6 +48,7 @@ const path = require("path");
 const {
   BASE_URL, UPLOADS_DIR, loadConfig, apiKey, findLocalPdfs, buildHeadersAuthOnly,
   saveValue, getValue, showResponse, logUrlError, logOther, getBatchFields,
+  MAX_UPLOAD_BYTES, humanSize, sumFileSizes,
 } = require("./helper");
 
 // The upload result blocks live in different places depending on the status:
@@ -69,6 +79,27 @@ async function main() {
     return;
   }
 
+  // Enforce the combined-size limit locally so we don't waste a large upload
+  // that the server would reject with 413. There is NO limit on the number of
+  // files — only on their combined size (<= 1 GB per request).
+  const totalBytes = sumFileSizes(pdfPaths);
+  if (totalBytes > MAX_UPLOAD_BYTES) {
+    console.log(
+      `[X] The ${pdfPaths.length} file(s) in uploads/ add up to ` +
+      `${humanSize(totalBytes)}, which is over the ` +
+      `${humanSize(MAX_UPLOAD_BYTES)} per-request limit.`
+    );
+    console.log("    There is no limit on HOW MANY files you send — only on their combined size.");
+    console.log("    Move some PDFs out of the uploads/ folder (or split them across separate");
+    console.log("    runs) so each run stays under 1 GB, then run this again.");
+    logOther(413, "Combined upload size over 1 GB (blocked locally before sending)", {
+      combined_bytes: totalBytes,
+      limit_bytes: MAX_UPLOAD_BYTES,
+      file_count: pdfPaths.length,
+    });
+    return;
+  }
+
   const ENDPOINT = `${BASE_URL}/files/upload/`;
 
   // Friendly one-liner so the user can see which batch the files are heading to.
@@ -80,6 +111,10 @@ async function main() {
   } else {
     console.log(`Uploading ${pdfPaths.length} file(s) (batch will be auto-generated) ...`);
   }
+  console.log(
+    `Combined size: ${humanSize(totalBytes)}  ` +
+    `(limit ${humanSize(MAX_UPLOAD_BYTES)} per request)`
+  );
   for (const p of pdfPaths) {
     console.log("   - " + path.basename(p));
   }
@@ -116,6 +151,17 @@ async function main() {
     console.log("           Fix it in config.json: use the matching partner value, pick a fresh");
     console.log("           unique pair, or clear BOTH fields to have them auto-generated.");
     logOther(409, "Batch pair conflict on direct upload", body);
+    return;
+  }
+
+  if (response.status === 413) {
+    // The combined size of the files we sent is over the 1 GB limit. The
+    // server rejected the whole request, so nothing was uploaded.
+    console.log("\n[Payload too large] The combined size of the files you sent is over the");
+    console.log("                    1 GB per-request limit, so nothing was uploaded.");
+    console.log("                    Send fewer or smaller files per request (there's no limit");
+    console.log("                    on the number of files, only their combined size), then retry.");
+    logOther(413, "Combined batch size exceeds 1 GB upload limit", body);
     return;
   }
 

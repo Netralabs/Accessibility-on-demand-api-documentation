@@ -28,6 +28,37 @@ const ERRORS_FILE = path.join(__dirname, "errors.json");
 // uploads/ folder (repo root) — where users drop PDFs for direct upload (Step 1).
 const UPLOADS_DIR = path.join(__dirname, "..", "uploads");
 
+// Uploads are limited by the COMBINED size of the files in one request — NOT by
+// how many files you send. The server rejects a request whose combined file size
+// is over this limit with 413 PAYLOAD_TOO_LARGE. We mirror the same limit here so
+// the direct-upload script can warn early and skip a wasted upload. The server is
+// always the source of truth for the exact limit.
+const MAX_UPLOAD_BYTES = 1 * 1024 ** 3; // 1 GB per request
+
+// Format a byte count as a short human-readable string, e.g. "1.20 GB".
+function humanSize(numBytes) {
+  let value = Number(numBytes);
+  for (const unit of ["B", "KB", "MB", "GB", "TB"]) {
+    if (Math.abs(value) < 1024 || unit === "TB") {
+      return unit === "B" ? `${Math.trunc(value)} ${unit}` : `${value.toFixed(2)} ${unit}`;
+    }
+    value /= 1024;
+  }
+}
+
+// Total size in bytes of the given files (any missing/unreadable file counts as 0).
+function sumFileSizes(paths) {
+  let total = 0;
+  for (const p of paths) {
+    try {
+      total += fs.statSync(p).size;
+    } catch (e) {
+      // ignore missing/unreadable files
+    }
+  }
+  return total;
+}
+
 // ---------- config.json (the one file you edit) ----------
 
 function loadConfig() {
@@ -228,6 +259,9 @@ const logOther = (code, msg, raw) => logError("other", "", code, msg, raw);
 module.exports = {
   BASE_URL,
   UPLOADS_DIR,
+  MAX_UPLOAD_BYTES,
+  humanSize,
+  sumFileSizes,
   loadConfig,
   apiKey,
   getStringArray,

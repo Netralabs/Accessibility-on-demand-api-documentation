@@ -7,6 +7,10 @@
  *
  *   • Have PDFs on your computer instead? Use  1_upload.js  (direct upload).
  *   • Need a signed URL? See ../docs/getting-signed-urls.md
+ *   • Per request the COMBINED size of the files behind your URLs must be <= 1 GB
+ *     (there is no limit on the NUMBER of URLs). Since the files live remotely,
+ *     this can only be checked server-side: go over and the request comes back
+ *     413 and nothing is uploaded — send fewer URLs per request and retry.
  *
  * EDIT NOTHING HERE. All your values live in  ../config.json
  *   - api_key
@@ -24,6 +28,9 @@
  *           ones that failed to errors.json (under "url_errors").
  *   - 409 = the user_batch_id / batch_name pair partially matches an existing
  *           batch. Fix the pair in config.json — or clear both to auto-generate.
+ *   - 413 = the COMBINED size of the files behind your URLs is over the 1 GB
+ *           per-request limit. Nothing is uploaded. Send fewer URLs per request
+ *           (the limit is on total size, not on how many URLs you send) and retry.
  *
  * What it saves to data.json:
  *   "file_uploads": [
@@ -96,6 +103,17 @@ async function main() {
     console.log("           Fix it in config.json: use the matching partner value, pick a fresh");
     console.log("           unique pair, or clear BOTH fields to have them auto-generated.");
     logOther(409, "Batch pair conflict on upload-from-url", body);
+    return;
+  }
+
+  if (response.status === 413) {
+    // The combined size of the files behind these URLs is over the 1 GB limit.
+    // The server rejected the whole request, so nothing was uploaded.
+    console.log("\n[Payload too large] The combined size of the files behind these URLs is over");
+    console.log("                    the 1 GB per-request limit, so nothing was uploaded.");
+    console.log("                    Send fewer URLs per request (there's no limit on the number");
+    console.log("                    of URLs, only their combined size), then try again.");
+    logOther(413, "Combined batch size exceeds 1 GB upload limit", body);
     return;
   }
 
