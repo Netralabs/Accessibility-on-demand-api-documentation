@@ -7,6 +7,10 @@
  *
  *   • Have PDFs on your computer instead? Use  Step1Upload.java  (direct upload).
  *   • Need a signed URL? See ../docs/getting-signed-urls.md
+ *   • Per request the COMBINED size of the files behind your URLs must be <= 1 GB
+ *     (there is no limit on the NUMBER of URLs). Since the files live remotely,
+ *     this can only be checked server-side: go over and the request comes back
+ *     413 and nothing is uploaded — send fewer URLs per request and retry.
  *
  * EDIT NOTHING HERE. All your values live in  config.json
  *   - api_key
@@ -80,6 +84,17 @@ public class Step1UploadFromUrl {
             System.out.println("           Fix it in config.json: use the matching partner value, pick a fresh");
             System.out.println("           unique pair, or clear BOTH fields to have them auto-generated.");
             AOD.logOther(409, "Batch pair conflict on upload-from-url", body != null ? body : null);
+            return;
+        }
+
+        if (code == 413) {
+            // The combined size of the files behind these URLs is over the 1 GB limit.
+            // The server rejected the whole request, so nothing was uploaded.
+            System.out.println("\n[Payload too large] The combined size of the files behind these URLs is over");
+            System.out.println("                    the 1 GB per-request limit, so nothing was uploaded.");
+            System.out.println("                    Send fewer URLs per request (there's no limit on the number");
+            System.out.println("                    of URLs, only their combined size), then try again.");
+            AOD.logOther(413, "Combined batch size exceeds 1 GB upload limit", body != null ? body : null);
             return;
         }
 

@@ -5,6 +5,10 @@
  * (multipart/form-data) and gets back a file_id for each accepted file.
  * Use this if your PDFs are on your computer and you don't have a cloud account.
  *
+ *   • Per request the COMBINED size of the files must be <= 1 GB (there is no
+ *     limit on the NUMBER of files). This program adds up the sizes first and
+ *     stops early if they go over 1 GB, so you don't waste a large upload.
+ *
  *   • Files already in S3 / Google Drive (or you have signed URLs)?
  *     Use  Step1UploadFromUrl.java  instead.
  *
@@ -52,6 +56,25 @@ public class Step1Upload {
             return;
         }
 
+        // Enforce the combined-size limit locally so we don't waste a large upload
+        // that the server would reject with 413. There is NO limit on the number of
+        // files — only on their combined size (<= 1 GB per request).
+        long totalBytes = AOD.sumFileSizes(pdfPaths);
+        if (totalBytes > AOD.MAX_UPLOAD_BYTES) {
+            System.out.println("[X] The " + pdfPaths.size() + " file(s) in uploads/ add up to "
+                    + AOD.humanSize(totalBytes) + ", which is over the "
+                    + AOD.humanSize(AOD.MAX_UPLOAD_BYTES) + " per-request limit.");
+            System.out.println("    There is no limit on HOW MANY files you send — only on their combined size.");
+            System.out.println("    Move some PDFs out of the uploads/ folder (or split them across separate");
+            System.out.println("    runs) so each run stays under 1 GB, then run this again.");
+            JsonObject info = new JsonObject();
+            info.addProperty("combined_bytes", totalBytes);
+            info.addProperty("limit_bytes", AOD.MAX_UPLOAD_BYTES);
+            info.addProperty("file_count", pdfPaths.size());
+            AOD.logOther(413, "Combined upload size over 1 GB (blocked locally before sending)", info);
+            return;
+        }
+
         String endpoint = AOD.BASE_URL + "/files/upload/";
 
         // Friendly one-liner so the user can see which batch the files are heading to.
@@ -62,6 +85,8 @@ public class Step1Upload {
             System.out.println("Uploading " + pdfPaths.size() + " file(s) "
                     + "(batch will be auto-generated) ...");
         }
+        System.out.println("Combined size: " + AOD.humanSize(totalBytes)
+                + "  (limit " + AOD.humanSize(AOD.MAX_UPLOAD_BYTES) + " per request)");
         for (java.nio.file.Path p : pdfPaths) {
             System.out.println("   - " + p.getFileName().toString());
         }
@@ -88,6 +113,17 @@ public class Step1Upload {
             System.out.println("           Fix it in config.json: use the matching partner value, pick a fresh");
             System.out.println("           unique pair, or clear BOTH fields to have them auto-generated.");
             AOD.logOther(409, "Batch pair conflict on direct upload", body != null ? body : null);
+            return;
+        }
+
+        if (code == 413) {
+            // The combined size of the files we sent is over the 1 GB limit. The
+            // server rejected the whole request, so nothing was uploaded.
+            System.out.println("\n[Payload too large] The combined size of the files you sent is over the");
+            System.out.println("                    1 GB per-request limit, so nothing was uploaded.");
+            System.out.println("                    Send fewer or smaller files per request (there's no limit");
+            System.out.println("                    on the number of files, only their combined size), then retry.");
+            AOD.logOther(413, "Combined batch size exceeds 1 GB upload limit", body != null ? body : null);
             return;
         }
 
@@ -306,6 +342,40 @@ class AOD {
 
     // uploads/ folder (repo root) — where users drop PDFs for direct upload (Step 1).
     static final java.nio.file.Path UPLOADS_DIR = java.nio.file.Paths.get("..", "uploads");
+
+    // Uploads are limited by the COMBINED size of the files in one request — NOT by
+    // how many files you send. The server rejects a request whose combined file size
+    // is over this limit with 413 PAYLOAD_TOO_LARGE. We mirror the same limit here so
+    // the direct-upload program can warn early and skip a wasted upload. The server is
+    // always the source of truth for the exact limit.
+    static final long MAX_UPLOAD_BYTES = 1L * 1024 * 1024 * 1024; // 1 GB per request
+
+    /** Total size in bytes of the given files (any unreadable file counts as 0). */
+    static long sumFileSizes(java.util.List<java.nio.file.Path> paths) {
+        long total = 0;
+        for (java.nio.file.Path p : paths) {
+            try {
+                total += java.nio.file.Files.size(p);
+            } catch (java.io.IOException e) {
+                // ignore unreadable files
+            }
+        }
+        return total;
+    }
+
+    /** Format a byte count as a short human-readable string, e.g. "1.20 GB". */
+    static String humanSize(long numBytes) {
+        double value = (double) numBytes;
+        String[] units = {"B", "KB", "MB", "GB", "TB"};
+        for (int i = 0; i < units.length; i++) {
+            if (Math.abs(value) < 1024.0 || i == units.length - 1) {
+                if (i == 0) return String.format(java.util.Locale.US, "%d %s", (long) value, units[i]);
+                return String.format(java.util.Locale.US, "%.2f %s", value, units[i]);
+            }
+            value /= 1024.0;
+        }
+        return numBytes + " B"; // unreachable, keeps the compiler happy
+    }
 
     /** Returns a sorted list of every .pdf in the repo-root uploads/ folder (empty if none). */
     static java.util.List<java.nio.file.Path> findLocalPdfs() {
