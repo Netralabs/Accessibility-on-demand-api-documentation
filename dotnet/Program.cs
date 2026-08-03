@@ -6,6 +6,7 @@
  *   dotnet run -- step1   (upload PDFs from the uploads/ folder)
  *   dotnet run -- step1url (upload from signed URLs)
  *   dotnet run -- step2   (check upload)
+ *   dotnet run -- reupload (retry a failed upload)
  *   dotnet run -- step3   (create job)
  *   dotnet run -- step4   (check job)
  *   dotnet run -- step5   (create report)
@@ -30,6 +31,7 @@ namespace Aod
                 case "step1": await Step1Upload.RunAsync(); break;
                 case "step1url": await Step1UploadFromUrl.RunAsync(); break;
                 case "step2": await Step2CheckUpload.RunAsync(); break;
+                case "reupload": await ReUpload.RunAsync(); break;
                 case "step3": await Step3CreateJob.RunAsync(); break;
                 case "step4": await Step4CheckJob.RunAsync(); break;
                 case "step5": await Step5CreateReport.RunAsync(); break;
@@ -43,6 +45,7 @@ namespace Aod
                     Console.WriteLine("  step2    = check upload     step4 = check job");
                     Console.WriteLine("  step3    = create job       step5 = create report");
                     Console.WriteLine("                              step6 = check report");
+                    Console.WriteLine("  reupload = retry a failed upload (only if step2 marked one Failed)");
                     break;
             }
         }

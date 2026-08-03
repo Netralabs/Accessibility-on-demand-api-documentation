@@ -241,6 +241,15 @@ namespace Aod
             return await Client.SendAsync(req);
         }
 
+        // POST with NO body — used by the re-upload endpoint (the file_id is in the URL).
+        // Send Authorization only; there is no body, so no Content-Type is set.
+        public static async Task<HttpResponseMessage> PostNoBodyAsync(string url, string apiKey)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Post, url);
+            req.Headers.TryAddWithoutValidation("Authorization", "Bearer " + apiKey);
+            return await Client.SendAsync(req);
+        }
+
         // POST one or more local files as multipart/form-data.
         // The 'files' field is repeated once per file; each non-empty entry in
         // textFields becomes a text form-field part (e.g. "description",
@@ -365,7 +374,7 @@ namespace Aod
         //
         // Grouped, append-only history. Sections:
         //   "url_errors"  — tied to a signed URL (Step 1 uploads)
-        //   "file_errors" — tied to a file_id (Steps 2, 3, 5)
+        //   "file_errors" — tied to a file_id (Steps 2, 3, 5, and re-upload)
         //   "job_errors"  — tied to a job_id  (Steps 4, 6)
         //   "other"       — anything not clearly tied to one of the above
         // Every entry carries a UTC timestamp (ISO-8601, e.g. 2025-06-03T10:07:42Z).
