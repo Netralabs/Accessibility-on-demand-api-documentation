@@ -1,9 +1,13 @@
 /*
  * 2_check_upload.js  —  STEP 2: Check upload status
  * =================================================
- * Checks ALL files saved by Step 1 at the same time (concurrently).
- * Files already "uploaded" are skipped; the rest are updated.
- * Status will be 'Uploading' or 'Uploaded'.
+ * Checks ALL files saved by Step 1 at the same time (concurrently) and updates
+ * each one's status: "uploaded", still "uploading", or "failed".
+ *
+ * A file that comes back "failed" is recorded with its error and a "can_reupload"
+ * flag. If can_reupload is true, retry it with  node re_upload.js  and run this
+ * again; if false, the file can't be recovered — upload a fresh copy with
+ * 1_upload.js. Files already "uploaded" or "failed" are skipped on later runs.
  *
  * EDIT NOTHING HERE. Your api_key lives in  ../config.json
  *
@@ -48,13 +52,33 @@ async function checkOne(entry, headers) {
     return false;
   }
 
+  const data = body && typeof body.data === "object" && body.data ? body.data : {};
   const newStatus = readStatus(body) || "unknown";
-  console.log(`   - ${fileId}: ${newStatus}`);
+  const statusL = String(newStatus).toLowerCase();
 
-  if (String(newStatus).toLowerCase() === "uploaded") {
+  if (statusL === "uploaded") {
+    console.log(`   - ${fileId}: ${newStatus}`);
     entry.status = "uploaded";
+    delete entry.uploading_error;
+    delete entry.can_reupload;
     return true;
   }
+
+  if (statusL === "failed") {
+    // The background upload failed. Record why, and whether it can be retried,
+    // so re_upload.js knows what to do.
+    const err = data.uploading_error || "upload failed";
+    const can = Boolean(data.can_reupload);
+    entry.status = "failed";
+    entry.uploading_error = err;
+    entry.can_reupload = can;
+    const hint = can ? "can re-upload" : "cannot re-upload";
+    console.log(`   - ${fileId}: Failed — ${err}  (${hint})`);
+    return true;
+  }
+
+  // Still uploading (or an unexpected status) — check again next run.
+  console.log(`   - ${fileId}: ${newStatus}`);
   return false;
 }
 
@@ -71,8 +95,12 @@ async function main() {
 
   const pending = [];
   for (const entry of fileUploads) {
-    if (String(entry.status || "").toLowerCase() === "uploaded") {
+    const status = String(entry.status || "").toLowerCase();
+    if (status === "uploaded") {
       console.log(`   - ${entry.file_id}: already uploaded (skipped)`);
+    } else if (status === "failed") {
+      const hint = entry.can_reupload ? "can re-upload" : "cannot re-upload";
+      console.log(`   - ${entry.file_id}: already failed (${hint}, skipped)`);
     } else {
       pending.push(entry);
     }
@@ -88,20 +116,36 @@ async function main() {
 
   if (changed) saveValue("file_uploads", fileUploads);
 
-  const uploaded = fileUploads.filter(
-    (e) => String(e.status || "").toLowerCase() === "uploaded"
-  );
-  const stillPending = fileUploads.filter(
-    (e) => String(e.status || "").toLowerCase() !== "uploaded"
-  );
+  const st = (e) => String(e.status || "").toLowerCase();
+  const uploaded = fileUploads.filter((e) => st(e) === "uploaded");
+  const failed = fileUploads.filter((e) => st(e) === "failed");
+  const stillPending = fileUploads.filter((e) => st(e) !== "uploaded" && st(e) !== "failed");
 
   console.log("\nSummary:");
-  console.log(`   uploaded: ${uploaded.length}  |  still uploading: ${stillPending.length}`);
+  console.log(
+    `   uploaded: ${uploaded.length}  |  failed: ${failed.length}  |  still uploading: ${stillPending.length}`
+  );
+
+  if (failed.length > 0) {
+    console.log("\n[!] Some files failed to upload:");
+    for (const e of failed) {
+      const hint = e.can_reupload ? "can re-upload" : "cannot re-upload";
+      console.log(`   - ${e.file_id}: ${e.uploading_error || "upload failed"}  (${hint})`);
+    }
+    const retryable = failed.filter((e) => e.can_reupload);
+    const blocked = failed.filter((e) => !e.can_reupload);
+    if (retryable.length > 0) {
+      console.log(`    ${retryable.length} can be retried — run  node re_upload.js`);
+    }
+    if (blocked.length > 0) {
+      console.log(`    ${blocked.length} cannot be re-uploaded — upload a fresh copy with  node 1_upload.js`);
+    }
+  }
 
   if (stillPending.length > 0) {
-    console.log("Some files are still uploading. Wait a moment and run this file again.");
-  } else {
-    console.log("[OK] All files uploaded. Next: put an uploaded file_id into config.json " +
+    console.log("\nSome files are still uploading. Wait a moment and run this file again.");
+  } else if (failed.length === 0) {
+    console.log("\n[OK] All files uploaded. Next: put an uploaded file_id into config.json " +
       '("process": {"file_id": ...}) and run  node 3_create_job.js');
   }
 }
