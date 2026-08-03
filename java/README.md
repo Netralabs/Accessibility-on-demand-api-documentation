@@ -1,6 +1,6 @@
 # Java — AOD-API
 
-This folder contains **6 ready-to-run Java files**, one for each API step. The values you edit live in **one shared `config.json` at the repo root** — so every language folder (Java, .NET, Node, Python) reads the same config, and you fill it in **once**. Each `.java` file is self-contained (it includes a small built-in `AOD` helper at the bottom), so you run it directly with `java` — no build tool, no project setup.
+This folder contains **one ready-to-run Java file per API step**, plus a `ReUpload.java` retry helper (for uploads that come back `Failed`). The values you edit live in **one shared `config.json` at the repo root** — so every language folder (Java, .NET, Node, Python) reads the same config, and you fill it in **once**. Each `.java` file is self-contained (it includes a small built-in `AOD` helper at the bottom), so you run it directly with `java` — no build tool, no project setup.
 
 **You only ever edit the root `config.json`.** The six step files read every value (API key, signed URLs, file IDs, level) from [config.json](../config.json). They never need editing.
 
@@ -24,6 +24,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
 - [How to run](#how-to-run)
 - [Step 1 — Upload your file(s)](#step-1--upload-your-files)
 - [Step 2 — Check upload status](#step-2--check-upload-status--step2checkuploadjava)
+- [Retry a failed upload — `ReUpload.java`](#retry-a-failed-upload--reuploadjava)
 - [Step 3 — Start processing](#step-3--start-processing--step3createjobjava)
 - [Step 4 — Check job & get tagged PDF](#step-4--check-job--get-tagged-pdf--step4checkjobjava)
 - [Step 5 — Request a score report](#step-5--request-a-score-report--step5createreportjava)
@@ -75,6 +76,7 @@ your-project/
 │   ├── Step1Upload.java        (direct upload from ../uploads/)
 │   ├── Step1UploadFromUrl.java (upload from signed URLs)
 │   ├── Step2CheckUpload.java … Step6CheckReport.java
+│   ├── ReUpload.java           (retry an upload that came back Failed)
 │   ├── data.json         (created automatically — clean tracked items only)
 │   └── errors.json       (created only if something errors — see below)
 ├── dotnet/   …           (reads the same ../config.json, its own data.json)
@@ -135,7 +137,8 @@ You fill these in **as you go** — `sign_urls` before Step 1 (Option B; for Opt
 |------|------|--------------|
 | 1A | `Step1Upload.java`        | **Direct upload** — uploads every PDF in the repo-root `uploads/` folder (status starts as `Uploading`) |
 | 1B | `Step1UploadFromUrl.java` | **Signed-URL upload** — uploads from `sign_urls` in `config.json` (use one *or* the other) |
-| 2 | `Step2CheckUpload.java`  | Check **all** uploads → update each to `Uploaded` when ready |
+| 2 | `Step2CheckUpload.java`  | Check **all** uploads → mark each `Uploaded`, still `Uploading`, or `Failed` |
+| ↻ | `ReUpload.java`          | Retry any upload that came back `Failed` — only when its `can_reupload` is `true` |
 | 3 | `Step3CreateJob.java`    | Start processing one file → get a `job_id` |
 | 4 | `Step4CheckJob.java`     | Check **all** jobs → get the tagged-PDF download link |
 | 5 | `Step5CreateReport.java` | Request a score report for one file → get a report `job_id` |
@@ -318,9 +321,34 @@ run below to check status of added for uploading
 java -cp ".:lib/gson.jar" Step2CheckUpload.java
 ```
 
-**Result:** prints the status of each file. Files already `Uploaded` are skipped; the rest are updated. Re-run until all show `Uploaded`.
+**Result:** prints the status of each file. Each one settles into one of three outcomes:
 
-**Next:** copy an uploaded `file_id` into `config.json` under `process.file_id`, then run Step 3.
+- **`Uploaded`** — the transfer finished. Saved with `status: "uploaded"` and skipped on later runs.
+- **`Uploading`** — still transferring in the background. Left as-is; re-run to check again.
+- **`Failed`** — the background transfer didn't complete. Saved with `status: "failed"`, its `uploading_error`, and a `can_reupload` flag. (The status check itself still returns `200` — it's the *upload* that failed, not the request.)
+
+Files already `Uploaded` **or** `Failed` are skipped; only the still-`Uploading` ones are re-checked. Re-run until nothing is left uploading. If any file comes back `Failed`, the summary tells you which are retryable:
+
+- **`can_reupload: true`** → retry it with **[`ReUpload.java`](#retry-a-failed-upload--reuploadjava)** (below), then run Step 2 again.
+- **`can_reupload: false`** → the file can't be recovered — upload a fresh copy with `Step1Upload.java`.
+
+**Next:** once a file shows `Uploaded`, copy its `file_id` into `config.json` under `process.file_id`, then run Step 3.
+
+---
+
+### Retry a failed upload → `ReUpload.java`
+
+Only needed if Step 2 reported a file as **`Failed`** with **`can_reupload: true`**. This retries the upload for those files by calling the re-upload endpoint for each one — the file keeps its original `file_id` and batch, so nothing downstream changes.
+
+```bash
+java -cp ".:lib/gson.jar" ReUpload.java
+```
+
+It reads `data.json`, picks only the files whose status is `Failed` **and** `can_reupload: true`, and re-uploads each. Files that failed with `can_reupload: false` are listed but skipped — those can't be recovered (upload a fresh copy with `Step1Upload.java`). If there are no retryable failures, it says so and does nothing.
+
+**Result:** each retried file restarts its background transfer and its tracked status goes back to `Uploading` (the old `uploading_error` / `can_reupload` are cleared). A re-upload request that itself fails (non-200 or an unreadable response) is logged to `errors.json` under `file_errors`, not `data.json`.
+
+**Next:** run **[Step 2](#step-2--check-upload-status--step2checkuploadjava)** again to see whether the retried files finished (`Uploaded`) — or failed again, in which case check `can_reupload` once more.
 
 ---
 
@@ -405,5 +433,7 @@ java -cp ".:lib/gson.jar" Step6CheckReport.java
 - **401 Unauthorized** — your API key is missing, wrong, or has extra spaces. Re-check `api_key` in `config.json`.
 - **429 Too Many Requests** — you're calling too fast. Wait the `retry-after-sec` seconds shown in the response and try again.
 - **A URL failed with "unsupported source"** — only **S3** and **Google Drive** signed URLs are supported.
+- **A file's upload came back `Failed`** — the background transfer didn't complete. Step 2 saves it with `status: "failed"`, its `uploading_error`, and a `can_reupload` flag. If `can_reupload` is `true`, run `ReUpload.java` and then `Step2CheckUpload.java` again. If it's `false`, the file can't be recovered — upload a fresh copy with `Step1Upload.java`.
+- **`ReUpload.java` says "No failed files to re-upload"** — nothing is currently marked `Failed`. Run `Step2CheckUpload.java` first; it's what marks a file `Failed` (and sets `can_reupload`) when its upload doesn't complete.
 
 For the complete list of status codes and error shapes, see Section 9 of the [main README](../readme.md).

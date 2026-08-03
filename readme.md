@@ -1208,7 +1208,7 @@ Retries the background upload for a file whose `uploading_status` came back as *
 **Request**
 
 ```bash
-curl -X POST "https://api.accessibilityondemand.space/api/v1/files/re-upload/6a0da566b44a9d3cf59c03df" \
+curl -X POST "https://api.accessibilityondemand.space/api/v1/files/re-upload/aaaa566b44a9d3cf59c03df" \
   -H "Authorization: Bearer aod-xxxxxxxxxxx"
 ```
 
@@ -1218,7 +1218,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/re-upload/6a0
 {
   "success": true,
   "data": {
-    "file_id": "6a0da566b44a9d3cf59c03df",
+    "file_id": "aaaa566b44a9d3cf59c03df",
     "batch_name": "BATCH-20260520-POFPFU",
     "user_batch_id": null,
     "uploading_status": "Uploading",
@@ -1504,4 +1504,4 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ---
 
-*Last updated: 15-07-2026 · Maintained by aod-tech*
+*Last updated: 03-08-2026 · Maintained by aod-tech*

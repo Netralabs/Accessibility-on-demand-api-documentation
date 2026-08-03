@@ -1,46 +1,40 @@
 /*
- * Step2CheckUpload.java  —  STEP 2: Check upload status
- * ======================================================
- * Checks every file saved by Step 1 and updates its status: "uploaded", still
- * "uploading", or "failed".
+ * ReUpload.java  —  Retry files whose upload Failed
+ * =================================================
+ * When Step 2 (Step2CheckUpload.java) shows a file's status as "failed" and
+ * "can_reupload" is true, this file retries the upload for those files by
+ * calling  POST /files/re-upload/{file_id}  for each of them.
  *
- * A file that comes back "failed" is recorded with its error and a "can_reupload"
- * flag. If can_reupload is true, retry it with  ReUpload.java  and run this again;
- * if false, the file can't be recovered — upload a fresh copy with Step1Upload.java.
- * Files already "uploaded" or "failed" are skipped on later runs.
+ * It reads the files saved in data.json, picks the ones that failed and can be
+ * re-uploaded, and re-uploads each one. Re-uploading restarts the background
+ * transfer (the status goes back to "Uploading"), so afterwards run
+ * Step2CheckUpload.java again to see whether it finished.
+ *
+ * A file whose status is failed with "can_reupload": false can't be recovered —
+ * upload a fresh copy with Step1Upload.java instead.
  *
  * EDIT NOTHING HERE. Your api_key lives in  config.json
  *
  * How to run (Java 11+):
- *   Mac/Linux:  java -cp ".:lib/gson.jar" Step2CheckUpload.java
- *   Windows:    java -cp ".;lib\gson.jar" Step2CheckUpload.java
+ *   Mac/Linux:  java -cp ".:lib/gson.jar" ReUpload.java
+ *   Windows:    java -cp ".;lib\gson.jar" ReUpload.java
  */
 
 import com.google.gson.*;
 
-public class Step2CheckUpload {
-
-    static String readStatus(JsonObject body) {
-        if (body.has("status") && !body.get("status").isJsonNull()) {
-            return body.get("status").getAsString();
-        }
-        if (body.has("data") && body.get("data").isJsonObject()) {
-            JsonObject data = body.getAsJsonObject("data");
-            if (data.has("uploading_status") && !data.get("uploading_status").isJsonNull()) {
-                return data.get("uploading_status").getAsString();
-            }
-        }
-        return null;
-    }
-
-    static String statusOf(JsonObject entry) {
-        return entry.has("status") && !entry.get("status").isJsonNull()
-                ? entry.get("status").getAsString() : "";
-    }
+public class ReUpload {
 
     static boolean canReupload(JsonObject o) {
         return o.has("can_reupload") && !o.get("can_reupload").isJsonNull()
                 && o.get("can_reupload").getAsBoolean();
+    }
+
+    /** The re-upload response wraps the file info in 'data' — return it (or empty). */
+    static JsonObject readData(JsonObject body) {
+        if (body.has("data") && body.get("data").isJsonObject()) {
+            return body.getAsJsonObject("data");
+        }
+        return new JsonObject();
     }
 
     public static void main(String[] args) throws Exception {
@@ -53,33 +47,51 @@ public class Step2CheckUpload {
             return;
         }
 
-        boolean changed = false;
-
-        // Only files that haven't settled yet need checking; print why the rest are skipped.
-        java.util.List<JsonObject> pending = new java.util.ArrayList<>();
+        // Split the failed files into 'can retry' vs 'cannot retry'.
+        java.util.List<JsonObject> retryable = new java.util.ArrayList<>();
+        java.util.List<JsonObject> blocked = new java.util.ArrayList<>();
         for (JsonElement el : fileUploads) {
             JsonObject entry = el.getAsJsonObject();
-            String status = statusOf(entry);
-            if (status.equalsIgnoreCase("uploaded")) {
-                System.out.println("   - " + entry.get("file_id").getAsString() + ": already uploaded (skipped)");
-            } else if (status.equalsIgnoreCase("failed")) {
-                String hint = canReupload(entry) ? "can re-upload" : "cannot re-upload";
-                System.out.println("   - " + entry.get("file_id").getAsString()
-                        + ": already failed (" + hint + ", skipped)");
-            } else {
-                pending.add(entry);
+            String status = entry.has("status") && !entry.get("status").isJsonNull()
+                    ? entry.get("status").getAsString() : "";
+            if (status.equalsIgnoreCase("failed")) {
+                if (canReupload(entry)) retryable.add(entry); else blocked.add(entry);
             }
         }
 
-        System.out.println("\nChecking " + pending.size() + " file(s)...\n");
+        if (retryable.isEmpty()) {
+            if (!blocked.isEmpty()) {
+                System.out.println("[!] Some files failed but cannot be re-uploaded (can_reupload = false):");
+                for (JsonObject e : blocked) {
+                    System.out.println("   - " + e.get("file_id").getAsString() + ": "
+                            + AOD.getString(e, "uploading_error", "upload failed"));
+                }
+                System.out.println("    These can't be recovered — upload a fresh copy with  Step1Upload.java");
+            } else {
+                System.out.println("[OK] No failed files to re-upload.");
+                System.out.println("    (Run  Step2CheckUpload.java  first — it marks a file 'failed' if its upload fails.)");
+            }
+            return;
+        }
 
-        for (JsonObject entry : pending) {
+        System.out.println("Re-uploading " + retryable.size() + " failed file(s)...\n");
+
+        boolean changed = false;
+        int started = 0;
+
+        for (JsonObject entry : retryable) {
             String fileId = entry.get("file_id").getAsString();
 
-            java.net.http.HttpResponse<String> resp = AOD.get(AOD.BASE_URL + "/files/status/" + fileId, apiKey);
+            java.net.http.HttpResponse<String> resp =
+                    AOD.postNoBody(AOD.BASE_URL + "/files/re-upload/" + fileId, apiKey);
+
             if (resp.statusCode() != 200) {
-                System.out.println("   - " + fileId + ": could not check (status code " + resp.statusCode() + ")");
-                AOD.logFileError(fileId, resp.statusCode(), "Could not check upload status", null);
+                System.out.println("   - " + fileId + ": re-upload failed (status code " + resp.statusCode() + ")");
+                JsonElement raw = null;
+                try {
+                    raw = JsonParser.parseString(resp.body());
+                } catch (Exception ignored) {}
+                AOD.logFileError(fileId, resp.statusCode(), "Re-upload request failed", raw);
                 continue;
             }
 
@@ -88,78 +100,30 @@ public class Step2CheckUpload {
                 body = JsonParser.parseString(resp.body()).getAsJsonObject();
             } catch (Exception e) {
                 System.out.println("   - " + fileId + ": could not read response");
-                AOD.logFileError(fileId, resp.statusCode(), "Could not read/parse response body", null);
+                AOD.logFileError(fileId, resp.statusCode(), "Could not read/parse re-upload response", null);
                 continue;
             }
 
-            JsonObject data = body.has("data") && body.get("data").isJsonObject()
-                    ? body.getAsJsonObject("data") : new JsonObject();
-            String newStatus = readStatus(body);
-            if (newStatus == null) newStatus = "unknown";
-
-            if (newStatus.equalsIgnoreCase("uploaded")) {
-                System.out.println("   - " + fileId + ": " + newStatus);
-                entry.addProperty("status", "uploaded");
-                entry.remove("uploading_error");
-                entry.remove("can_reupload");
-                changed = true;
-            } else if (newStatus.equalsIgnoreCase("failed")) {
-                // The background upload failed. Record why, and whether it can be retried,
-                // so ReUpload.java knows what to do.
-                String err = AOD.getString(data, "uploading_error", "upload failed");
-                boolean can = canReupload(data);
-                entry.addProperty("status", "failed");
-                entry.addProperty("uploading_error", err);
-                entry.addProperty("can_reupload", can);
-                String hint = can ? "can re-upload" : "cannot re-upload";
-                System.out.println("   - " + fileId + ": Failed — " + err + "  (" + hint + ")");
-                changed = true;
-            } else {
-                // Still uploading (or an unexpected status) — check again next run.
-                System.out.println("   - " + fileId + ": " + newStatus);
-            }
+            String newStatus = AOD.getString(readData(body), "uploading_status", "Uploading");
+            // A successful re-upload restarts the background transfer. Reset our tracked
+            // status so Step 2 will check it again, and clear the old failure info.
+            entry.addProperty("status", newStatus);
+            entry.remove("uploading_error");
+            entry.remove("can_reupload");
+            System.out.println("   - " + fileId + ": re-upload started (status: " + newStatus + ")");
+            started++;
+            changed = true;
         }
 
         if (changed) AOD.saveValue("file_uploads", fileUploads);
 
-        // Tally the final state.
-        int uploaded = 0, failedCount = 0, stillPending = 0;
-        java.util.List<JsonObject> failed = new java.util.ArrayList<>();
-        for (JsonElement el : fileUploads) {
-            JsonObject entry = el.getAsJsonObject();
-            String status = statusOf(entry);
-            if (status.equalsIgnoreCase("uploaded")) uploaded++;
-            else if (status.equalsIgnoreCase("failed")) { failedCount++; failed.add(entry); }
-            else stillPending++;
-        }
-
+        String line = "   re-upload started: " + started
+                + "  |  couldn't start: " + (retryable.size() - started);
+        if (!blocked.isEmpty()) line += "  |  not re-uploadable: " + blocked.size();
         System.out.println("\nSummary:");
-        System.out.println("   uploaded: " + uploaded + "  |  failed: " + failedCount
-                + "  |  still uploading: " + stillPending);
-
-        if (!failed.isEmpty()) {
-            System.out.println("\n[!] Some files failed to upload:");
-            int retryable = 0, blocked = 0;
-            for (JsonObject e : failed) {
-                boolean can = canReupload(e);
-                String err = AOD.getString(e, "uploading_error", "upload failed");
-                String hint = can ? "can re-upload" : "cannot re-upload";
-                System.out.println("   - " + e.get("file_id").getAsString() + ": " + err + "  (" + hint + ")");
-                if (can) retryable++; else blocked++;
-            }
-            if (retryable > 0) {
-                System.out.println("    " + retryable + " can be retried — run  ReUpload.java");
-            }
-            if (blocked > 0) {
-                System.out.println("    " + blocked + " cannot be re-uploaded — upload a fresh copy with  Step1Upload.java");
-            }
-        }
-
-        if (stillPending > 0) {
-            System.out.println("\nSome files are still uploading. Wait a moment and run this file again.");
-        } else if (failed.isEmpty()) {
-            System.out.println("[OK] All files uploaded. Next: put an uploaded file_id into config.json "
-                    + "(\"process\": {\"file_id\": ...}) and run  Step3CreateJob.java");
+        System.out.println(line);
+        if (started > 0) {
+            System.out.println("\nNext: run  Step2CheckUpload.java  again to see whether they finished uploading.");
         }
     }
 }
@@ -266,6 +230,17 @@ class AOD {
         return CLIENT.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
     }
 
+    // POST with NO body — used by the re-upload endpoint (file_id is in the URL).
+    // Send Authorization only; there is no body, so no Content-Type is set.
+    static java.net.http.HttpResponse<String> postNoBody(String url, String apiKey) throws Exception {
+        java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(url))
+                .header("Authorization", "Bearer " + apiKey)
+                .POST(java.net.http.HttpRequest.BodyPublishers.noBody())
+                .build();
+        return CLIENT.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
+    }
+
     static java.net.http.HttpResponse<String> get(String url, String apiKey) throws Exception {
         java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
                 .uri(java.net.URI.create(url))
@@ -340,7 +315,7 @@ class AOD {
     //
     // Grouped, append-only history. Sections:
     //   "url_errors"  — tied to a signed URL (Step 1 uploads)
-    //   "file_errors" — tied to a file_id (Steps 2, 3, 5)
+    //   "file_errors" — tied to a file_id (Steps 2, 3, 5, and ReUpload)
     //   "job_errors"  — tied to a job_id  (Steps 4, 6)
     //   "other"       — anything not clearly tied to one of the above
     // Every entry carries a UTC timestamp (ISO-8601, e.g. 2025-06-03T10:07:42Z).
