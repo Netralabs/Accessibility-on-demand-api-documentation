@@ -1,6 +1,6 @@
 # Python (sync) — AOD-API
 
-This folder contains **6 ready-to-run Python files**, one for each API step, plus a shared `helper.py`. They use **`requests`** the plain, one-at-a-time way (one request after another) — the simplest setup. (Want the "check" steps to check many files/jobs/reports at once for speed? Use the `python-async/` folder instead — same behavior, using `httpx` + `asyncio`.)
+This folder contains **one ready-to-run Python file per API step**, plus a `re_upload.py` retry helper (for uploads that come back `Failed`) and a shared `helper.py`. They use **`requests`** the plain, one-at-a-time way (one request after another) — the simplest setup. (Want the "check" steps to check many files/jobs/reports at once for speed? Use the `python-async/` folder instead — same behavior, using `httpx` + `asyncio`.)
 
 The values you edit live in **one shared [config.json](../config.json) at the repo root** — so every language folder (Java, .NET, Node, Python) reads the same config, and you fill it in **once**.
 
@@ -23,6 +23,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
 - [Paths & commands at a glance](#paths--commands-at-a-glance)
 - [Step 1 — Upload your file(s)](#step-1--upload-your-files)
 - [Step 2 — Check upload status](#step-2--check-upload-status--2_check_uploadpy)
+- [Retry a failed upload — `re_upload.py`](#retry-a-failed-upload--re_uploadpy)
 - [Step 3 — Start processing](#step-3--start-processing--3_create_jobpy)
 - [Step 4 — Check job & get tagged PDF](#step-4--check-job--get-tagged-pdf--4_check_jobpy)
 - [Step 5 — Request a score report](#step-5--request-a-score-report--5_create_reportpy)
@@ -56,6 +57,7 @@ your-project/
 │   ├── 1_upload.py            (direct upload from ../uploads/)
 │   ├── 1_upload_from_url.py   (upload from signed URLs)
 │   ├── 2_check_upload.py … 6_check_report.py
+│   ├── re_upload.py          (retry an upload that came back Failed)
 │   ├── data.json         (created automatically — clean tracked items only)
 │   └── errors.json       (created only if something errors — see below)
 ├── python-async/  …      (same, but uses httpx + asyncio for concurrent checks)
@@ -116,7 +118,8 @@ You fill these in **as you go** — `sign_urls` before Step 1 (Option B; for Opt
 |------|------|--------------|
 | 1A | `1_upload.py`            | **Direct upload** — uploads every PDF in the repo-root `uploads/` folder (status starts as `Uploading`) |
 | 1B | `1_upload_from_url.py`   | **Signed-URL upload** — uploads from the `sign_urls` in `config.json` (use one *or* the other, not both) |
-| 2 | `2_check_upload.py`  | Check **all** uploads → update each to `Uploaded` when ready |
+| 2 | `2_check_upload.py`  | Check **all** uploads → mark each `Uploaded`, still `Uploading`, or `Failed` |
+| ↻ | `re_upload.py`       | Retry any upload that came back `Failed` — only when its `can_reupload` is `true` |
 | 3 | `3_create_job.py`    | Start processing one file → get a `job_id` |
 | 4 | `4_check_job.py`     | Check **all** jobs → get the tagged-PDF download link |
 | 5 | `5_create_report.py` | Request a score report for one file → get a report `job_id` |
@@ -250,9 +253,38 @@ python 2_check_upload.py
 
 > 🧭 **Getting `can't open file '2_check_upload.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `2_check_upload.py` file when you type `ls`).
 
-**Result:** prints the status of each file. Files already `Uploaded` are skipped; the rest are updated. Re-run until all show `Uploaded`.
+**Result:** prints the status of each file. Each one settles into one of three outcomes:
 
-**Next:** copy an uploaded `file_id` into `config.json` under `process.file_id`, then run Step 3.
+- **`Uploaded`** — the transfer finished. Saved with `status: "uploaded"` and skipped on later runs.
+- **`Uploading`** — still transferring in the background. Left as-is; re-run to check again.
+- **`Failed`** — the background transfer didn't complete. Saved with `status: "failed"`, its `uploading_error`, and a `can_reupload` flag. (The status check itself still returns `200` — it's the *upload* that failed, not the request.)
+
+Files already `Uploaded` **or** `Failed` are skipped; only the still-`Uploading` ones are re-checked. Re-run until nothing is left uploading. If any file comes back `Failed`, the summary tells you which are retryable:
+
+- **`can_reupload: true`** → retry it with **[`re_upload.py`](#retry-a-failed-upload--re_uploadpy)** (below), then run Step 2 again.
+- **`can_reupload: false`** → the file can't be recovered — upload a fresh copy with `1_upload.py`.
+
+**Next:** once a file shows `Uploaded`, copy its `file_id` into `config.json` under `process.file_id`, then run Step 3.
+
+---
+
+## Retry a failed upload → `re_upload.py`
+
+Only needed if Step 2 reported a file as **`Failed`** with **`can_reupload: true`**. This retries the upload for those files by calling the re-upload endpoint for each one — the file keeps its original `file_id` and batch, so nothing downstream changes.
+
+```bash
+python re_upload.py
+```
+
+> 🧭 **Getting `can't open file 're_upload.py'`?** You're in the wrong folder. The step files live inside `python-sync/`. Run `cd python-sync` first (you should see the `re_upload.py` file when you type `ls`).
+
+It reads `data.json`, picks only the files whose status is `Failed` **and** `can_reupload: true`, and re-uploads each. Files that failed with `can_reupload: false` are listed but skipped — those can't be recovered (upload a fresh copy with `1_upload.py`). If there are no retryable failures, it says so and does nothing.
+
+**Result:** each retried file restarts its background transfer and its tracked status goes back to `Uploading` (the old `uploading_error` / `can_reupload` are cleared). A re-upload request that itself fails (non-200 or an unreadable response) is logged to `errors.json` under `file_errors`, not `data.json`.
+
+> ⏱️ The re-upload endpoint is rate-limited like the others (base limit — see the main README, Section 6).
+
+**Next:** run **[Step 2](#step-2--check-upload-status--2_check_uploadpy)** again to see whether the retried files finished (`Uploaded`) — or failed again, in which case check `can_reupload` once more.
 
 ---
 
@@ -344,5 +376,8 @@ python 6_check_report.py
 - **401 Unauthorized** — your API key is missing, wrong, or has extra spaces. Re-check `api_key` in `config.json`.
 - **429 Too Many Requests** — you're calling too fast. Wait the `retry-after-sec` seconds shown in the response and try again.
 - **A URL failed with "unsupported source"** — only **S3** and **Google Drive** signed URLs are supported.
+- **A file's upload came back `Failed`** — the background transfer didn't complete. Step 2 saves it with `status: "failed"`, its `uploading_error`, and a `can_reupload` flag. If `can_reupload` is `true`, run `python re_upload.py` and then `python 2_check_upload.py` again. If it's `false`, the file can't be recovered — upload a fresh copy with `python 1_upload.py`.
+- **`re_upload.py` says "No failed files to re-upload"** — nothing is currently marked `Failed`. Run `python 2_check_upload.py` first; it's what marks a file `Failed` (and sets `can_reupload`) when its upload doesn't complete.
+- **`ImportError: cannot import name 'build_headers_auth_only'`** — your `helper.py` predates `re_upload.py`. Copy the `build_headers_auth_only` function from the `python-async/helper.py` into this folder's `helper.py` (it's the same auth-only header used for the bodyless re-upload POST).
 
 For the complete list of status codes and error shapes, see Section 9 of the [main README](../../readme.md).
