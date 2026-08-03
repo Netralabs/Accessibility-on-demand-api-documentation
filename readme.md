@@ -26,6 +26,7 @@ This guide is written so that **anyone** can call these APIs. Just follow the st
    - [Endpoint 5 — Check job & get tagged PDF](#endpoint-5--check-job--get-tagged-pdf)
    - [Endpoint 6 — Request a score report](#endpoint-6--request-a-score-report)
    - [Endpoint 7 — Get the score report](#endpoint-7--get-the-score-report)
+   - [Endpoint 8 — Re-upload a failed file](#endpoint-8--re-upload-a-failed-file)
    - [Common errors (all endpoints)](#common-errors-all-endpoints)
 10. [Understanding errors](#10-understanding-errors)
 11. [FAQ](#11-faq)
@@ -161,11 +162,12 @@ You never edit the language files themselves. See [Section 7](#7-how-to-call-the
 |---|--------|-------------------------------|--------------|
 | 1 | POST   | `/files/upload/`               | Uploads one or more PDFs **directly** as `multipart/form-data` (`files` + optional `description`, `user_batch_id`, `batch_name`). Returns a **file_id** for each accepted file, plus its **user_batch_id** / **batch_name**. |
 | 2 | POST   | `/files/upload-from-url/`      | Starts a file upload **from signed URLs**. You send **sign_urls** (plus optional `description`, `user_batch_id`, `batch_name`) in the payload, and it returns the **file_ids** of the uploaded URLs, plus the **user_batch_id** / **batch_name**. |
-| 3 | GET    | `/files/status/{file_id}`      | Returns the upload **status** (`Uploading` / `Uploaded`) for the given file_id, along with the file's **batch_name** / **user_batch_id**. |
+| 3 | GET    | `/files/status/{file_id}`      | Returns the upload **status** (`Uploading` / `Uploaded` / `Failed`) for the given file_id, along with the file's **batch_name** / **user_batch_id**. On a `Failed` status it also returns **uploading_error** and **can_reupload**. |
 | 4 | POST   | `/jobs/`                       | Sends an uploaded PDF for processing. Takes a successfully uploaded **file_id**, a **level** (1 or 2), and an optional **requires_manual_review** flag. Returns a **job_id**. |
 | 5 | GET    | `/jobs/{job_id}`               | Returns the processing **status** and a **link to the tagged PDF**. If the job was started with `requires_manual_review: true`, the link becomes available only after you complete the manual review in the web UI. |
 | 6 | POST   | `/report/`                     | Requests an axes4 score report. Takes a **file_id** and returns a **job_id** for the report. |
 | 7 | GET    | `/report/{job_id}`             | Returns the report **status** and a **link to the generated score report PDF** for the file. |
+| 8 | POST   | `/files/re-upload/{file_id}`   | Retries the background upload for a file whose status came back **`Failed`** — only when that status also reported **`can_reupload: true`**. Keeps the same **file_id** and batch. |
 
 > 📄 **PDFs only** — both upload endpoints (1 and 2) accept **PDF files only**. Non-PDF files are rejected.
 
@@ -196,6 +198,7 @@ Two endpoints add an **extra cooldown** on top of that base limit. The full brea
 | 5 | `GET /jobs/{job_id}`           | Base limit only (1 request/sec), per user. |
 | 6 | `POST /report/`                | Base limit only (1 request/sec), per user. |
 | 7 | `GET /report/{job_id}`         | Base limit only (1 request/sec), per user. |
+| 8 | `POST /files/re-upload/{file_id}` | Base limit only (1 request/sec), per user. |
 
 > 🔁 **Polling tip.** The "check" endpoints (3, 5, 7) allow 1 request/sec, but you don't need to poll that fast. Polling **every few seconds** is plenty and keeps you well clear of `429`. Remember that every poll counts against the rate limit, so don't hammer it in a tight loop.
 
@@ -254,7 +257,7 @@ your-project/
 1. **Upload** your file(s) → get a `file_id` for each (status starts as `Uploading`). *(Two ways: drop PDFs into the **`uploads/`** folder for a direct upload, or use a signed URL — see [How to get a signed URL](docs/getting-signed-urls.md). Either way, the file must be a **PDF**.)* Every upload also comes back with a `user_batch_id` and `batch_name` — either the ones you sent, or ones generated for you (see [Endpoint 1](#endpoint-1--upload-files-directly-form-data)).
 
    > 🧹 **Clean up after Step 1 runs.** Once you've run Step 1 and have your `file_id`s, the upload is done — there's no need to send those files again. **Remove the PDFs from the `uploads/` folder** (and **clear the `sign_urls` list in `config.json`**) so the next run doesn't re-upload the same files by mistake. You don't keep re-hitting the upload endpoint; Steps 2–6 use the `file_id`, not the original file or URL.
-2. **Check upload** → repeat until the status is `Uploaded`.
+2. **Check upload** → repeat until the status is `Uploaded`. *(If it comes back `Failed` with `can_reupload: true`, you can retry that file with the re-upload endpoint — see [Endpoint 8](#endpoint-8--re-upload-a-failed-file).)*
 3. **Create a job** with a `file_id`, a level (1 or 2), and optionally `requires_manual_review: true` → get a `job_id`.
 4. **Check the job** → when `Completed`, get the tagged-PDF download link. *(If you passed `requires_manual_review: true`, first go to the web UI, do the manual review, click **Complete**, and then poll this endpoint again to get the download link.)*
 5. **Request a report** with a `file_id` → get a report `job_id`.
@@ -397,6 +400,7 @@ Jump to an endpoint:
 - [Endpoint 5 — Check job & get tagged PDF](#endpoint-5--check-job--get-tagged-pdf)
 - [Endpoint 6 — Request a score report](#endpoint-6--request-a-score-report)
 - [Endpoint 7 — Get the score report](#endpoint-7--get-the-score-report)
+- [Endpoint 8 — Re-upload a failed file](#endpoint-8--re-upload-a-failed-file)
 - [Common errors (all endpoints)](#common-errors-all-endpoints)
 
 ---
@@ -582,6 +586,8 @@ The limit is on **combined size**, not file count — the **entire** request is 
 | `failed_uploads[].detail` | Why it failed (e.g. not a PDF, malware detected, unsupported content) |
 | `request_id` | Unique ID for this request — quote it if contacting support |
 
+> ⏳ **`Uploading` is the start of a background transfer.** Acceptance here means validation passed and the file was queued — the transfer then runs in the background and can still end in `Failed`. Always confirm the outcome with [Endpoint 3](#endpoint-3--check-upload-status); a `Failed` file may be retryable via [Endpoint 8](#endpoint-8--re-upload-a-failed-file).
+
 (This endpoint shares the same success/207 shape as Endpoint 2 — the only difference is each entry carries a **`filename`** instead of a **`url`**.)
 
 [⬆ Back to top](#top)
@@ -747,7 +753,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/files/upload-from-u
 
 `GET /files/status/{file_id}`
 
-Returns whether a file has finished uploading, along with the batch it belongs to.
+Returns the current upload status of a file — `Uploading`, `Uploaded`, or `Failed` — along with the batch it belongs to. A file is accepted for upload after a quick validation check (that's when you get the `file_id`); the actual transfer then runs in the **background**, so poll this endpoint until the status settles on `Uploaded` or `Failed`.
 
 **Request**
 
@@ -792,6 +798,27 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/files/status/aaa9502
 }
 ```
 
+**Upload failed — `200 OK`** (the background upload didn't complete)
+
+```json
+{
+  "success": true,
+  "data": {
+    "file_id": "6a6c7cc633a70d769adb4830",
+    "batch_name": "BATCH-speedy-feather-CSUC",
+    "user_batch_id": "BATCH-20260731-53HIMB",
+    "uploading_status": "Failed",
+    "uploading_error": "File upload failed.",
+    "can_reupload": true
+  },
+  "message": null,
+  "request_id": "67e6a7a3-d469-4b61-8a2c-4ae2bc1cb9bd",
+  "timestamp": "2026-07-31T10:45:49.182143+00:00"
+}
+```
+
+The status check itself still returns **`200 OK`** — it's the file's *upload* that failed. On a `Failed` status the response adds two fields: `uploading_error` (why it failed) and `can_reupload`. If `can_reupload` is `true`, retry the transfer with [Endpoint 8 — Re-upload a failed file](#endpoint-8--re-upload-a-failed-file); if it's `false`, the file can't be recovered — start a fresh upload (Endpoint 1 or 2) instead.
+
 **Not Found — `404 Not Found`**
 
 ```json
@@ -829,8 +856,9 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/files/status/aaa9502
 | `data.file_id` | The file being checked |
 | `data.batch_name` | The name of the batch this file belongs to |
 | `data.user_batch_id` | The ID of the batch this file belongs to |
-| `data.uploading_status` | `Uploading` while in progress, `Uploaded` when finished |
-| `data.uploading_error` | `null` if no error, otherwise the reason the upload failed |
+| `data.uploading_status` | `Uploading` while the background transfer is in progress, `Uploaded` when it finishes, or `Failed` if it didn't complete |
+| `data.uploading_error` | `null` if no error, otherwise the reason the upload failed (populated when the status is `Failed`) |
+| `data.can_reupload` | Present only on a `Failed` status. `true` → you can retry with [Endpoint 8](#endpoint-8--re-upload-a-failed-file); `false` → the file can't be re-uploaded, start a fresh upload instead |
 
 [⬆ Back to top](#top)
 
@@ -1171,6 +1199,53 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/report/JOB_ID_HERE" 
 
 ---
 
+### Endpoint 8 — Re-upload a failed file
+
+`POST /files/re-upload/{file_id}`
+
+Retries the background upload for a file whose `uploading_status` came back as **`Failed`** from [Endpoint 3](#endpoint-3--check-upload-status). Only use this when that status response also reported **`can_reupload: true`** — if it was `false`, the file can't be recovered and you should start a fresh upload (Endpoint 1 or 2) instead.
+
+**Request**
+
+```bash
+curl -X POST "https://api.accessibilityondemand.space/api/v1/files/re-upload/6a0da566b44a9d3cf59c03df" \
+  -H "Authorization: Bearer aod-xxxxxxxxxxx"
+```
+
+**Success — `200 OK`** (re-upload accepted)
+
+```json
+{
+  "success": true,
+  "data": {
+    "file_id": "6a0da566b44a9d3cf59c03df",
+    "batch_name": "BATCH-20260520-POFPFU",
+    "user_batch_id": null,
+    "uploading_status": "Uploading",
+    "uploading_error": null
+  },
+  "message": "Files accepted for uploading ,File upload started",
+  "request_id": "078867a8-9060-44ce-954b-1714f98d0ea6",
+  "timestamp": "2026-07-31T10:55:09.339717+00:00"
+}
+```
+
+A successful re-upload is **accepted just like a first upload** — it comes back with `uploading_status: "Uploading"` and the same `"Files accepted for uploading ..."` message, and restarts the transfer in the **background**. Poll [Endpoint 3](#endpoint-3--check-upload-status) until the status settles on `Uploaded` — or `Failed` again, in which case `uploading_error` explains why and you check `can_reupload` once more. The file keeps its original `file_id` and batch, so nothing downstream changes.
+
+**Field explanations**
+
+| Field | Meaning |
+|-------|---------|
+| `data.file_id` | The file being re-uploaded — unchanged from the original upload |
+| `data.batch_name` | The name of the batch this file belongs to |
+| `data.user_batch_id` | The ID of the batch this file belongs to (`null` if the batch has no user_batch_id) |
+| `data.uploading_status` | `Uploading` — the re-upload was accepted and the transfer restarted in the background; poll [Endpoint 3](#endpoint-3--check-upload-status) for the outcome |
+| `data.uploading_error` | `null` if no error, otherwise the reason the re-upload failed |
+
+[⬆ Back to top](#top)
+
+---
+
 <a id="common-errors-all-endpoints"></a>
 
 ### Common errors (all endpoints)
@@ -1373,7 +1448,7 @@ When contacting support, include the `request_id` — it lets us find your exact
 > Send the **same** `user_batch_id` and `batch_name` on each upload call. The first call creates the batch; later calls that reuse the same pair add their files to it. This works whether you upload directly (Endpoint 1) or from signed URLs (Endpoint 2), and even across separate runs — just keep the same values in `config.json`. If you leave both blank, each upload gets its own fresh, auto-generated batch instead.
 
 **Q: Is there a limit on how many files I can upload in one request?**
-> There's **no per-file size cap and no limit on the number** of files (or URLs) — the only rule is that the **combined size** of everything in a single request must stay **≤ 1 GB**. So a single file can be up to the full 1 GB, or you can send many smaller ones, as long as the total is under 1 GB. Go over the 1 GB total and the whole request is rejected with **`413 Payload Too Large`** (`PAYLOAD_TOO_LARGE`), and nothing is uploaded — just split the files across more requests. There's no limit on how many separate requests you make, aside from the normal per-call cooldown in [Section 6 — Rate limits](#6-rate-limits).
+> There's **no limit on the number** of files (or URLs) — but the **combined size** of everything in a single request must stay **≤ 1 GB** (and each PDF ≤ 80 MB). Go over the 1 GB total and the whole request is rejected with **`413 Payload Too Large`** (`PAYLOAD_TOO_LARGE`), and nothing is uploaded — just split the files across more requests. There's no limit on how many separate requests you make, aside from the normal per-call cooldown in [Section 6 — Rate limits](#6-rate-limits).
 
 **Q: I got a 409 saying my `user_batch_id` or `batch_name` "already exists". Why?**
 > The two fields must always refer to the **same** batch. You sent a pair where one value already exists but is paired with a **different** partner — e.g. a `user_batch_id` that's already tied to another `batch_name` (or vice-versa). Fix it one of three ways: send the **matching** partner value so the pair lines up with the existing batch, pick a **brand-new unique** `user_batch_id` **and** `batch_name`, or **leave both blank** to have them generated automatically.
@@ -1429,4 +1504,4 @@ When contacting support, include the `request_id` — it lets us find your exact
 
 ---
 
-*Last updated: 28-07-2026 · Maintained by aod-tech*
+*Last updated: 15-07-2026 · Maintained by aod-tech*

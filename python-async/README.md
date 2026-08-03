@@ -1,6 +1,6 @@
 # Python (async) — AOD-API
 
-This folder contains **6 ready-to-run async Python files**, one for each API step, plus a shared `helper.py`. They use **`httpx`** with `asyncio`, so the "check" steps (2, 4, 6) check many files/jobs/reports **at the same time** — faster when you have a lot of them. (Prefer plain, one-at-a-time requests? Use the `python-sync/` folder instead — same behavior, no async.)
+This folder contains **ready-to-run async Python files** — one for each API step, plus a `re_upload.py` for retrying files whose upload failed — and a shared `helper.py`. They use **`httpx`** with `asyncio`, so the "check" steps (2, 4, 6) check many files/jobs/reports **at the same time** — faster when you have a lot of them. (Prefer plain, one-at-a-time requests? Use the `python-sync/` folder instead — same behavior, no async.)
 
 The values you edit live in **one shared [config.json](../config.json) at the repo root** — so every language folder (Java, .NET, Node, Python) reads the same config, and you fill it in **once**.
 
@@ -23,6 +23,7 @@ For the full API reference (every endpoint, request, and response), see the [mai
 - [Paths & commands at a glance](#paths--commands-at-a-glance)
 - [Step 1 — Upload your file(s)](#step-1--upload-your-files)
 - [Step 2 — Check upload status](#step-2--check-upload-status--2_check_uploadpy)
+- [Re-upload a failed file](#re-upload-a-failed-file--re_uploadpy)
 - [Step 3 — Start processing](#step-3--start-processing--3_create_jobpy)
 - [Step 4 — Check job & get tagged PDF](#step-4--check-job--get-tagged-pdf--4_check_jobpy)
 - [Step 5 — Request a score report](#step-5--request-a-score-report--5_create_reportpy)
@@ -56,6 +57,7 @@ your-project/
 │   ├── 1_upload.py            (direct upload from ../uploads/)
 │   ├── 1_upload_from_url.py   (upload from signed URLs)
 │   ├── 2_check_upload.py … 6_check_report.py
+│   ├── re_upload.py           (retry a file whose upload Failed)
 │   ├── data.json         (created automatically — clean tracked items only)
 │   └── errors.json       (created only if something errors — see below)
 ├── python-sync/  …       (same, but uses requests instead of httpx)
@@ -116,7 +118,8 @@ You fill these in **as you go** — `sign_urls` before Step 1 (Option B; for Opt
 |------|------|--------------|
 | 1A | `1_upload.py`            | **Direct upload** — uploads every PDF in the repo-root `uploads/` folder (status starts as `Uploading`) |
 | 1B | `1_upload_from_url.py`   | **Signed-URL upload** — uploads from the `sign_urls` in `config.json` (use one *or* the other, not both) |
-| 2 | `2_check_upload.py`  | Check **all** uploads concurrently → update each to `Uploaded` when ready |
+| 2 | `2_check_upload.py`  | Check **all** uploads concurrently → update each to `Uploaded` when ready (or `Failed`) |
+| — | `re_upload.py`       | Retry any file whose upload came back `Failed` with `can_reupload: true` |
 | 3 | `3_create_job.py`    | Start processing one file → get a `job_id` |
 | 4 | `4_check_job.py`     | Check **all** jobs concurrently → get the tagged-PDF download link |
 | 5 | `5_create_report.py` | Request a score report for one file → get a report `job_id` |
@@ -256,9 +259,25 @@ python 2_check_upload.py
 
 > 🧭 **Getting `can't open file '2_check_upload.py'`?** You're in the wrong folder. The step files live inside `python-async/`. Run `cd python-async` first (you should see the `2_check_upload.py` file when you type `ls`).
 
-**Result:** prints the status of each file. Files already `Uploaded` are skipped; the rest are updated. Re-run until all show `Uploaded`.
+**Result:** prints the status of each file and updates `data.json`. A file can come back three ways: `Uploaded` (done), still `Uploading` (re-run in a bit), or `Failed`. A `Failed` file is recorded with its error and a `can_reupload` flag; files already `Uploaded` or `Failed` are skipped on later runs. Re-run until every file is `Uploaded` (or `Failed`).
+
+**If a file failed:** when `can_reupload` is `true` you can retry it — see [Re-upload a failed file](#re-upload-a-failed-file--re_uploadpy) below. When it's `false`, the file can't be recovered; upload a fresh copy with `1_upload.py`.
 
 **Next:** copy an uploaded `file_id` into `config.json` under `process.file_id`, then run Step 3.
+
+---
+
+## Re-upload a failed file → `re_upload.py`
+
+If Step 2 showed a file as **`Failed`** with **`can_reupload: true`**, you can retry the upload without starting over. This script reads `data.json`, finds every failed file that's re-uploadable, and re-uploads them all at once by calling `POST /files/re-upload/{file_id}`.
+
+```bash
+python re_upload.py
+```
+
+**Result:** each re-uploaded file goes back to `Uploading` (the transfer restarts in the background), and its old failure info is cleared in `data.json`. Files that failed with `can_reupload: false` are listed but skipped — those can't be recovered, so upload a fresh copy with `1_upload.py` instead.
+
+**Next:** run Step 2 (`python 2_check_upload.py`) again to see whether the re-uploaded files finished.
 
 ---
 
@@ -345,6 +364,7 @@ python 6_check_report.py
 - **`Batch pair is incomplete in config.json`** — you set only one of `user_batch_id` / `batch_name`. They always travel together: set **both** to target a specific batch, or clear **both** to have one auto-generated.
 - **409 Conflict on upload** — the `user_batch_id` / `batch_name` pair you sent partially matches an existing batch (one value is already tied to a different partner). Use the matching partner value, pick a **new unique** pair, or clear both to auto-generate.
 - **413 Payload Too Large** — the **combined size** of the files in one upload request is over the **1 GB** limit. There's no cap on **how many** files you send, only on their total size (and no per-file cap — a single file can be up to 1 GB). Move some PDFs out of `uploads/` (or send fewer URLs) so each request stays under 1 GB, then run it again.
+- **A file's status is `Failed`** — the background upload didn't complete. Step 2 records the reason and a `can_reupload` flag. If `can_reupload` is `true`, run `python re_upload.py` to retry, then `python 2_check_upload.py` again. If it's `false`, the file can't be recovered — upload a fresh copy with `python 1_upload.py`.
 - **A job is stuck at `AwaitingManualReview`** — that's not stuck: you asked for manual review (`process.requires_manual_review: true` in Step 3) and the API is waiting for you. Log in at <https://app.accessibilityondemand.ai/login>, open the batch, select the file, click **Review**, and click **Complete** on the last page. Then re-run `python 4_check_job.py`.
 - **`ModuleNotFoundError: No module named 'httpx'`** — you skipped the install step. Run `pip install httpx`.
 - **401 Unauthorized** — your API key is missing, wrong, or has extra spaces. Re-check `api_key` in `config.json`.
