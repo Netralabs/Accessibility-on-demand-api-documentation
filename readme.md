@@ -303,7 +303,7 @@ Here is roughly what `data.json` looks like after a few steps:
       "file_id": "aaa950240561cd149157e054",
       "job_id": "job_123",
       "status": "Completed",
-      "details": { "download_url": "...", "expires_in_seconds": 300 }
+      "details": { "download_url": "...", "expires_in_seconds": 604800 }
     }
   ],
   "report_process": [
@@ -314,7 +314,7 @@ Here is roughly what `data.json` looks like after a few steps:
 
 > 📂 **Open your language's folder and follow its own README** for the exact path to `config.json`, the path to that folder's `data.json` / `errors.json`, and the commands to run each step (each README tells you to `cd` into the folder first). The API behaves identically regardless of language — see [Section 9](#9-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
 
-> ⏳ **Download links expire** (see `expires_in_seconds`, e.g. 300 = 5 minutes, 0 = link expired). Download the file promptly and store it.
+> ⏳ **Download links expire** (see `expires_in_seconds`, e.g. 604800  = 7 days, 0 = link expired). Download the file promptly and store it.
 
 [⬆ Back to top](#top)
 
@@ -987,7 +987,7 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/jobs/JOB_ID_HERE" \
     "status": "Completed",
     "details": {
       "download_url": "downloading url",
-      "expires_in_seconds": 300
+      "expires_in_seconds": 604800
     }
   },
   "message": null,
@@ -1071,7 +1071,7 @@ Once you click **Complete**, call `GET /jobs/{job_id}` again — the response wi
 |-------|---------|
 | `data.status` | e.g. `Processing`, `Completed`, `Warning`, `Failed` |
 | `data.details.download_url` | Link to download the tagged PDF (present on `Completed`, and on `Warning` where most pages succeeded). **Absent when a manual review is required and hasn't been completed yet** — see the "manual review pending" example above. |
-| `data.details.expires_in_seconds` | How long the link stays valid (e.g. 300 = 5 minutes, 0 = expired; longer values are possible) |
+| `data.details.expires_in_seconds` | How long the link stays valid (e.g. 604800 = 7 days, 0 = expired; longer values are possible) |
 | `data.details.message` | Present only when the job was started with `requires_manual_review: true` and the review is still pending — tells you to complete the review in the web UI |
 | `data.details.error` | On `Failed`, the reason the job failed; on `Warning`, which pages could not be processed |
 
@@ -1159,7 +1159,7 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/report/JOB_ID_HERE" 
     "status": "Completed",
     "details": {
       "download_url": "score report pdf url",
-      "expires_in_seconds": 300
+      "expires_in_seconds": 604800
     }
   },
   "request_id": "....",
@@ -1192,7 +1192,7 @@ curl -X GET "https://api.accessibilityondemand.space/api/v1/report/JOB_ID_HERE" 
 |-------|---------|
 | `data.status` | e.g. `Processing`, `Completed`, `Failed` |
 | `data.details.download_url` | Link to download the score report PDF (only when `Completed`) |
-| `data.details.expires_in_seconds` | How long the link stays valid (e.g. 300 = 5 minutes, 0 = expired) |
+| `data.details.expires_in_seconds` | How long the link stays valid (e.g. 604800 = 7 days, 0 = expired) |
 | `data.details.error` | Present only on failure — the reason the report could not be generated |
 
 [⬆ Back to top](#top)

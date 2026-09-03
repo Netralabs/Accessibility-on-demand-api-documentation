@@ -26,7 +26,7 @@
  * How to run:  node 4_check_job.js
  *
  * Note: the download_url expires after a short time (expires_in_seconds, e.g.
- * 300s = 5 minutes). Download the tagged PDF soon, or re-run this file.
+ * 604800s = 7 days). Download the tagged PDF soon, or re-run this file.
  */
 
 const { BASE_URL, apiKey, buildHeaders, getValue, saveValue, logJobError } = require("./helper");

@@ -26,7 +26,7 @@ EDIT NOTHING HERE. Your api_key lives in  ../config.json
 How to run:  python 4_check_job.py
 
 Note: the download_url expires after a short time (expires_in_seconds, e.g.
-300s = 5 minutes; or links may last longer). Download the tagged PDF soon, or re-run this file.
+604800s = 7 days; or links may last longer). Download the tagged PDF soon, or re-run this file.
 """
 
 import asyncio
