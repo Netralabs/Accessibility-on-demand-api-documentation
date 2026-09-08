@@ -259,7 +259,8 @@ your-project/
    > 🧹 **Clean up after Step 1 runs.** Once you've run Step 1 and have your `file_id`s, the upload is done — there's no need to send those files again. **Remove the PDFs from the `uploads/` folder** (and **clear the `sign_urls` list in `config.json`**) so the next run doesn't re-upload the same files by mistake. You don't keep re-hitting the upload endpoint; Steps 2–6 use the `file_id`, not the original file or URL.
 2. **Check upload** → repeat until the status is `Uploaded`. *(If it comes back `Failed` with `can_reupload: true`, you can retry that file with the re-upload endpoint — see [Endpoint 8](#endpoint-8--re-upload-a-failed-file).)*
 3. **Create a job** with a `file_id`, a level (1 or 2), and optionally `requires_manual_review: true` → get a `job_id`.
-4. **Check the job** → when `Completed`, get the tagged-PDF download link. *(If you passed `requires_manual_review: true`, first go to the web UI, do the manual review, click **Complete**, and then poll this endpoint again to get the download link.)*
+4. **Check the job** → when `Completed`, get the tagged-PDF download link. *(If you passed `requires_manual_review: true`, first go to the web UI, do the manual review, click **Complete** on last page, and then poll this endpoint again to get the download link. The download link expires in **7 days**, so please complete the manual review before the link expires.)*
+
 5. **Request a report** with a `file_id` → get a report `job_id`.
 6. **Check the report** → when `Completed`, get the score-report PDF download link.
 
@@ -351,7 +352,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/jobs/" \
 # → job_id: job_123
 ```
 
-**Step 4 — Poll the job** until `Completed`, then download the tagged PDF from `download_url` (before it expires). *(If you started the job with `requires_manual_review: true`, the response will first ask you to complete the manual review in the web UI — see [Endpoint 5](#endpoint-5--check-job--get-tagged-pdf). After clicking **Complete**, poll this endpoint again to get the `download_url`.)*
+**Step 4 — Poll the job** until `Completed`, then download the tagged PDF from `download_url` (before it expires). *(If you started the job with `requires_manual_review: true`, the response will first ask you to complete the manual review in the web UI — see [Endpoint 5](#endpoint-5--check-job--get-tagged-pdf). After clicking **Complete** on last page, poll this endpoint again to get the `download_url`. The download link expires in **7 days**, so please complete the manual review before the link expires.)*
 
 ```bash
 curl -X GET "https://api.accessibilityondemand.space/api/v1/jobs/job_123" \
@@ -958,7 +959,7 @@ curl -X POST "https://api.accessibilityondemand.space/api/v1/jobs/" \
 |-------|---------|
 | `file_id` (request) | An uploaded file's ID |
 | `level` (request) | Processing level: `1` or `2` |
-| `requires_manual_review` (request, optional) | If `true`, the tagged PDF is held for manual review in the web UI — the download link isn't returned until you complete the review and click **Complete**. Default: `false`. See [Endpoint 5](#endpoint-5--check-job--get-tagged-pdf) for the full workflow. |
+| `requires_manual_review` (request, optional) | If `true`, the tagged PDF is held for manual review in the web UI — the download link isn't returned until you complete the review and click **Complete** on last page. Default: `false`. See [Endpoint 5](#endpoint-5--check-job--get-tagged-pdf) for the full workflow. |
 | `data.job_id` | The job's ID — use it to check status in the next step |
 
 [⬆ Back to top](#top)
@@ -1025,7 +1026,7 @@ If you started the job with `requires_manual_review: true` on [Endpoint 4](#endp
     "data": {
         "status": "Completed",
         "details": {
-            "message": "Please complete the manual review in the system. After that, the download link will be available."
+            "message": "Please complete the manual review in the system. After that, the download link will be available. The download link will expire in 604800 seconds."
         }
     },
     "message": null,
@@ -1466,6 +1467,7 @@ When contacting support, include the `request_id` — it lets us find your exact
 > 2. Open the batch (the `user_batch_id` / `batch_name` you got at upload).
 > 3. Select the file, click **Review**, and work through the pages.
 > 4. On the last page, click the **Complete** button.
+> 5. Complete manual review before link expiry time = 7days.
 >
 > After that, call `GET /jobs/{job_id}` again — the response will now include the `download_url`. See [Endpoint 5](#endpoint-5--check-job--get-tagged-pdf) for the full flow.
 
@@ -1476,7 +1478,7 @@ When contacting support, include the `request_id` — it lets us find your exact
 > The account doesn't have enough credits to process the file. Credits are consumed when you start a processing job (Endpoint 4). An **Admin** or **Super Admin** can allot more credits to the user (see [Section 3](#3-how-to-get-your-api-key)); once topped up, run the step again.
 
 **Q: I asked for a report but got "make the PDF accessible first." Why?**
-> A score report can only be generated for a file that has been successfully made accessible — that is, its processing job (Endpoint 4) **Completed**. Files that are still processing, that failed, or that finished with warnings can't be scored. Finish processing the file successfully, then request the report. If the job used `requires_manual_review: true`, remember to complete the manual review in the web UI first — until you click **Complete**, the file isn't considered fully tagged for scoring.
+> A score report can only be generated for a file that has been successfully made accessible — that is, its processing job (Endpoint 4) **Completed**. Files that are still processing, that failed, or that finished with warnings can't be scored. Finish processing the file successfully, then request the report. If the job used `requires_manual_review: true`, remember to complete the manual review in the web UI first — until you click **Complete** on last page, the file isn't considered fully tagged for scoring.
 
 **Q: Which languages are supported?**
 > All four are available now, each in its own folder with the same 6 steps: Python — [`/python-sync`](python-sync) and [`/python-async`](python-async), Node.js — [`/node`](node), Java — [`/java`](java), and .NET — [`/dotnet`](dotnet). The API works the same in any language; see [Section 9](#9-full-examples-for-every-endpoint-curl--responses) for the raw requests and responses.
