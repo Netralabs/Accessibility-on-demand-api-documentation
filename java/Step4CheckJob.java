@@ -25,7 +25,7 @@
  *   Windows:    java -cp ".;lib\gson.jar" Step4CheckJob.java
  *
  * Note: the download_url expires after a short time (expires_in_seconds, e.g.
- * 300s = 5 minutes). Download the tagged PDF soon, or re-run this file.
+ * 604800s = 7 days). Download the tagged PDF soon, or re-run this file.
  */
 
 import com.google.gson.*;

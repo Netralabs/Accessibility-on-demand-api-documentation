@@ -350,7 +350,7 @@ dotnet run -- step4
 3. On the last page of the review, click the **Complete** button.
 4. Run `dotnet run -- step4` again — the `download_url` will now be included.
 
-> ⏳ The download link expires (see `expires_in_seconds`, e.g. 300 = 5 minutes). Download the PDF soon.
+> ⏳ The download link expires (see `expires_in_seconds`, e.g. 604800 = 7 days). Download the PDF soon.
 
 ---
 

@@ -23,7 +23,7 @@
  * EDIT NOTHING HERE. Your api_key lives in  ../config.json
  *
  * Note: the download_url expires after a short time (expires_in_seconds, e.g.
- * 300s = 5 minutes). Download the tagged PDF soon, or re-run this step.
+ * 604800s = 7 days). Download the tagged PDF soon, or re-run this step.
  */
 
 using System;
